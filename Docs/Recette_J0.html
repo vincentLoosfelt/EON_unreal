@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>EON — Recette jalon 0</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #01060C; font-size: 10.5pt; line-height: 1.45; }
+  h1 { font-size: 20pt; margin: 0 0 2mm; letter-spacing: .5px; }
+  h1 span { color: #E9A100; }
+  .sub { color: #555; margin-bottom: 6mm; }
+  h2 { font-size: 13pt; border-bottom: 2px solid #E9A100; padding-bottom: 1mm; margin: 7mm 0 3mm; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; }
+  th, td { border: 1px solid #c8ccd0; padding: 2mm 2.5mm; vertical-align: top; text-align: left; }
+  th { background: #01060C; color: #fff; font-weight: 600; }
+  td.n { width: 7mm; text-align: center; font-weight: 700; color: #EF1400; }
+  td.ok { width: 14mm; }
+  code { background: #eef1f3; padding: 0 1.5mm; border-radius: 2px; font-size: 9.5pt; }
+  .box { border-left: 4px solid #EF1400; background: #fff4f2; padding: 2.5mm 4mm; margin: 3mm 0; }
+  .note { border-left: 4px solid #55F6F6; background: #effdfd; padding: 2.5mm 4mm; margin: 3mm 0; }
+  img { width: 100%; border: 1px solid #c8ccd0; margin: 2mm 0; }
+  .small { font-size: 9pt; color: #555; }
+</style>
+</head>
+<body>
+
+<h1>EON <span>// Recette jalon 0 — le socle</span></h1>
+<div class="sub">Portage Unreal 5.8 du proto pixel v0.60.1 · Projet <code>D:\_PROJETS\briscard\EON_UE</code> · 13/11/2026 · commit <code>3e7f8af</code></div>
+
+<h2>Ce que contient le jalon</h2>
+<table>
+<tr><th>Élément</th><th>Où</th><th>Détail</th></tr>
+<tr><td>Échelle</td><td><code>EONTypes.h</code>, <code>UEONStatics</code></td><td>1 tuile = 16 px = 100 cm, donc 1 px = 6,25 cm, à un seul endroit. Nœuds Blueprint <code>px→cm</code>, <code>cm→px</code>, <code>ProtoToWorld</code>.</td></tr>
+<tr><td>Données</td><td><code>/Game/EON/Data</code></td><td>DT_GameFeel (préréglages studio / eon / sec / max), DT_Greffes (8), DT_Ennemis (11), DT_Sprites (79). Elles sont générées depuis les JSON de la passation par <code>Saved/Scripts/eon_setup_j0.py</code>.</td></tr>
+<tr><td>Banc de réglages</td><td><code>UEONTuningSubsystem</code></td><td>Les 33 réglages du proto, plus ceux de la caméra 3D et les multiplicateurs d'écart. Ils se modifient en jeu dans la console, ou en Blueprint (<code>Get Game Feel</code>, <code>Set Value</code>).</td></tr>
+<tr><td>Caméra</td><td><code>AEONPlayerCameraManager</code></td><td>Plongée fixe à 55°, perspective longue focale (FOV 25°), 30 m visibles au centre. Elle reprend le suivi du proto : anticipation de 22 px vers la visée, lissage, bornes de salle, kick et tremblement.</td></tr>
+<tr><td>Entrées</td><td><code>/Game/EON/Input</code></td><td>IMC_EON avec 17 actions, au clavier/souris et à la manette Xbox (contrôles du doc 02). Le jeu détecte le dernier périphérique utilisé.</td></tr>
+<tr><td>Jira (provisoire)</td><td><code>BP_Jira</code> (hérite de <code>AEONCharacter</code>)</td><td>Capsule de 25 cm de rayon et 181 cm de haut, marche à 82 px/s avec le lissage du proto, sprite placeholder <code>jira_a0</code>. Le dash, la course et le tir arrivent au jalon 1.</td></tr>
+<tr><td>Placeholder sprite</td><td><code>UEONSpriteComponent</code></td><td>Il prend un nom de sprite, le dimensionne à 6,25 cm/px, le pose aux pieds, le tourne vers la caméra, l'anime et le retourne vers la gauche si besoin. Pixel net (filtre Nearest).</td></tr>
+<tr><td>Salle de test</td><td><code>L_TestRoom</code></td><td>32 × 20 m murs compris, aux couleurs de la palette Coursive (étage 1) et avec une ombre teintée. Carte de démarrage du projet.</td></tr>
+<tr><td>Blueprints</td><td><code>/Game/EON/Blueprints</code></td><td>BP_EONGameMode, BP_EONPlayerController et BP_Jira. C'est là qu'on branche les meshes, les anims et les effets.</td></tr>
+</table>
+
+<img src="J0_capture_salle.png" alt="Capture L_TestRoom">
+<div class="small">Capture du jeu lancé en autonome, avec la vue réglée à 20 m en jeu par <code>eon.feel CamViewTiles 20</code>.</div>
+
+<h2>Recette : à faire dans l'éditeur</h2>
+<p>Ouvre <code>EON.uproject</code> (la carte <code>L_TestRoom</code> s'ouvre seule), puis lance <b>Play</b> (PIE).</p>
+<table>
+<tr><th>#</th><th>Étape</th><th>Réaction attendue</th><th>OK ?</th></tr>
+<tr><td class="n">1</td><td>Lancer Play.</td><td>La salle est vue en plongée, avec Jira (sprite pixel) au centre. En haut à gauche, la ligne cyan affiche <i>entrée CLAVIER/SOURIS · vue 30.0 m · salle 32x20</i>.</td><td class="ok"></td></tr>
+<tr><td class="n">2</td><td>Se déplacer avec ZQSD, WASD ou les flèches.</td><td>Jira se déplace et le texte affiche environ <b>82 px/s</b>. Le départ et l'arrêt sont rapides, sans être secs. Les murs et les deux blocs bloquent Jira.</td><td class="ok"></td></tr>
+<tr><td class="n">3</td><td>Aller dans un coin de la salle.</td><td>La caméra suit avec un léger retard et <b>ne montre jamais l'extérieur de la salle</b> au-delà de ses bords.</td><td class="ok"></td></tr>
+<tr><td class="n">4</td><td>Bouger la souris autour de Jira.</td><td>L'angle de visée suit le curseur. La caméra glisse d'environ 1,4 m vers la visée. Le sprite se retourne quand on vise à gauche.</td><td class="ok"></td></tr>
+<tr><td class="n">5</td><td>Toucher la manette (stick ou bouton).</td><td>Le texte passe à <b>MANETTE</b>. Le stick gauche déplace Jira et le stick droit vise. Un mouvement de souris remet <b>CLAVIER/SOURIS</b>.</td><td class="ok"></td></tr>
+<tr><td class="n">6</td><td>Appuyer sur clic gauche, Espace, E, F, R, C, Tab, 1 à 5, puis RT, A, RB, X, Y, B et la croix.</td><td>« dernière action » affiche Tir, Dash, Onde, Hologramme, Ultime, Interagir, Carte, Greffe n… Le gameplay de ces actions arrive aux jalons suivants.</td><td class="ok"></td></tr>
+<tr><td class="n">7</td><td>Console (touche ²), taper <code>eon.feel CamViewTiles 20</code>.</td><td>La vue passe tout de suite à <b>20 m</b> (zoom). Taper ensuite <code>eon.feel CamViewTiles 30</code> pour revenir.</td><td class="ok"></td></tr>
+<tr><td class="n">8</td><td><code>eon.feel.preset sec</code>, puis <code>eon.feel.preset studio</code>.</td><td>Avec « sec », Lookahead = 0 et Shake = 0 : la caméra ne glisse plus vers la visée. Avec « studio », tout revient.</td><td class="ok"></td></tr>
+<tr><td class="n">9</td><td>Comparer avec le proto : ouvrir <code>Docs/PASSATION_UNREAL/REFERENCE_PROTO/EON_v0.60.1_DEV.html</code>.</td><td>La quantité de terrain visible autour de Jira est proche, soit environ 30 tuiles de large.</td><td class="ok"></td></tr>
+</table>
+
+<div class="box"><b>Pas vérifié de mon côté</b> : je n'ai pas pu appuyer sur les touches ni la manette. Les étapes 2 à 6 n'ont donc pas été jouées. J'ai vérifié en jeu autonome : l'affichage de la salle, la caméra, le sprite, le chargement des tables et un réglage changé en jeu (étape 7).</div>
+
+<h2>Notes de portage</h2>
+<div class="note">
+<b>Données.</b> Les JSON de <code>DONNEES/</code> restent la source. Si l'un d'eux change, relance <code>eon_setup_j0.py tables</code>, éditeur fermé.<br>
+<b>Écart noté dans MANQUANTS.md.</b> Les touches sont liées par caractère et non par position physique. ZQSD et WASD fonctionnent tous les deux ; sur AZERTY, A va aussi à gauche, sans conséquence en jeu.<br>
+<b>Assets 3D.</b> Ils sont tirés du dossier <code>BRISCARD_PROD/3D</code> du Drive (FBX + Textures), rangés dans <code>Reference/3D_Studio</code>. Le projet Unity n'a ni Jira ni ses anims. Branchement de <code>Cyborg_mode.fbx</code> et des 16 anims au jalon 1.<br>
+<b>MCP.</b> Dust et EON utilisent le même port (8000). Un seul des deux éditeurs à la fois pour que je pilote l'éditeur.
+</div>
+
+<h2>Prochaine étape : jalon 1, « Jira qui tire »</h2>
+<p>Import de Jira (Cyborg + 16 anims), dash à 2 charges, course, greffe Standard, cibles d'entraînement, tout le game feel du tir et énergie. On compare dans la salle de réveil du Kibo du proto. Selon le plan de Sabri, ça commence <b>après que tu as joué ce jalon 0</b>.</p>
+
+</body>
+</html>
