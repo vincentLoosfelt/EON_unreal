@@ -1,0 +1,597 @@
+{
+  "_note": "who = cle de personnages ; ex = expression du portrait ; t = texte.",
+  "personnages": {
+    "ia": {
+      "n": "IA de la station",
+      "c": "#3ef2e0"
+    },
+    "jira": {
+      "n": "Jira",
+      "c": "#b8dc58"
+    },
+    "cobaye": {
+      "n": "Le Cobaye",
+      "c": "#e0503a"
+    },
+    "newt": {
+      "n": "La gamine",
+      "c": "#ffb0c0"
+    },
+    "ulysse": {
+      "n": "Ulysse",
+      "c": "#ffc23d"
+    },
+    "marchand": {
+      "n": "Le marchand",
+      "c": "#ffc23d"
+    },
+    "chercheur": {
+      "n": "Le chercheur",
+      "c": "#dfe6ea"
+    },
+    "carto": {
+      "n": "Le cartographe",
+      "c": "#7affb0"
+    },
+    "vieille": {
+      "n": "La vieille dame",
+      "c": "#c8e0a8"
+    }
+  },
+  "dialogues": {
+    "marchand": [
+      {
+        "who": "marchand",
+        "ex": "neutre",
+        "t": "Doucement. Le mur est a moi, et ce qu'il y a derriere aussi."
+      },
+      {
+        "who": "marchand",
+        "ex": "sourire",
+        "t": "Trois pieces, pas une de plus. Ce que tu vois est ce que j'ai."
+      },
+      {
+        "who": "jira",
+        "ex": "neutre",
+        "t": "Tu prends quoi, en echange ?"
+      },
+      {
+        "who": "marchand",
+        "ex": "sourire",
+        "t": "Du scrap. Marche dessus, c'est a toi. Et ne reviens pas me dire que c'etait cher."
+      }
+    ],
+    "rift": [
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Rupture de paroi. Decompression en cours."
+      },
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Neutralisez la salle, puis activez le confinement. L'oxygene ne tiendra pas."
+      }
+    ],
+    "wake": [
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Unité Jira. Réactivation confirmée."
+      },
+      {
+        "who": "jira",
+        "ex": "inquiet",
+        "t": "Mes cheveux... Combien de temps ai-je dormi ?"
+      },
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Donnée corrompue. Les autres unités de cette salle ne répondent plus."
+      },
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Recalibrez vos systèmes sur les cibles d'entraînement, puis rejoignez le C.O.M par la passerelle nord."
+      }
+    ],
+    "infestCom": [
+      {
+        "who": "ia",
+        "ex": "inquiet",
+        "t": "La passerelle est envahie. Rien ne passe par là."
+      },
+      {
+        "who": "jira",
+        "ex": "neutre",
+        "t": "Alors je fais le tour. Il doit y avoir une autre entrée."
+      }
+    ],
+    "infestBoss": [
+      {
+        "who": "jira",
+        "ex": "inquiet",
+        "t": "La chair a muré cette porte. Elle bat... comme un cœur."
+      }
+    ],
+    "donnees": [
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Données récupérées. Elles restent au Kibo, même si vous tombez."
+      },
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Au C.O.M, à quai, je peux les utiliser pour améliorer vos cassettes."
+      }
+    ],
+    "cartoStart": [
+      {
+        "who": "carto",
+        "ex": "inquiet",
+        "t": "Hé ! Toi, l'armure ! Ils me suivent depuis les conduits !"
+      },
+      {
+        "who": "carto",
+        "ex": "neutre",
+        "t": "Tiens-les loin de moi et je te donne ma carte. Je connais chaque salle de cet étage."
+      },
+      {
+        "who": "jira",
+        "ex": "neutre",
+        "t": "Reste derrière moi."
+      }
+    ],
+    "cartoWin": [
+      {
+        "who": "carto",
+        "ex": "sourire",
+        "t": "T'es pas comme les autres qui passent par ici. Tiens, elle est à toi."
+      },
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Carte de l'étage complétée. Salles spéciales marquées."
+      },
+      {
+        "who": "carto",
+        "ex": "neutre",
+        "t": "Je retourne dans les conduits. On se recroisera, l'armure."
+      }
+    ],
+    "cartoLost": [
+      {
+        "who": "jira",
+        "ex": "triste",
+        "t": "... Trop tard. Il connaissait cet étage mieux que personne."
+      }
+    ],
+    "dock": [
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Connexion au C.O.M établie. C'est lui qui nous porte d'étage en étage, dans les entrailles de la station."
+      },
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Le terminal est devant vous. Tirez le levier : nous descendons vers l'étage 1."
+      },
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "C'est aussi ici, à quai, que j'installe les améliorations de vos cassettes."
+      }
+    ],
+    "iaIntro": [
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Étage 1, salle des machines. Taux de contamination : critique."
+      },
+      {
+        "who": "ia",
+        "ex": "inquiet",
+        "t": "La mutation a envahi l'une des quatre passerelles. C'est elle qui a forcé le C.O.M à s'arrêter ici."
+      },
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Sa source, le gardien de l'étage, est derrière. Son autre entrée est sous verrou rouge : la carte se trouve sur le chemin qui y mène."
+      },
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Neutralisez le gardien et la passerelle sera libérée. Le C.O.M sera juste à côté."
+      },
+      {
+        "who": "jira",
+        "ex": "inquiet",
+        "t": "Le spécimen de la cuve... Qu'est-ce que c'est ?"
+      },
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Inconnu. Bonne chance, unité Jira."
+      }
+    ],
+    "newtBad": [
+      {
+        "who": "newt",
+        "ex": "triste",
+        "t": "Tu as vu Lapin ? Je l'ai perdu dans les tuyaux..."
+      },
+      {
+        "who": "jira",
+        "ex": "inquiet",
+        "t": "Qu'est-ce que tu fais ici, toute seule ?"
+      },
+      {
+        "who": "newt",
+        "ex": "triste",
+        "t": "Maman a dit d'attendre ici. Ça fait longtemps..."
+      },
+      {
+        "who": "newt",
+        "ex": "colere",
+        "t": "J'ai froid. Ça brûle. ÇA BRÛLE !"
+      }
+    ],
+    "newtGood": [
+      {
+        "who": "newt",
+        "ex": "sourire",
+        "t": "Lapin ! Tu l'as retrouvé !"
+      },
+      {
+        "who": "jira",
+        "ex": "neutre",
+        "t": "Il t'attendait. Plus haut, dans la station."
+      },
+      {
+        "who": "newt",
+        "ex": "sourire",
+        "t": "Tiens, prends ça. Maman disait que ça protège. Moi, j'ai Lapin maintenant."
+      }
+    ],
+    "serres": [
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Étage 4. Les serres hydroponiques. L'oxygène de la station venait d'ici."
+      },
+      {
+        "who": "jira",
+        "ex": "sourire",
+        "t": "De la verdure... Je ne savais pas que j'en avais besoin."
+      },
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Peu de signaux hostiles. Reprenez votre souffle. Aucune carte n'est requise. Le C.O.M attendra que vous ayez vu le grand arbre."
+      }
+    ],
+    "vieille": [
+      {
+        "who": "ia",
+        "ex": "inquiet",
+        "t": "Signal humain. Faible. Il ne figure dans aucun registre."
+      },
+      {
+        "who": "vieille",
+        "ex": "neutre",
+        "t": "Oh. Bonjour. Tu viens aussi écouter l'arbre ?"
+      },
+      {
+        "who": "jira",
+        "ex": "inquiet",
+        "t": "Madame ? Qu'est-ce que vous faites ici, toute seule ?"
+      },
+      {
+        "who": "vieille",
+        "ex": "triste",
+        "t": "Je ne sais plus. J'avais quelque chose d'important à faire. Quelque chose à... brancher."
+      },
+      {
+        "who": "vieille",
+        "ex": "sourire",
+        "t": "Le saule, lui, je m'en souviens. Elle aimait s'endormir dessous."
+      },
+      {
+        "who": "jira",
+        "ex": "neutre",
+        "t": "Elle ?"
+      },
+      {
+        "who": "vieille",
+        "ex": "triste",
+        "t": "Tu as ses yeux, tu sais. C'est drôle. Non. Ce n'est pas drôle."
+      },
+      {
+        "who": "ia",
+        "ex": "inquiet",
+        "t": "Ce visage... Mes données sur cette femme sont corrompues. Je... Continuons, Jira."
+      },
+      {
+        "who": "vieille",
+        "ex": "neutre",
+        "t": "Va. On m'a dit d'attendre ici. Il reviendra me chercher."
+      }
+    ],
+    "labos": [
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Étage 3. Les labos. Expériences et personnel scientifique, accès restreint."
+      },
+      {
+        "who": "ia",
+        "ex": "inquiet",
+        "t": "Les postes de recherche tournent encore. Les analyses du docteur n'ont jamais été arrêtées."
+      },
+      {
+        "who": "jira",
+        "ex": "inquiet",
+        "t": "Des tables d'opération... C'est ici qu'ils travaillaient sur les sujets."
+      },
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Même protocole : la carte rouge, puis le gardien. Je capte un signal humain derrière l'une des portes."
+      }
+    ],
+    "chercheur": [
+      {
+        "who": "chercheur",
+        "ex": "sourire",
+        "t": "Ah ! Un visiteur. Pardonnez le désordre, je n'attendais plus personne aux labos."
+      },
+      {
+        "who": "jira",
+        "ex": "inquiet",
+        "t": "Vous êtes vivant ? Ici ?"
+      },
+      {
+        "who": "chercheur",
+        "ex": "sourire",
+        "t": "Le docteur m'a confié son protocole. Je l'ai testé sur moi. Regardez : je ne me suis jamais senti aussi bien."
+      },
+      {
+        "who": "ia",
+        "ex": "inquiet",
+        "t": "Jira. Son signal vital est instable. Reculez."
+      },
+      {
+        "who": "chercheur",
+        "ex": "colere",
+        "t": "Mon bras... Non, pas maintenant... ÇA NE S'ARRÊTE PAS !"
+      }
+    ],
+    "chercheurFin": [
+      {
+        "who": "ia",
+        "ex": "triste",
+        "t": "Signal vital éteint."
+      },
+      {
+        "who": "jira",
+        "ex": "triste",
+        "t": "Il disait que ça marchait. Il y croyait vraiment."
+      },
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Le remède du docteur. Quelqu'un continue de le produire, plus haut."
+      }
+    ],
+    "cuves": [
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Étage 2. Secteur des cuves. Le programme de clonage occupait tout ce niveau."
+      },
+      {
+        "who": "ia",
+        "ex": "inquiet",
+        "t": "Les spécimens n'ont jamais été détruits. Certains ne sont pas morts."
+      },
+      {
+        "who": "jira",
+        "ex": "inquiet",
+        "t": "Ces formes dans les cuves... Certaines me ressemblent."
+      },
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Même protocole : la carte rouge, puis le gardien, puis retour au C.O.M."
+      }
+    ],
+    "wakeCob": [
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Sujet C. Réveil hors protocole."
+      },
+      {
+        "who": "cobaye",
+        "ex": "colere",
+        "t": "Encore cette cuve. Encore ce goût de métal dans la bouche."
+      },
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Votre bras répond. Testez-le sur les cibles, puis rejoignez le C.O.M par la passerelle nord."
+      }
+    ],
+    "cobMeet": [
+      {
+        "who": "cobaye",
+        "ex": "neutre",
+        "t": "Toi aussi, tu sors d'une de ces cuves."
+      },
+      {
+        "who": "jira",
+        "ex": "inquiet",
+        "t": "Identifie-toi."
+      },
+      {
+        "who": "cobaye",
+        "ex": "triste",
+        "t": "Ils m'appelaient le cobaye. Je n'ai jamais eu d'autre nom."
+      },
+      {
+        "who": "cobaye",
+        "ex": "colere",
+        "t": "Mon bras ne m'obéit qu'à moitié. Mais il frappe fort."
+      },
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Sujet C, expérience classée. Il peut prendre le relais : approchez-vous et appuyez sur C pour l'incarner."
+      }
+    ],
+    "jiraMeet": [
+      {
+        "who": "jira",
+        "ex": "neutre",
+        "t": "Tu tiens debout. C'est déjà ça."
+      },
+      {
+        "who": "cobaye",
+        "ex": "inquiet",
+        "t": "Une unité de combat... Tu es comme moi ?"
+      },
+      {
+        "who": "jira",
+        "ex": "triste",
+        "t": "Je ne sais plus ce que je suis."
+      },
+      {
+        "who": "ia",
+        "ex": "neutre",
+        "t": "Unité Jira opérationnelle. Approchez-vous et appuyez sur C pour l'incarner."
+      }
+    ],
+    "redDoor": [
+      {
+        "who": "jira",
+        "ex": "inquiet",
+        "t": "Verrou de sécurité rouge. Il me faut la carte."
+      }
+    ],
+    "card": [
+      {
+        "who": "jira",
+        "ex": "neutre",
+        "t": "Carte de sécurité rouge. Le sas du gardien devrait l'accepter."
+      },
+      {
+        "who": "jira",
+        "ex": "inquiet",
+        "t": "... Ce silence ne me plaît pas."
+      }
+    ],
+    "ulysse1": [
+      {
+        "who": "ulysse",
+        "ex": "colere",
+        "t": "Arrière, monstre ! ... Non. Attends. Tu n'es pas l'un d'eux."
+      },
+      {
+        "who": "ulysse",
+        "ex": "triste",
+        "t": "Ce qui m'attaquait, c'était mon quartier-maître. Il y a peu, il riait encore à ma table."
+      },
+      {
+        "who": "jira",
+        "ex": "neutre",
+        "t": "Identifiez-vous."
+      },
+      {
+        "who": "ulysse",
+        "ex": "neutre",
+        "t": "Ulysse. Capitaine de cette station... de ce qu'il en reste."
+      },
+      {
+        "who": "ulysse",
+        "ex": "triste",
+        "t": "Chacun de mes hommes portait un insigne. Je veux les rassembler, tous, pour leur rendre un dernier hommage."
+      },
+      {
+        "who": "ulysse",
+        "ex": "sourire",
+        "t": "Voici le sien. Garde-le pour moi, et ramène-moi les autres. Prends aussi ça : il n'en aura plus besoin."
+      },
+      {
+        "who": "jira",
+        "ex": "inquiet",
+        "t": "Ulysse... Ce nom ne figure dans aucune de mes données."
+      },
+      {
+        "who": "ulysse",
+        "ex": "neutre",
+        "t": "Je ne tiendrai pas une heure de plus ici. Je vais me terrer au Kibo, ta salle de réveil."
+      },
+      {
+        "who": "ulysse",
+        "ex": "sourire",
+        "t": "Rapporte-moi les insignes là-bas. Je t'attendrai."
+      }
+    ],
+    "ulysse2": [
+      {
+        "who": "ulysse",
+        "ex": "sourire",
+        "t": "Encore toi. Un insigne de plus... Merci, soldat."
+      },
+      {
+        "who": "ulysse",
+        "ex": "neutre",
+        "t": "Prends ça. Et continue de descendre."
+      }
+    ]
+  },
+  "logs": [
+    "Journal de labo, jour 112. La petite est encore venue voir l'entité. Elle lui parle. Elle dit qu'elle répond.",
+    "Note. Il veut pousser les analyses sur l'entité. J'ai dit non. Nous étions d'accord, avant.",
+    "Dossier médical. Diagnostic confirmé. Aucun traitement connu. Pronostic : quelques mois.",
+    "Journal du docteur. Le remède tient sur les tissus. Elle refuse qu'on essaie. Elle préfère attendre.",
+    "Message sans destinataire. Rémission totale à 9 h 14. Arrêt cardiaque à 9 h 52.",
+    "Kibo, enregistrement 001. Clone numéro 1 : corps conforme. Aucune réaction. Ce n'est pas elle.",
+    "Ordre de la station. Quarantaine déclenchée sur la colonne. Signé : la scientifique.",
+    "Enregistrement IA. Je ne sais pas pourquoi je fabrique ce corps. Je sais seulement qu'il le faut."
+  ],
+  "equipage_ulysse": [
+    "Ex-quartier-maitre",
+    "Ex-mecanicienne",
+    "Ex-pilote",
+    "Ex-cuisinier",
+    "Ex-medecin",
+    "Ex-operateur radio"
+  ],
+  "vieille_dame_repliques": [
+    "Le vent ne souffle plus, ici. Pourtant les branches bougent.",
+    "Tu reviendras me voir ?",
+    "J'ai froid à la tête. C'est normal ?",
+    "Il a dit qu'il reviendrait. Je crois."
+  ],
+  "cassettes": {
+    "shield": {
+      "n": "Cassette Shield",
+      "lv": [
+        "",
+        "NV1 - Absorbe 1 coup. Revient a l'etage suivant.",
+        "NV2 - Se recharge apres 10 s sans degats."
+      ],
+      "A": "NV3 A - Shield nettoyant : a l'impact, explose et nettoie la salle autour de Jira.",
+      "B": "NV3 B - Shield miroir : a l'impact, renvoie les tirs ennemis a l'expediteur.",
+      "cost": [
+        0,
+        0,
+        30,
+        60
+      ]
+    }
+  }
+}

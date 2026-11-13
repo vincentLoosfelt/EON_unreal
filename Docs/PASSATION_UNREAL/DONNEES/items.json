@@ -1,0 +1,352 @@
+{
+  "_note": "rar : C commun (poids 60), R rare (30), E epique (10). gr = ne sort que si une de ces greffes est active. once = unique par run. effet = code source de l effet applique au joueur (p).",
+  "raretes": {
+    "C": {
+      "n": "Commun",
+      "c": "#cfd3ff",
+      "w": 60
+    },
+    "R": {
+      "n": "Rare",
+      "c": "#3ef2e0",
+      "w": 30
+    },
+    "E": {
+      "n": "Epique",
+      "c": "#ffc23d",
+      "w": 10
+    }
+  },
+  "items": [
+    {
+      "id": "d_hp",
+      "cat": "DISQUETTE",
+      "rar": "C",
+      "name": "Disquette HP",
+      "desc": "+1 PV max et soigne 1 PV",
+      "effet": "p=>{p.maxHp++;p.hp=Math.min(p.maxHp,p.hp+1)}"
+    },
+    {
+      "id": "d_spd",
+      "cat": "DISQUETTE",
+      "rar": "C",
+      "name": "Disquette Vitesse",
+      "desc": "+8% vitesse de deplacement",
+      "effet": "p=>p.spd*=1.08"
+    },
+    {
+      "id": "d_en",
+      "cat": "DISQUETTE",
+      "rar": "C",
+      "name": "Disquette Energie",
+      "desc": "+15 energie max",
+      "effet": "p=>{p.enMax+=15;if(!p.mut)p.en+=15}"
+    },
+    {
+      "id": "d_dmg",
+      "cat": "DISQUETTE",
+      "rar": "C",
+      "name": "Disquette Degats",
+      "desc": "+15% degats du Cobra",
+      "effet": "p=>p.dmgM*=1.15"
+    },
+    {
+      "id": "d_cd",
+      "cat": "DISQUETTE",
+      "rar": "C",
+      "name": "Disquette Recharge",
+      "desc": "-12% recharge du dash et de l onde",
+      "effet": "p=>p.cdM*=0.88"
+    },
+    {
+      "id": "p_rate",
+      "cat": "PERK",
+      "rar": "C",
+      "name": "Vitesse de tir +",
+      "desc": "+12% cadence du mode actif",
+      "effet": "p=>p.rateM*=1.12"
+    },
+    {
+      "id": "p_thick",
+      "cat": "PERK",
+      "rar": "C",
+      "name": "Epaisseur du tir +",
+      "desc": "Projectiles plus gros, lame plus large",
+      "effet": "p=>p.size++"
+    },
+    {
+      "id": "p_range",
+      "cat": "PERK",
+      "rar": "R",
+      "name": "Portee +",
+      "desc": "+20% portee du mode actif",
+      "effet": "p=>p.rangeM*=1.2"
+    },
+    {
+      "id": "p_charge",
+      "cat": "PERK",
+      "rar": "R",
+      "name": "Reduction de charge",
+      "desc": "-20% temps de charge rafale et laser",
+      "effet": "p=>p.chargeM*=0.8"
+    },
+    {
+      "id": "p_dashd",
+      "cat": "PERK",
+      "rar": "R",
+      "name": "Dash elargi",
+      "desc": "+25% distance de dash",
+      "effet": "p=>p.dashDistM*=1.25"
+    },
+    {
+      "id": "p_dashc",
+      "cat": "PERK",
+      "rar": "E",
+      "name": "Charge de dash +",
+      "desc": "+1 charge de dash",
+      "effet": "p=>{p.dashMax++;p.dash++}"
+    },
+    {
+      "id": "p_revive",
+      "cat": "PERK",
+      "rar": "E",
+      "name": "Renaissance",
+      "desc": "Ressuscite une fois a 50% de vie",
+      "effet": "p=>p.revive++"
+    },
+    {
+      "id": "c_shield",
+      "cat": "CASSETTE",
+      "rar": "R",
+      "name": "Shield",
+      "desc": "Absorbe 1 coup. Gardee entre les runs, ameliorable au Kibo",
+      "once": true,
+      "cassette": "shield",
+      "effet": "p=>{p.shieldMax=1;p.shield=1;casUnlock('shield')}"
+    },
+    {
+      "id": "d_don",
+      "cat": "DISQUETTE",
+      "rar": "R",
+      "name": "Disquette Donnees",
+      "desc": "+30% Donnees recuperees",
+      "effet": "p=>p.donM=(p.donM||1)*1.3"
+    },
+    {
+      "id": "g_rafale",
+      "cat": "GREFFE",
+      "rar": "R",
+      "name": "Greffe Rafale",
+      "desc": "Maintenir pour charger, relacher pour la salve",
+      "greffe": "rafale"
+    },
+    {
+      "id": "g_laser",
+      "cat": "GREFFE",
+      "rar": "R",
+      "name": "Laser",
+      "desc": "Rayon charge qui transperce tout sur une ligne",
+      "greffe": "laser"
+    },
+    {
+      "id": "g_lame",
+      "cat": "GREFFE",
+      "rar": "R",
+      "name": "Lame",
+      "desc": "Arc de melee. Detruit les tirs ennemis",
+      "greffe": "lame"
+    },
+    {
+      "id": "g_shotgun",
+      "cat": "GREFFE",
+      "rar": "R",
+      "name": "Shotgun",
+      "desc": "Cone court et puissant. Recompense le risque",
+      "greffe": "shotgun"
+    },
+    {
+      "id": "g_standard",
+      "cat": "GREFFE",
+      "rar": "C",
+      "name": "Greffe Standard",
+      "desc": "Tir rapide et precis, econome",
+      "greffe": "standard"
+    },
+    {
+      "id": "e_berserk",
+      "cat": "ECHO",
+      "rar": "E",
+      "name": "Catalyseur Berserk",
+      "desc": "La mutation augmente tes degats : +35% par stade",
+      "once": true,
+      "effet": "p=>p.berserk=true"
+    },
+    {
+      "id": "e_stab",
+      "cat": "ECHO",
+      "rar": "R",
+      "name": "Stabilisateur",
+      "desc": "Les stades de mutation durent 2x plus longtemps",
+      "once": true,
+      "effet": "p=>p.stab=true"
+    },
+    {
+      "id": "e_reg",
+      "cat": "ECHO",
+      "rar": "E",
+      "name": "Regulateur",
+      "desc": "La mutation reste bloquee au stade 1",
+      "once": true,
+      "effet": "p=>p.reg=true"
+    },
+    {
+      "id": "n_kit",
+      "cat": "DISQUETTE",
+      "rar": "C",
+      "name": "Kit de soin",
+      "desc": "Soigne 3 PV",
+      "effet": "p=>p.hp=Math.min(p.maxHp,p.hp+3)"
+    },
+    {
+      "id": "n_aimant",
+      "cat": "DISQUETTE",
+      "rar": "C",
+      "name": "Aimant",
+      "desc": "Ramasse le butin de plus loin",
+      "effet": "p=>p.magR=(p.magR||40)+30"
+    },
+    {
+      "id": "n_plaque",
+      "cat": "DISQUETTE",
+      "rar": "R",
+      "name": "Plaque de blindage",
+      "desc": "+2 PV max, -6% vitesse",
+      "effet": "p=>{p.maxHp+=2;p.hp+=2;p.spd*=0.94}"
+    },
+    {
+      "id": "n_adn",
+      "cat": "DISQUETTE",
+      "rar": "R",
+      "name": "Catalyseur ADN",
+      "desc": "+25% d ADN gagne",
+      "effet": "p=>p.adnM=(p.adnM||1)*1.25"
+    },
+    {
+      "id": "n_scrap",
+      "cat": "DISQUETTE",
+      "rar": "R",
+      "name": "Recuperateur",
+      "desc": "Les ennemis lachent plus de scrap",
+      "effet": "p=>p.scrapM=(p.scrapM||1)*1.8"
+    },
+    {
+      "id": "j_pierce",
+      "cat": "PERK",
+      "rar": "R",
+      "name": "Balles perforantes",
+      "desc": "Chaque tir traverse 1 ennemi de plus",
+      "gr": [
+        "standard",
+        "rafale",
+        "shotgun"
+      ],
+      "effet": "p=>p.pierce=(p.pierce||0)+1"
+    },
+    {
+      "id": "j_bounce",
+      "cat": "PERK",
+      "rar": "R",
+      "name": "Ricochet",
+      "desc": "Les tirs rebondissent une fois sur les murs",
+      "gr": [
+        "standard",
+        "rafale",
+        "shotgun"
+      ],
+      "effet": "p=>p.bounce=(p.bounce||0)+1"
+    },
+    {
+      "id": "j_multi",
+      "cat": "PERK",
+      "rar": "E",
+      "name": "Double canon",
+      "desc": "Un projectile de plus, cote a cote",
+      "gr": [
+        "standard",
+        "rafale",
+        "shotgun"
+      ],
+      "effet": "p=>p.multi=Math.min(2,(p.multi||0)+1)"
+    },
+    {
+      "id": "k_long",
+      "cat": "PERK",
+      "rar": "C",
+      "name": "Bras long",
+      "desc": "+25% portee de la griffe",
+      "gr": [
+        "griffe"
+      ],
+      "effet": "p=>p.lashR=(p.lashR||1)*1.25"
+    },
+    {
+      "id": "k_prise",
+      "cat": "PERK",
+      "rar": "C",
+      "name": "Prise",
+      "desc": "La griffe ramene les cibles plus fort",
+      "gr": [
+        "griffe"
+      ],
+      "effet": "p=>p.pullM=(p.pullM||1)*1.6"
+    },
+    {
+      "id": "k_fauche",
+      "cat": "PERK",
+      "rar": "R",
+      "name": "Fauche",
+      "desc": "Toutes les 3 frappes, un grand arc au corps a corps",
+      "gr": [
+        "griffe"
+      ],
+      "once": true,
+      "effet": "p=>p.faucheN=3"
+    },
+    {
+      "id": "k_rayon",
+      "cat": "PERK",
+      "rar": "R",
+      "name": "Rayon latent",
+      "desc": "Toutes les 4 frappes, la griffe libere un rayon",
+      "gr": [
+        "griffe"
+      ],
+      "once": true,
+      "effet": "p=>p.rayonN=4"
+    },
+    {
+      "id": "k_vorace",
+      "cat": "PERK",
+      "rar": "R",
+      "name": "Vorace",
+      "desc": "Mute, un kill rend 1 PV une fois sur 4",
+      "gr": [
+        "griffe"
+      ],
+      "once": true,
+      "effet": "p=>p.leech=0.25"
+    },
+    {
+      "id": "k_double",
+      "cat": "PERK",
+      "rar": "E",
+      "name": "Double griffe",
+      "desc": "La griffe frappe deux fois",
+      "gr": [
+        "griffe"
+      ],
+      "once": true,
+      "effet": "p=>p.lashDouble=true"
+    }
+  ]
+}

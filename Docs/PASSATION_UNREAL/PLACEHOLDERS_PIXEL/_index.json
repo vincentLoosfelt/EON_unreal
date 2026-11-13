@@ -1,0 +1,401 @@
+{
+ "version": "EON Gunfeel Lab",
+ "noms": null,
+ "sprites": {
+  "jira_a0": {
+   "fw": 18,
+   "fh": 29,
+   "n": 3
+  },
+  "jira_a1": {
+   "fw": 18,
+   "fh": 29,
+   "n": 3
+  },
+  "jira_a2": {
+   "fw": 18,
+   "fh": 29,
+   "n": 3
+  },
+  "jira_a3": {
+   "fw": 18,
+   "fh": 29,
+   "n": 3
+  },
+  "goule": {
+   "fw": 17,
+   "fh": 14,
+   "n": 2
+  },
+  "gouleP": {
+   "fw": 11,
+   "fh": 12,
+   "n": 2
+  },
+  "kamikaze": {
+   "fw": 16,
+   "fh": 22,
+   "n": 2
+  },
+  "meduse": {
+   "fw": 14,
+   "fh": 16,
+   "n": 2
+  },
+  "sniper": {
+   "fw": 16,
+   "fh": 26,
+   "n": 2
+  },
+  "slasher": {
+   "fw": 13,
+   "fh": 26,
+   "n": 2
+  },
+  "brainless": {
+   "fw": 14,
+   "fh": 25,
+   "n": 2
+  },
+  "invocateur": {
+   "fw": 13,
+   "fh": 25,
+   "n": 2
+  },
+  "ulysse": {
+   "fw": 12,
+   "fh": 25,
+   "n": 1
+  },
+  "marchand": {
+   "fw": 12,
+   "fh": 25,
+   "n": 1
+  },
+  "gamine_mutee": {
+   "fw": 14,
+   "fh": 25,
+   "n": 2
+  },
+  "jira_course_a0": {
+   "fw": 19,
+   "fh": 29,
+   "n": 2
+  },
+  "jira_course_a1": {
+   "fw": 19,
+   "fh": 29,
+   "n": 2
+  },
+  "jira_course_a2": {
+   "fw": 19,
+   "fh": 29,
+   "n": 2
+  },
+  "jira_course_a3": {
+   "fw": 19,
+   "fh": 29,
+   "n": 2
+  },
+  "cobaye_course": {
+   "fw": 19,
+   "fh": 28,
+   "n": 2
+  },
+  "cobaye": {
+   "fw": 18,
+   "fh": 28,
+   "n": 3
+  },
+  "boss": {
+   "fw": 34,
+   "fh": 31,
+   "n": 3
+  },
+  "sol_coursive": {
+   "fw": 16,
+   "fh": 16,
+   "n": 10
+  },
+  "mur_coursive": {
+   "fw": 16,
+   "fh": 16,
+   "n": 6
+  },
+  "prop_coursive": {
+   "fw": 16,
+   "fh": 16,
+   "n": 5
+  },
+  "deco_coursive": {
+   "fw": 16,
+   "fh": 16,
+   "n": 4
+  },
+  "sol_machines": {
+   "fw": 16,
+   "fh": 16,
+   "n": 10
+  },
+  "mur_machines": {
+   "fw": 16,
+   "fh": 16,
+   "n": 6
+  },
+  "prop_machines": {
+   "fw": 16,
+   "fh": 16,
+   "n": 5
+  },
+  "deco_machines": {
+   "fw": 16,
+   "fh": 16,
+   "n": 4
+  },
+  "sol_labo": {
+   "fw": 16,
+   "fh": 16,
+   "n": 10
+  },
+  "mur_labo": {
+   "fw": 16,
+   "fh": 16,
+   "n": 6
+  },
+  "prop_labo": {
+   "fw": 16,
+   "fh": 16,
+   "n": 5
+  },
+  "deco_labo": {
+   "fw": 16,
+   "fh": 16,
+   "n": 4
+  },
+  "sol_cuves": {
+   "fw": 16,
+   "fh": 16,
+   "n": 10
+  },
+  "mur_cuves": {
+   "fw": 16,
+   "fh": 16,
+   "n": 6
+  },
+  "prop_cuves": {
+   "fw": 16,
+   "fh": 16,
+   "n": 5
+  },
+  "deco_cuves": {
+   "fw": 16,
+   "fh": 16,
+   "n": 4
+  },
+  "sol_blocs": {
+   "fw": 16,
+   "fh": 16,
+   "n": 10
+  },
+  "mur_blocs": {
+   "fw": 16,
+   "fh": 16,
+   "n": 6
+  },
+  "prop_blocs": {
+   "fw": 16,
+   "fh": 16,
+   "n": 5
+  },
+  "deco_blocs": {
+   "fw": 16,
+   "fh": 16,
+   "n": 4
+  },
+  "sol_serres": {
+   "fw": 16,
+   "fh": 16,
+   "n": 10
+  },
+  "mur_serres": {
+   "fw": 16,
+   "fh": 16,
+   "n": 6
+  },
+  "prop_serres": {
+   "fw": 16,
+   "fh": 16,
+   "n": 5
+  },
+  "deco_serres": {
+   "fw": 16,
+   "fh": 16,
+   "n": 4
+  },
+  "porte_h": {
+   "fw": 32,
+   "fh": 16,
+   "n": 4
+  },
+  "porte_v": {
+   "fw": 16,
+   "fh": 32,
+   "n": 4
+  },
+  "cuve_reveil": {
+   "fw": 30,
+   "fh": 46,
+   "n": 5
+  },
+  "com_terminal": {
+   "fw": 424,
+   "fh": 236,
+   "n": 1
+  },
+  "silo_test": {
+   "fw": 48,
+   "fh": 60,
+   "n": 3
+  },
+  "arbre_serre": {
+   "fw": 48,
+   "fh": 64,
+   "n": 3
+  },
+  "bac_plantes": {
+   "fw": 32,
+   "fh": 22,
+   "n": 3
+  },
+  "hydroponie": {
+   "fw": 32,
+   "fh": 36,
+   "n": 2
+  },
+  "saule": {
+   "fw": 112,
+   "fh": 112,
+   "n": 1
+  },
+  "vieille_dame": {
+   "fw": 24,
+   "fh": 32,
+   "n": 2
+  },
+  "poste_recherche": {
+   "fw": 32,
+   "fh": 32,
+   "n": 5
+  },
+  "analyseur": {
+   "fw": 32,
+   "fh": 42,
+   "n": 2
+  },
+  "etagere_bocaux": {
+   "fw": 32,
+   "fh": 34,
+   "n": 2
+  },
+  "ecran_mural": {
+   "fw": 32,
+   "fh": 16,
+   "n": 5
+  },
+  "table_operation": {
+   "fw": 32,
+   "fh": 22,
+   "n": 3
+  },
+  "chercheur": {
+   "fw": 112,
+   "fh": 112,
+   "n": 5
+  },
+  "infestation": {
+   "fw": 32,
+   "fh": 32,
+   "n": 3
+  },
+  "tresor": {
+   "fw": 64,
+   "fh": 36,
+   "n": 2
+  },
+  "cartographe": {
+   "fw": 16,
+   "fh": 22,
+   "n": 2
+  },
+  "donnee": {
+   "fw": 8,
+   "fh": 8,
+   "n": 1
+  },
+  "com": {
+   "fw": 80,
+   "fh": 84,
+   "n": 2
+  },
+  "console_faille": {
+   "fw": 14,
+   "fh": 14,
+   "n": 3
+  },
+  "ascenseur": {
+   "fw": 28,
+   "fh": 18,
+   "n": 2
+  },
+  "carte_rouge": {
+   "fw": 11,
+   "fh": 8,
+   "n": 1
+  },
+  "piedestal": {
+   "fw": 16,
+   "fh": 6,
+   "n": 1
+  },
+  "item_icones": {
+   "fw": 12,
+   "fh": 12,
+   "n": 5
+  },
+  "ramassables": {
+   "fw": 8,
+   "fh": 8,
+   "n": 3
+  },
+  "cuve_specimen": {
+   "fw": 32,
+   "fh": 56,
+   "n": 5
+  },
+  "generateur": {
+   "fw": 16,
+   "fh": 30,
+   "n": 1
+  },
+  "gamine": {
+   "fw": 24,
+   "fh": 28,
+   "n": 2
+  },
+  "ramassables_quete": {
+   "fw": 12,
+   "fh": 12,
+   "n": 3
+  },
+  "boutons_manette": {
+   "fw": 12,
+   "fh": 9,
+   "n": 11
+  },
+  "mechakuve": {
+   "fw": 48,
+   "fh": 92,
+   "n": 4
+  }
+ }
+}

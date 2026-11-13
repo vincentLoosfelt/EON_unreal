@@ -1,0 +1,101 @@
+{
+  "_note": "Stats cumulees sur toutes les runs (META.st) : runs, morts, kills, maxFloor, maxMut, boss[etage], bossCob.",
+  "deblocages": [
+    {
+      "id": "u_cobaye",
+      "type": "Perso",
+      "name": "Le Cobaye",
+      "condition": "Vaincre un gardien",
+      "test": "()=>!!META.cobUnlock",
+      "perso": "cobaye"
+    },
+    {
+      "id": "u_laser",
+      "type": "Greffe",
+      "name": "Laser",
+      "condition": "Atteindre l etage 2",
+      "test": "s=>s.maxFloor>=2",
+      "greffe": "laser"
+    },
+    {
+      "id": "u_multi",
+      "type": "Objet",
+      "name": "Double canon",
+      "condition": "Faire 3 runs",
+      "test": "s=>s.runs>=3",
+      "item": "j_multi"
+    },
+    {
+      "id": "u_shield",
+      "type": "Cassette",
+      "name": "Shield",
+      "condition": "Atteindre l etage 3",
+      "test": "s=>s.maxFloor>=3",
+      "item": "c_shield"
+    },
+    {
+      "id": "u_lame",
+      "type": "Greffe",
+      "name": "Lame",
+      "condition": "Eliminer 150 ennemis au total",
+      "test": "s=>s.kills>=150",
+      "greffe": "lame"
+    },
+    {
+      "id": "u_berserk",
+      "type": "Objet",
+      "name": "Catalyseur Berserk",
+      "condition": "Atteindre le stade 3 de mutation",
+      "test": "s=>s.maxMut>=3",
+      "item": "e_berserk"
+    },
+    {
+      "id": "u_shotgun",
+      "type": "Greffe",
+      "name": "Shotgun",
+      "condition": "Vaincre Mechakuve (etage 2)",
+      "test": "s=>!!s.boss[2]",
+      "greffe": "shotgun"
+    },
+    {
+      "id": "u_plaque",
+      "type": "Objet",
+      "name": "Plaque de blindage",
+      "condition": "Rendre 3 insignes a Ulysse",
+      "test": "()=>META.insRendus>=3",
+      "item": "n_plaque"
+    },
+    {
+      "id": "u_revive",
+      "type": "Objet",
+      "name": "Renaissance",
+      "condition": "Mourir 5 fois",
+      "test": "s=>s.morts>=5",
+      "item": "p_revive"
+    },
+    {
+      "id": "u_reg",
+      "type": "Objet",
+      "name": "Regulateur",
+      "condition": "Vaincre Le Chercheur (etage 3)",
+      "test": "s=>!!s.boss[3]",
+      "item": "e_reg"
+    },
+    {
+      "id": "u_dashc",
+      "type": "Objet",
+      "name": "Charge de dash +",
+      "condition": "Atteindre les serres (etage 4)",
+      "test": "s=>s.maxFloor>=4",
+      "item": "p_dashc"
+    },
+    {
+      "id": "u_double",
+      "type": "Objet",
+      "name": "Double griffe",
+      "condition": "Vaincre un gardien avec le Cobaye",
+      "test": "s=>s.bossCob>=1",
+      "item": "k_double"
+    }
+  ]
+}

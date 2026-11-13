@@ -1,0 +1,211 @@
+{
+  "_note": "Tailles en tuiles (1 tuile = 16 px proto = 100 cm Unreal). Palettes : f sol, w murs, neon, amb ombre ambiante.",
+  "formes": {
+    "std": [
+      32,
+      20
+    ],
+    "large": [
+      40,
+      26
+    ],
+    "small": [
+      24,
+      16
+    ],
+    "corH": [
+      50,
+      9
+    ],
+    "corV": [
+      12,
+      32
+    ]
+  },
+  "roles": {
+    "DEPART": {
+      "n": "C.O.M",
+      "c": "#d8d4f0"
+    },
+    "PASSERELLE": {
+      "n": "Passerelle",
+      "c": "#3ef2e0"
+    },
+    "COMBAT": {
+      "n": "Combat",
+      "c": "#ff3d8b"
+    },
+    "TENSION": {
+      "n": "Tension",
+      "c": "#ff9a3d"
+    },
+    "CALME": {
+      "n": "Calme",
+      "c": "#6fbf4a"
+    },
+    "OPPORTUNITE": {
+      "n": "Opportunite",
+      "c": "#ffc23d"
+    },
+    "ASCENSEUR": {
+      "n": "Gardien",
+      "c": "#ff3d55"
+    },
+    "TRAINING": {
+      "n": "Salle de reveil",
+      "c": "#3ef2e0"
+    },
+    "SECURITE": {
+      "n": "Securite",
+      "c": "#ff3d55"
+    },
+    "EVENEMENT": {
+      "n": "Evenement",
+      "c": "#b89cff"
+    },
+    "MARCHAND": {
+      "n": "Marchand",
+      "c": "#ffc23d"
+    },
+    "TRESOR": {
+      "n": "Tresor",
+      "c": "#e0a838"
+    },
+    "IRRUPTION": {
+      "n": "Irruption",
+      "c": "#c84a7a"
+    },
+    "CARTO": {
+      "n": "Cartographe",
+      "c": "#7affb0"
+    },
+    "CORRIDOR": {
+      "n": "Le corridor",
+      "c": "#ff6a3d"
+    },
+    "FAILLE": {
+      "n": "La faille",
+      "c": "#3ef2e0"
+    }
+  },
+  "palettes": [
+    {
+      "n": "Coursive",
+      "f": [
+        "#16152f",
+        "#18173a",
+        "#121126"
+      ],
+      "g": "#0f0e22",
+      "hl": "#2a2850",
+      "w": [
+        "#2a2750",
+        "#3a3670",
+        "#1b1938",
+        "#4a4580",
+        "#211f44"
+      ],
+      "neon": "#ff3d8b",
+      "amb": "#1a0f3a"
+    },
+    {
+      "n": "Salle des machines",
+      "f": [
+        "#1d1712",
+        "#231b14",
+        "#17120e"
+      ],
+      "g": "#0f0b07",
+      "hl": "#3a2c1e",
+      "w": [
+        "#3a2a1c",
+        "#4f3a26",
+        "#22180f",
+        "#6a4e30",
+        "#2c2015"
+      ],
+      "neon": "#ffc23d",
+      "amb": "#2a1026"
+    },
+    {
+      "n": "Labo",
+      "f": [
+        "#10201e",
+        "#132724",
+        "#0c1918"
+      ],
+      "g": "#07110f",
+      "hl": "#1f3f3c",
+      "w": [
+        "#1d3a38",
+        "#2a5250",
+        "#122624",
+        "#3a6e6a",
+        "#18302e"
+      ],
+      "neon": "#3ef2e0",
+      "amb": "#06202c"
+    },
+    {
+      "n": "Cuves",
+      "f": [
+        "#1a1a12",
+        "#1f1f15",
+        "#14140e"
+      ],
+      "g": "#0c0c08",
+      "hl": "#34321f",
+      "w": [
+        "#38331f",
+        "#4a4429",
+        "#221f13",
+        "#6a603a",
+        "#2c2818"
+      ],
+      "neon": "#e0a838",
+      "amb": "#22180a"
+    },
+    {
+      "n": "Labos",
+      "f": [
+        "#a0aeb6",
+        "#a8b6be",
+        "#98a6ae"
+      ],
+      "g": "#76848c",
+      "hl": "#d0dce2",
+      "w": [
+        "#8e9aa0",
+        "#b0bcc2",
+        "#66727a",
+        "#e2eaee",
+        "#7a868c"
+      ],
+      "neon": "#7ac8ff",
+      "amb": "#1c2c3c",
+      "dk": 0.5,
+      "tiles": 1
+    },
+    {
+      "n": "Serres",
+      "f": [
+        "#3a5428",
+        "#405c2c",
+        "#344c24"
+      ],
+      "g": "#22341a",
+      "hl": "#5e8040",
+      "w": [
+        "#4e6e5e",
+        "#7a9e8a",
+        "#344a40",
+        "#b8dcc4",
+        "#3e5a4c"
+      ],
+      "neon": "#ffe08a",
+      "amb": "#10261a",
+      "dk": 0.55,
+      "grass": 1
+    }
+  ]
+}
