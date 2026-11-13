@@ -1,0 +1,20 @@
+import unreal
+P = "/Game/EON/Maps/L_Sandbox"
+les = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+les.new_level(P)
+eas = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+def spawn(cls, loc, rot=unreal.Rotator(0,0,0)):
+    return eas.spawn_actor_from_class(cls, unreal.Vector(*loc), rot)
+floor = spawn(unreal.StaticMeshActor, (0,0,0))
+floor.static_mesh_component.set_static_mesh(unreal.load_asset("/Engine/BasicShapes/Plane"))
+floor.set_actor_scale3d(unreal.Vector(40,40,1))
+floor.set_actor_label("Sol")
+sun = spawn(unreal.DirectionalLight, (0,0,1000), unreal.Rotator(0,-50,-40))
+sun.light_component.set_atmosphere_sun_light(True)
+spawn(unreal.SkyAtmosphere, (0,0,0))
+sky = spawn(unreal.SkyLight, (0,0,500)); sky.light_component.set_real_time_capture(True)
+spawn(unreal.ExponentialHeightFog, (0,0,0))
+spawn(unreal.PostProcessVolume, (0,0,0)).set_editor_property("unbound", True)
+spawn(unreal.PlayerStart, (0,0,100))
+les.save_current_level()
+unreal.log("EON_SANDBOX_OK")
