@@ -233,8 +233,16 @@ void AEONHUD::DrawHUD()
 	{
 		DrawMinimap(U);
 		const FName R = F->GetCurrentRole();
+		if (F->IsDockedMode())
+		{
+			Txt(TEXT("KIBO"), SX - 80 * U, 64 * U, FLinearColor(FColor(62, 242, 224)), U / 3.5f);
+			Txt(TEXT("A quai"), SX - 80 * U, 72 * U, Dim, U / 3.5f);
+		}
+		else
+		{
 		Txt(R.ToString(), SX - 80 * U, 64 * U, RoleColor(R), U / 3.5f);
 		Txt(FString::Printf(TEXT("Etage %d"), F->GetFloorN()), SX - 80 * U, 72 * U, Dim, U / 3.5f);
+		}
 		// --- Bannière centrale (1,8 s)
 		if (F->BannerT > 0.f && !(UEONUISubsystem::Get(this) && UEONUISubsystem::Get(this)->IsTitleOpen()))
 		{

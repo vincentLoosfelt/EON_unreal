@@ -1,4 +1,4 @@
-# Manquants — liste vivante
+﻿# Manquants — liste vivante
 
 **Ce fichier est tenu à jour par le Claude de Vincent.** Chaque placeholder posé dans Unreal y gagne une ligne. Chaque asset livré passe à ✅. C'est la liste que Sabri et les artistes suivent pour savoir quoi produire.
 
@@ -237,9 +237,16 @@ Fait :
   - `eon.debut` et `eon.apres` comptent maintenant en temps réel : ils partent même pendant une pause (dialogue, terminal).
 
 Provisoire ou manquant :
-- **Pas de Kibo**, donc :
-  - pas de C.O.M à quai, pas de réveil en cuve (`wake`), pas de `dock` ;
-  - pour l'instant, « à quai » veut dire : salle du C.O.M de l'étage 1, tant que Jira n'en est pas sortie. C'est le seul endroit où l'on installe une cassette.
+- **Kibo, première partie (16/11) : le C.O.M à quai.**
+  - Toute nouvelle run commence au C.O.M à quai (`FloorN` = 0). C'est le hub 3D actuel, avec la bannière « Kibo - C.O.M a quai » et le HUD « KIBO / A quai ».
+  - Le levier est prêt ; le tirer lance l'étage 1. Le dialogue `dock` ne joue qu'une fois (`bDockSeen`). On n'installe les cassettes que là.
+  - `eon.salle` et `eon.forme`, lancés depuis le quai, descendent d'abord à l'étage 1.
+  - Au quai, il ne reste qu'une passerelle, celle du sud. Au nord, à l'est et à l'ouest, les grilles, rambardes, murs percés et sas sont retirés, et les trous des portes sont murés avec le même WallA320 que le reste du hub. Une barrière invisible empêche de tomber au bout des moignons de passerelle (ils font partie du maillage COMv1).
+  - Le terminal et l'arrivée de Jira sont côté sud. Au départ du C.O.M, tout revient tel que l'étage l'utilise (`SetDockLayout`).
+  - Captures : `Docs/J8_quai.png`, `J8_quai_dialogue.png`, `J8_quai_levier.png`, `J8_quai_retour_etage.png`.
+- **Kibo, reste à faire** :
+  - la salle de réveil (cuves, cibles, fossé, `wake`, cinématique de 2,6 s) et la passerelle ;
+  - tant que la passerelle n'existe pas, les 4 sas du C.O.M à quai restent fermés. La spec veut une porte sud ouverte, qui mène à la passerelle.
 - **Attendent le Kibo et les salles Événement (jalon 9)** :
   - Ulysse : sauvetage, refuge, insignes, PV permanents ;
   - le Cobaye jouable : seul son déblocage est en place, avec la bannière « Une cuve s'est ouverte au Kibo » ;

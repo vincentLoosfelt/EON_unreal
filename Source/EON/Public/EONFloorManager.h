@@ -120,6 +120,8 @@ public:
 	bool PullLever();
 	/** Fondu entre deux salles en cours (trans). */
 	bool IsInTransition() const { return TransT > 0.f; }
+	/** C.O.M à quai au Kibo : début de run, avant le premier levier (FloorN = 0). */
+	bool IsDockedMode() const { return bDocked; }
 
 	/** Hub 3D (L_HUB) : la salle du C.O.M est le hub lui-même ; ses 4 sas mènent aux salles générées, construites plus loin dans la carte. */
 	bool IsHubMode() const { return bHub; }
@@ -180,6 +182,15 @@ private:
 	void LoadHub(uint8 Entry, bool bFromCom);
 	void BuildHubFlesh();
 	void TickHub(float DeltaSeconds, AEONCharacter* J);
+	/** Kibo : le C.O.M à quai (hub 3D, les 4 sas fermés, levier prêt). */
+	bool bDocked = false;
+	void LoadDock();
+	void SetHubDoorsForced(int32 State);
+	UPROPERTY(Transient) TArray<TObjectPtr<class AEONSlidingDoor>> HubDoorActors;
+	/** Quai : une seule passerelle (sud). Les 3 autres (grilles, rambardes, mur percé, sas) sont retirées et leurs trous murés ; tout revient au départ du C.O.M. */
+	void SetDockLayout(bool bOn);
+	UPROPERTY(Transient) TArray<TObjectPtr<AActor>> DockRemoved;
+	UPROPERTY(Transient) TArray<TObjectPtr<AActor>> DockAdded;
 
 	/** La passerelle infestée entre le C.O.M et le gardien est-elle encore fermée ? */
 	bool IsInfestEdge(const FIntPoint& A, const FIntPoint& B) const;

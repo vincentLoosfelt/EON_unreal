@@ -1,4 +1,4 @@
-#include "EONSlidingDoor.h"
+﻿#include "EONSlidingDoor.h"
 #include "EONEnemy.h"
 #include "Components/StaticMeshComponent.h"
 #include "EngineUtils.h"
@@ -76,7 +76,7 @@ void AEONSlidingDoor::Tick(float DeltaSeconds)
 	{
 		NextCheck = CheckInterval;
 		const int32 Force = CVarPortesForce.GetValueOnGameThread();
-		bWantOpen = Force >= 0 ? Force == 1 : !EnemyInRoom();
+		bWantOpen = Force >= 0 ? Force == 1 : ForceState >= 0 ? ForceState == 1 : !EnemyInRoom();
 	}
 	const float Target = bWantOpen ? 1.f : 0.f;
 	if (Opening != Target && OpenDistance > 0.f)

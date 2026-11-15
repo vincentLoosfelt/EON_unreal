@@ -1,4 +1,4 @@
-// EON — porte « Sas » d'Unity (ColoredDoor, type Sas + RoomEnemyDoorController) : un cadre fixe et deux vantaux qui
+﻿// EON — porte « Sas » d'Unity (ColoredDoor, type Sas + RoomEnemyDoorController) : un cadre fixe et deux vantaux qui
 // glissent chacun de 1 m dans le mur, à vitesse constante (MoveTowards, 2 m/s). Ouverte par défaut ; fermée tant
 // qu'un ennemi vivant se trouve dans la salle (rayon autour de la porte), rouverte quand la salle est vidée.
 // Les meshes viennent de eon_porte_decoupe.py (porte.fbx découpé en cadre / vantail gauche / vantail droit).
@@ -36,6 +36,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Porte") float CheckInterval = 0.5f;
 
 	bool IsOpen() const { return Opening >= 1.f; }
+	/** Forçage par le jeu : -1 = comportement normal, 0 = fermée (C.O.M à quai), 1 = ouverte. */
+	int32 ForceState = -1;
 
 private:
 	/** 0 = fermée, 1 = ouverte (course parcourue / OpenDistance). */

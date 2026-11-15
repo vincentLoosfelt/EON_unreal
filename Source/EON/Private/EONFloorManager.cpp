@@ -294,11 +294,135 @@ void AEONFloorManager::NewRun()
 	Greeted.Reset();
 	if (UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this)) { MS->OnRunStart(); }
 	if (AEONCharacter* J = GetJira()) { J->ResetRun(); }
-	StartFloor();
+	// newRun : la run commence au Kibo, C.O.M à quai (floor absent jusqu'au levier). Sans hub 3D : directement l'étage 1.
+	if (bHub) { LoadDock(); } else { StartFloor(); }
+}
+
+void AEONFloorManager::LoadDock()
+{
+	bDocked = true;
+	bFloorDone = true;   // le levier est déjà prêt
+	bRedCard = false;
+	AmbushT = -1.f;
+	ComTravelT = -1.f;
+	bComGo = false;
+	bInfest = false;
+	Cells.Reset();
+	Start = Cur = FIntPoint(3, 3);
+	Boss = FIntPoint(3, 2);
+	AEONPickup::ClearAll(GetWorld(), true);
+	AEONPedestal::ClearAll(GetWorld());
+	if (CardMesh) { CardMesh->SetVisibility(false); }
+	RoomWaves = 0; RoomStartT = 0.f;
+	if (Room) { Room->SetLocked(false); }
+	if (AEONCharacter* J = GetJira()) { J->RefillShield(); }
+	// Une seule porte, au sud, vers la passerelle du Kibo : pas encore construite, donc les 4 sas restent fermés.
+	SetHubDoorsForced(0);
+	SetDockLayout(true);
+	LoadHub(0, true);
+	ShowBanner(TEXT("Kibo - C.O.M a quai"), FLinearColor(FColor(62, 242, 224)));
+	UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+	UEONSaveGame* Sv = MS ? MS->M() : nullptr;
+	if (Sv && !Sv->bDockSeen)
+	{
+		Sv->bDockSeen = true;
+		MS->Save();
+		if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->Say(TEXT("dock")); }
+	}
+	OnRoomLoaded.Broadcast(this);
+	UE_LOG(LogEON, Display, TEXT("EON Kibo : C.O.M a quai, levier pret"));
+}
+
+void AEONFloorManager::SetDockLayout(bool bOn)
+{
+	// Retour à l'étage : tout ce qui a été retiré revient, les murs ajoutés disparaissent.
+	for (AActor* A : DockRemoved) { if (A) { A->SetActorHiddenInGame(false); A->SetActorEnableCollision(true); } }
+	for (AActor* A : DockAdded) { if (A) { A->Destroy(); } }
+	DockRemoved.Reset();
+	DockAdded.Reset();
+	if (!bOn || !bHub) { return; }
+	// Côté d'un acteur vu du C.O.M (nord = -Y), distance le long de ce côté et écart latéral.
+	auto Side = [this](const FVector& P, float& Ax, float& Lat) -> uint8
+	{
+		const FVector D = P - HubCentre;
+		if (FMath::Abs(D.X) > FMath::Abs(D.Y)) { Ax = FMath::Abs(D.X); Lat = FMath::Abs(D.Y); return D.X > 0.f ? EONDoor::E : EONDoor::W; }
+		Ax = FMath::Abs(D.Y); Lat = FMath::Abs(D.X); return D.Y > 0.f ? EONDoor::S : EONDoor::N;
+	};
+	TArray<AStaticMeshActor*> LowWalls, TopWalls;
+	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+	{
+		AActor* A = *It;
+		if (A == HubCube || HubFlesh.Contains(A)) { continue; }
+		FString Mesh;
+		AStaticMeshActor* SA = Cast<AStaticMeshActor>(A);
+		if (SA) { if (const UStaticMesh* M = SA->GetStaticMeshComponent()->GetStaticMesh()) { Mesh = M->GetName(); } }
+		const bool bSas = A->IsA<AEONSlidingDoor>();
+		if (Mesh == TEXT("WallA320"))
+		{
+			const float Z = A->GetActorLocation().Z;
+			if (FMath::Abs(Z - HubCentre.Z) < 20.f) { TopWalls.Add(SA); } else if (FMath::Abs(Z - (HubCentre.Z - 610.f)) < 20.f) { LowWalls.Add(SA); }
+			continue;
+		}
+		// Passerelle : grilles de sol, rambardes, mur percé, sas et son bouchon (cube « Porte_fermee »).
+		if (!bSas && Mesh != TEXT("Grille01") && Mesh != TEXT("Barrier_V3_1") && Mesh != TEXT("walldooreno") && Mesh != TEXT("Cube")) { continue; }
+		float Ax = 0.f, Lat = 0.f;
+		const uint8 D = Side(A->GetActorLocation(), Ax, Lat);
+		if (D == EONDoor::S || Ax < 800.f || Lat > 300.f) { continue; }
+		A->SetActorHiddenInGame(true);
+		A->SetActorEnableCollision(false);
+		DockRemoved.Add(A);
+	}
+	FActorSpawnParameters P;
+	P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	// Trous des portes : là où le mur du bas n'a pas de mur au-dessus (2 modules par porte), on pose le même mur.
+	for (AStaticMeshActor* Lo : LowWalls)
+	{
+		const FVector L = Lo->GetActorLocation();
+		float Ax = 0.f, Lat = 0.f;
+		if (Side(L, Ax, Lat) == EONDoor::S || Lat > 500.f) { continue; }
+		bool bTop = false;
+		for (const AStaticMeshActor* T : TopWalls) { if (FVector2D::Distance(FVector2D(T->GetActorLocation()), FVector2D(L)) < 10.f) { bTop = true; break; } }
+		for (const AActor* T : DockAdded) { if (FVector2D::Distance(FVector2D(T->GetActorLocation()), FVector2D(L)) < 10.f) { bTop = true; break; } }
+		if (bTop) { continue; }
+		AStaticMeshActor* W = GetWorld()->SpawnActor<AStaticMeshActor>(FVector(L.X, L.Y, HubCentre.Z), Lo->GetActorRotation(), P);
+		if (!W) { continue; }
+		W->SetMobility(EComponentMobility::Movable);
+		UStaticMeshComponent* Src = Lo->GetStaticMeshComponent();
+		UStaticMeshComponent* SM = W->GetStaticMeshComponent();
+		SM->SetStaticMesh(Src->GetStaticMesh());
+		SM->SetWorldScale3D(FVector(Lo->GetActorScale3D().X, Lo->GetActorScale3D().Y, 1.f));
+		for (int32 I = 0; I < Src->GetNumMaterials(); ++I) { SM->SetMaterial(I, Src->GetMaterial(I)); }
+		SM->SetCollisionProfileName(TEXT("BlockAll"));
+		DockAdded.Add(W);
+	}
+	// Bout des passerelles retirées : une barrière invisible au bord de la plateforme du C.O.M (sinon chute dans le vide).
+	UStaticMesh* Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+	for (uint8 D : { EONDoor::N, EONDoor::E, EONDoor::W })
+	{
+		const FIntPoint Dv = EONDoor::Dir(D);
+		const float Edge = FVector2D::Distance(FVector2D(HubDoor[DoorIdx(D)]), FVector2D(HubCentre)) - 440.f;   // début des grilles
+		const FVector At = HubCentre + FVector(Dv.X, Dv.Y, 0.f) * Edge + FVector(0.f, 0.f, 150.f);
+		AStaticMeshActor* B = GetWorld()->SpawnActor<AStaticMeshActor>(At, FRotator::ZeroRotator, P);
+		if (!B || !Cube) { continue; }
+		B->SetMobility(EComponentMobility::Movable);
+		UStaticMeshComponent* SM = B->GetStaticMeshComponent();
+		SM->SetStaticMesh(Cube);
+		SM->SetWorldScale3D(Dv.X ? FVector(0.2f, 4.f, 3.f) : FVector(4.f, 0.2f, 3.f));
+		SM->SetCollisionProfileName(TEXT("BlockAll"));
+		B->SetActorHiddenInGame(true);
+		DockAdded.Add(B);
+	}
+	UE_LOG(LogEON, Display, TEXT("EON Kibo : %d pieces de passerelle retirees, %d murs et barrieres poses"), DockRemoved.Num(), DockAdded.Num());
+}
+
+void AEONFloorManager::SetHubDoorsForced(int32 State)
+{
+	for (AEONSlidingDoor* D : HubDoorActors) { if (D) { D->ForceState = State; } }
 }
 
 void AEONFloorManager::StartFloor()
 {
+	if (bDocked) { bDocked = false; SetHubDoorsForced(-1); SetDockLayout(false); }
 	++FloorN;
 	bRedCard = false;
 	bFloorDone = false;
@@ -801,6 +925,7 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 		return;
 	}
 	AEONCharacter* J = GetJira();
+	if (bDocked) { return; }
 	FEONFloorCell* CM = CellAt(Cur);
 	if (!J || !CM || !Room || J->IsDead()) { return; }
 	if (bHub && Cur == Start) { TickHub(DeltaSeconds, J); return; }
@@ -1001,6 +1126,7 @@ void AEONFloorManager::OnBossDefeated(const FVector2D& BossPx)
 
 bool AEONFloorManager::GoToShape(FName InShape)
 {
+	if (bDocked) { StartFloor(); }
 	for (const TPair<FIntPoint, FEONFloorCell>& KV : Cells)
 	{
 		if (KV.Value.Shape == InShape && KV.Key != Start) { EnterCell(KV.Key, 0, false); return true; }
@@ -1022,6 +1148,7 @@ bool AEONFloorManager::GoToShape(FName InShape)
 
 bool AEONFloorManager::GoToRole(FName InRole)
 {
+	if (bDocked) { StartFloor(); }
 	for (const TPair<FIntPoint, FEONFloorCell>& KV : Cells)
 	{
 		if (KV.Value.Role == InRole) { EnterCell(KV.Key, 0, false); return true; }
@@ -1063,6 +1190,7 @@ bool AEONFloorManager::IsNearComTerminal() const
 {
 	const FEONFloorCell* C = CellAt(Cur);
 	const AEONCharacter* J = GetJira();
+	if (bDocked && bHub && J && HubCube) { return FVector2D::Distance(FVector2D(J->GetActorLocation()), FVector2D(HubCube->GetActorLocation())) < 500.f; }
 	if (!C || !J || !Room || C->Role != TEXT("DEPART")) { return false; }
 	if (bHub) { return HubCube && FVector2D::Distance(FVector2D(J->GetActorLocation()), FVector2D(HubCube->GetActorLocation())) < 500.f; }   // zone du terminal : 5 m de rayon
 	return FVector2D::Distance(Room->WorldToRoomPx(J->GetActorLocation()), FVector2D(C->Grid.W * 8.f, C->Grid.H * 8.f)) < 56.f;
@@ -1070,7 +1198,7 @@ bool AEONFloorManager::IsNearComTerminal() const
 
 bool AEONFloorManager::TryInteract()
 {
-	if (Room && !(bHub && Cur == Start))
+	if (Room && !bDocked && !(bHub && Cur == Start))
 	{
 		if (const AEONCharacter* J = GetJira(); J && Room->TryOpenInnerDoor(Room->WorldToRoomPx(J->GetActorLocation()), 40.f)) { return true; }
 	}
@@ -1092,7 +1220,7 @@ bool AEONFloorManager::PullLever()
 
 bool AEONFloorManager::IsDocked() const
 {
-	return FloorN == 1 && RoomN <= 1 && Cur == Start;
+	return bDocked;
 }
 
 // ---------------------------------------------------------------- hub 3D (L_HUB) comme salle du C.O.M
@@ -1114,6 +1242,7 @@ void AEONFloorManager::SetupHub()
 		const FVector D = It->GetActorLocation() - HubCentre;
 		const uint8 Dir = FMath::Abs(D.X) > FMath::Abs(D.Y) ? (D.X > 0.f ? EONDoor::E : EONDoor::W) : (D.Y > 0.f ? EONDoor::S : EONDoor::N);
 		HubDoor[DoorIdx(Dir)] = It->GetActorLocation();
+		HubDoorActors.Add(*It);
 		++Found;
 	}
 	if (Found < 4) { UE_LOG(LogEON, Warning, TEXT("EON hub : %d sas trouvés sur 4, le hub n'est pas branché sur l'étage"), Found); return; }
@@ -1179,7 +1308,7 @@ void AEONFloorManager::BuildHubFlesh()
 {
 	for (AStaticMeshActor* A : HubFlesh) { if (A) { A->Destroy(); } }
 	HubFlesh.Reset();
-	if (!IsInfestEdge(Start, Boss)) { return; }
+	if (bDocked || !IsInfestEdge(Start, Boss)) { return; }
 	uint8 D = 0;
 	for (uint8 Dd : DoorOrder) { if (Start + EONDoor::Dir(Dd) == Boss) { D = Dd; } }
 	if (!D) { return; }
@@ -1273,6 +1402,7 @@ void AEONFloorManager::TickHub(float DeltaSeconds, AEONCharacter* J)
 uint8 AEONFloorManager::HubSafeDoor() const
 {
 	// Est d'abord (côté caméra le plus lisible), puis sud, ouest, nord : la première passerelle qui ne mène pas au gardien.
+	if (bDocked) { return EONDoor::S; }
 	for (uint8 D : { EONDoor::E, EONDoor::S, EONDoor::W, EONDoor::N }) { if (Start + EONDoor::Dir(D) != Boss) { return D; } }
 	return EONDoor::E;
 }
