@@ -6,6 +6,8 @@
 #include "EONBoss.h"
 #include "EONEnemy.h"
 #include "EONItems.h"
+#include "EONMeta.h"
+#include "EONUI.h"
 #include "EONPedestal.h"
 #include "EONPickup.h"
 #include "EONSlidingDoor.h"
@@ -22,6 +24,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "TimerManager.h"
+#include "Containers/Ticker.h"
 #include "GameFramework/PlayerController.h"
 #include "HAL/IConsoleManager.h"
 #include "Kismet/GameplayStatics.h"
@@ -104,16 +107,20 @@ namespace
 			if (!World || Args.Num() < 2) { return; }
 			const float Delay = FMath::Max(0.01f, FCString::Atof(*Args[0]));
 			const FString Cmd = FString::Join(TArrayView<const FString>(Args).RightChop(1), TEXT(" "));
+			// Temps réel : la commande part même si le jeu est en pause (dialogue, terminal, choix de niveau).
 			TWeakObjectPtr<UWorld> W(World);
-			FTimerHandle H;
-			World->GetTimerManager().SetTimer(H, FTimerDelegate::CreateLambda([W, Cmd]()
+			double* Left = new double(Delay);
+			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([W, Cmd, Left](float Dt)
 			{
-				if (!W.IsValid()) { return; }
+				if (!W.IsValid()) { delete Left; return false; }
+				if ((*Left -= Dt) > 0.0) { return true; }
+				delete Left;
 				UE_LOG(LogEON, Display, TEXT("eon.apres : %s"), *Cmd);
 				// Par le contrôleur : les commandes du viewport (show, viewmode...) passent aussi.
 				if (APlayerController* PC = W->GetFirstPlayerController()) { PC->ConsoleCommand(Cmd); }
 				else if (GEngine) { GEngine->Exec(W.Get(), *Cmd); }
-			}), Delay, false);
+				return false;
+			}));
 		}));
 	FAutoConsoleCommandWithWorldAndArgs GEONCmdCache(TEXT("eon.cache"), TEXT("eon.cache NOM [0|1] : masque (0, défaut) ou remontre (1) l'ISM NOM de toutes les salles (Sol, Murs, Decor, Cuves, Portes, PorteRouge, BordsDuVide, MursHUB, Chair)"),
 		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
@@ -206,7 +213,40 @@ void AEONFloorManager::BeginPlay()
 	}
 	// Laisse le temps au pion d'apparaître.
 	FTimerHandle H;
-	GetWorldTimerManager().SetTimer(H, this, &AEONFloorManager::NewRun, 0.05f, false);
+	GetWorldTimerManager().SetTimer(H, this, &AEONFloorManager::StartOrTitle, 0.05f, false);
+	// eon.debut : commandes de test lancées 2 s (temps réel) après le début, une seule fois par lancement.
+	static bool bDebutDone = false;
+	if (!bDebutDone)
+	{
+		bDebutDone = true;
+		TWeakObjectPtr<UWorld> W(GetWorld());
+		double* Left = new double(2.0);
+		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([W, Left](float Dt)
+		{
+			if (!W.IsValid()) { delete Left; return false; }
+			if ((*Left -= Dt) > 0.0) { return true; }
+			delete Left;
+			TArray<FString> Cmds;
+			CVarEONDebut.GetValueOnGameThread().ParseIntoArray(Cmds, TEXT(";"));
+			for (const FString& Cm : Cmds) { if (GEngine) { GEngine->Exec(W.Get(), *Cm.TrimStartAndEnd()); } }
+			return false;
+		}));
+	}
+}
+
+void AEONFloorManager::StartOrTitle()
+{
+	NewRun();
+	// Écran titre : au lancement seulement, s'il existe une progression. Nouvelle partie = tout effacer puis nouvelle run.
+	UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+	if (MS && !MS->bTitleDone)
+	{
+		MS->bTitleDone = true;
+		if (MS->HasProgress())
+		{
+			if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->OpenTitle([this]() { NewRun(); }); }
+		}
+	}
 }
 
 AEONCharacter* AEONFloorManager::GetJira() const
@@ -249,6 +289,10 @@ void AEONFloorManager::NewRun()
 	FloorN = 0;
 	CombatN = 0;
 	RoomN = 0;
+	bIntroDone = false;
+	bRedHint = bInfHint = false;
+	Greeted.Reset();
+	if (UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this)) { MS->OnRunStart(); }
 	if (AEONCharacter* J = GetJira()) { J->ResetRun(); }
 	StartFloor();
 }
@@ -265,6 +309,16 @@ void AEONFloorManager::StartFloor()
 	GenFloor();
 	EnterCell(Start, 0, true);
 	ShowBanner(FloorN == 2 ? TEXT("Etage 2 - Les cuves") : FloorN == 3 ? TEXT("Etage 3 - Les labos") : FloorN == 4 ? TEXT("Etage 4 - Les serres") : FString::Printf(TEXT("Etage %d"), FloorN), FLinearColor(FColor(62, 242, 224)));
+	if (UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this)) { MS->OnFloor(FloorN); }
+	// Dialogue d'arrivée : iaIntro au premier étage de la run, puis cuves, labos, serres, ou la phrase générique.
+	if (UEONUISubsystem* UI = UEONUISubsystem::Get(this))
+	{
+		if (!bIntroDone) { bIntroDone = true; UI->Say(TEXT("iaIntro")); }
+		else if (FloorN == 2) { UI->Say(TEXT("cuves")); }
+		else if (FloorN == 3) { UI->Say(TEXT("labos")); }
+		else if (FloorN == 4) { UI->Say(TEXT("serres")); }
+		else { UI->SayLines({ { TEXT("ia"), TEXT("neutre"), FString::Printf(TEXT("Le C.O.M a atteint l'etage %d. Protocole identique : la carte rouge, le gardien, puis retour au C.O.M."), FloorN) } }); }
+	}
 }
 
 // ---------------------------------------------------------------- genFloor
@@ -714,15 +768,6 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 	BannerT = FMath::Max(0.f, BannerT - DeltaSeconds);
 	// Cube du terminal du hub : rotation lente, s'emballe quand le C.O.M descend.
 	if (HubCube) { HubCube->AddActorWorldRotation(FRotator(0.f, (ComTravelT >= 0.f ? 540.f : 45.f) * DeltaSeconds, 0.f)); }
-	// eon.debut : commandes de test différées (le premier étage et Jira existent alors).
-	static float DebutT = 0.f;
-	if (DebutT >= 0.f && (DebutT += DeltaSeconds) > 2.f)
-	{
-		DebutT = -1.f;
-		TArray<FString> Cmds;
-		CVarEONDebut.GetValueOnGameThread().ParseIntoArray(Cmds, TEXT(";"));
-		for (const FString& Cm : Cmds) { if (GEngine) { GEngine->Exec(GetWorld(), *Cm.TrimStartAndEnd()); } }
-	}
 	// Trace de diagnostic (eon.trace 1) : position de Jira et de la caméra toutes les 2 s.
 	static float TraceT = 0.f;
 	if (CVarEONTrace.GetValueOnGameThread() > 0 && (TraceT -= DeltaSeconds) <= 0.f)
@@ -768,7 +813,9 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 		Room->SetRedDoor(0);
 		if (CardMesh) { CardMesh->SetVisibility(false); }
 		ShowBanner(TEXT("Carte rouge"), FLinearColor(FColor(255, 61, 85)));
-		AmbushT = 1.4f;   // le temps du dialogue du proto (« ... Ce silence ne me plaît pas. »)
+		// Dialogue « card », puis l'embuscade.
+		if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->Say(TEXT("card"), [this]() { AmbushT = 0.05f; }); }
+		else { AmbushT = 1.4f; }
 	}
 	if (AmbushT > 0.f && (AmbushT -= DeltaSeconds) <= 0.f)
 	{
@@ -797,7 +844,7 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 					if (!bInfHint)
 					{
 						bInfHint = true;
-						ShowBanner(CM->Role == TEXT("DEPART") ? TEXT("IA : La passerelle est envahie. Rien ne passe par la.") : TEXT("Jira : La chair a mure cette porte. Elle bat... comme un coeur."), FLinearColor(FColor(200, 74, 122)));
+						if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->Say(CM->Role == TEXT("DEPART") ? TEXT("infestCom") : TEXT("infestBoss")); }
 					}
 					else { ShowBanner(TEXT("La mutation bloque le passage"), FLinearColor(FColor(255, 61, 85))); }
 					break;
@@ -810,8 +857,14 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 	if (Room->GetRedDoor() && RedBumpT <= 0.f && FVector2D::Distance(P, Room->DoorCenterPx(Room->GetRedDoor())) < 20.f)
 	{
 		RedBumpT = 2.5f;
-		if (!bRedHint) { bRedHint = true; ShowBanner(TEXT("Verrou de securite rouge. Il me faut la carte."), FLinearColor(FColor(255, 61, 85))); }
+		if (!bRedHint) { bRedHint = true; if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->Say(TEXT("redDoor")); } }
 		else { ShowBanner(TEXT("Carte rouge requise"), FLinearColor(FColor(255, 61, 85))); }
+	}
+	// Marchand : il salue à la première approche (moins de 80 px de son comptoir).
+	if (CM->Role == TEXT("MARCHAND") && !Greeted.Contains(Cur) && FVector2D::Distance(P, FVector2D(CM->Grid.W * 8.f, 4 * 16.f + 10.f)) < 80.f)
+	{
+		Greeted.Add(Cur);
+		if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->Say(TEXT("marchand")); }
 	}
 	// Sortie par une porte : Jira à moins de 10 px du bord, salle ouverte, pas en chute.
 	const FEONFloorCell* C = CM;
@@ -937,6 +990,12 @@ void AEONFloorManager::OnBossDefeated(const FVector2D& BossPx)
 		AEONPedestal::Spawn(GetWorld(), Room, It[I], Px, 0, I);
 	}
 	ShowBanner(TEXT("La chair se retracte, retourne au C.O.M"), FLinearColor(FColor(255, 194, 61)));
+	// META.st.boss[étage], bossCob ; le premier gardien vaincu ouvre la cuve du Cobaye (bannière 2,2 s plus tard).
+	if (UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this); MS && MS->OnBossDefeated(FloorN))
+	{
+		FTimerHandle H;
+		GetWorldTimerManager().SetTimer(H, FTimerDelegate::CreateWeakLambda(this, [this]() { ShowBanner(TEXT("Une cuve s'est ouverte au Kibo"), FLinearColor(FColor(255, 61, 85))); }), 2.2f, false);
+	}
 	UE_LOG(LogEON, Display, TEXT("EON gardien vaincu : étage %d terminé, %d objets au choix"), FloorN, It.Num());
 }
 
@@ -1016,17 +1075,24 @@ bool AEONFloorManager::TryInteract()
 		if (const AEONCharacter* J = GetJira(); J && Room->TryOpenInnerDoor(Room->WorldToRoomPx(J->GetActorLocation()), 40.f)) { return true; }
 	}
 	if (!IsNearComTerminal() || ComTravelT >= 0.f || TransT > 0.f) { return false; }
-	if (bFloorDone)
-	{
-		// pullCOM : le levier de l'onglet Descente.
-		ComTravelT = 0.f;
-		bComGo = false;
-		if (AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld())) { D->Shake(0.5f); }
-		ShowBanner(TEXT("Le C.O.M descend"), FLinearColor(FColor(62, 242, 224)));
-		return true;
-	}
-	ShowBanner(FString::Printf(TEXT("Verrouille - gardien : %s du C.O.M - carte rouge %s"), *GuardDir(), bRedCard ? TEXT("OK") : TEXT("a trouver")), FLinearColor(FColor(140, 134, 180)));
-	return false;
+	// openCOM : le terminal (onglet Descente si le levier est prêt).
+	if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->OpenCom(); return true; }
+	return PullLever();
+}
+
+bool AEONFloorManager::PullLever()
+{
+	if (!bFloorDone || ComTravelT >= 0.f) { return false; }
+	ComTravelT = 0.f;
+	bComGo = false;
+	if (AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld())) { D->Shake(0.5f); }
+	ShowBanner(TEXT("Le C.O.M descend"), FLinearColor(FColor(62, 242, 224)));
+	return true;
+}
+
+bool AEONFloorManager::IsDocked() const
+{
+	return FloorN == 1 && RoomN <= 1 && Cur == Start;
 }
 
 // ---------------------------------------------------------------- hub 3D (L_HUB) comme salle du C.O.M
@@ -1174,7 +1240,7 @@ void AEONFloorManager::TickHub(float DeltaSeconds, AEONCharacter* J)
 				if (A && FVector2D::Distance(P, FVector2D(A->GetActorLocation())) < 160.f)
 				{
 					InfBumpT = 3.f;
-					if (!bInfHint) { bInfHint = true; ShowBanner(TEXT("IA : La passerelle est envahie. Rien ne passe par la."), FLinearColor(FColor(200, 74, 122))); }
+					if (!bInfHint) { bInfHint = true; if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->Say(TEXT("infestCom")); } }
 					else { ShowBanner(TEXT("La mutation bloque le passage"), FLinearColor(FColor(255, 61, 85))); }
 					break;
 				}
@@ -1194,7 +1260,7 @@ void AEONFloorManager::TickHub(float DeltaSeconds, AEONCharacter* J)
 			if (RedBumpT <= 0.f)
 			{
 				RedBumpT = 2.5f;
-				if (!bRedHint) { bRedHint = true; ShowBanner(TEXT("Verrou de securite rouge. Il me faut la carte."), FLinearColor(FColor(255, 61, 85))); }
+				if (!bRedHint) { bRedHint = true; if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->Say(TEXT("redDoor")); } }
 				else { ShowBanner(TEXT("Carte rouge requise"), FLinearColor(FColor(255, 61, 85))); }
 			}
 			continue;

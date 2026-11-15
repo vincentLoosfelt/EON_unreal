@@ -226,12 +226,13 @@ void AEONBoss::FinishDeath()
 	AEONCombatDirector* D = Director.Get();
 	AEONTileRoom* Rm = Room.Get();
 	UWorld* W = GetWorld();
-	if (D) { D->Shake(1.f); D->Hitstop(220.f); ++D->Kills; D->Donnees += 12; D->Scrap += 12; D->AdnGained += 25; }
+	if (D) { D->Shake(1.f); D->Hitstop(220.f); ++D->Kills; D->Scrap += 12; D->AdnGained += 25; }
 	// Butin : 12 Données (4 × 3, méta : jalon 8, créditées), 12 scrap, 25 ADN, 2 cœurs.
 	if (W && Rm)
 	{
 		for (int32 K = 0; K < 12; ++K) { AEONPickup::Spawn(W, Rm, EEONPickup::Scrap, Pos, FVector2D((Rand01() - 0.5f) * 220.f, (Rand01() - 0.5f) * 220.f)); }
 		AEONPickup::DropADN(W, Rm, Pos, 25);
+		for (int32 K = 0; K < 4; ++K) { AEONPickup::Spawn(W, Rm, EEONPickup::Donnee, Pos, FVector2D((Rand01() - 0.5f) * 160.f, (Rand01() - 0.5f) * 160.f), 3.f); }
 		AEONPickup::Spawn(W, Rm, EEONPickup::Heart, Pos + FVector2D(-10.f, 0.f), FVector2D(-30.f, 20.f));
 		AEONPickup::Spawn(W, Rm, EEONPickup::Heart, Pos + FVector2D(10.f, 0.f), FVector2D(30.f, 20.f));
 	}

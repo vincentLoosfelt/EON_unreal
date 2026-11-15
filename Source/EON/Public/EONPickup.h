@@ -1,4 +1,4 @@
-// EON — jalon 6 : ramassables (pickups du proto) : gemmes d'ADN aspirées, scrap, énergie, cœur.
+﻿// EON — jalon 6 : ramassables (pickups du proto) : gemmes d'ADN aspirées, scrap, énergie, cœur.
 // Position et vitesse en px de salle, comme le proto ; le visuel suit la salle en cours.
 #pragma once
 
@@ -15,7 +15,9 @@ enum class EEONPickup : uint8
 	Adn,
 	Scrap,
 	Energy,
-	Heart
+	Heart,
+	/** Données (méta) : gardées pour toujours, ne tombent jamais. */
+	Donnee
 };
 
 UCLASS()

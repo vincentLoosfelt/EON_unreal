@@ -1,6 +1,7 @@
-// EON — jalon 6 : table des objets (générée depuis DONNEES/items.json) et tirages.
+﻿// EON — jalon 6 : table des objets (générée depuis DONNEES/items.json) et tirages.
 #include "EONItems.h"
 #include "EONCharacter.h"
+#include "EONMeta.h"
 
 namespace EONItems
 {
@@ -61,6 +62,7 @@ namespace EONItems
 	TArray<FName> Roll(int32 N, const AEONCharacter* J, bool bLevel)
 	{
 		const FName G = J ? J->GetGreffeId() : FName(TEXT("standard"));
+		const UEONMetaSubsystem* MS = J ? UEONMetaSubsystem::Get(J) : nullptr;
 		TArray<const FEONItemDef*> Pool;
 		for (const FEONItemDef& It : All())
 		{
@@ -69,7 +71,9 @@ namespace EONItems
 			if (It.Cat == TEXT("GREFFE")) { continue; }
 			if (It.Gr.Num() && !It.Gr.Contains(G)) { continue; }
 			if (It.bOnce && J && J->HasItem(It.Id)) { continue; }
-			if (It.Id == TEXT("c_shield") && J && J->GetShieldMax() > 0) { continue; }
+			// Verrouillé (section 6) : absent du tirage. La cassette Shield, une fois trouvée, ne sort plus.
+			if (MS && !MS->ItemOk(It.Id)) { continue; }
+			if (It.Id == TEXT("c_shield") && ((MS && MS->CasLvl(TEXT("shield")) >= 1) || (J && J->GetShieldMax() > 0))) { continue; }
 			Pool.Add(&It);
 		}
 		TArray<FName> Out;

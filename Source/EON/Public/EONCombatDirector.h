@@ -64,6 +64,8 @@ public:
 	int32 NumEggs() const { return Eggs.Num(); }
 	/** Efface les tirs ennemis (position px) pour lesquels Pred est vrai : Lame, onde. Renvoie le nombre effacé. */
 	int32 ClearBullets(TFunctionRef<bool(const FVector2D&)> Pred);
+	/** shieldBurst : Shield NV3 A (onde de 80 px, 5 dégâts / 8 sur un boss, tirs effacés à 110 px) ou B (tirs à 120 px renvoyés). */
+	void ShieldBurst(bool bMirror);
 	/** Chute d'un ennemi : « Chute +1 », +1 scrap, ADN. */
 	void OnEnemyFell(AEONEnemy* E);
 	/** Chiffre flottant (nums du proto). VyPx < 0 = monte. */

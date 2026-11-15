@@ -113,6 +113,14 @@ public:
 	/** Direction du gardien vue du C.O.M (« nord »...). */
 	FString GuardDir() const;
 
+	/** Le C.O.M à quai (room.dock) : seul endroit où l'on installe une cassette. Sans Kibo (MANQUANTS.md), provisoirement :
+	 *  la salle du C.O.M de l'étage 1 tant que Jira n'en est pas sortie. */
+	bool IsDocked() const;
+	/** pullCOM : le levier (onglet Descente du terminal). */
+	bool PullLever();
+	/** Fondu entre deux salles en cours (trans). */
+	bool IsInTransition() const { return TransT > 0.f; }
+
 	/** Hub 3D (L_HUB) : la salle du C.O.M est le hub lui-même ; ses 4 sas mènent aux salles générées, construites plus loin dans la carte. */
 	bool IsHubMode() const { return bHub; }
 
@@ -151,6 +159,11 @@ private:
 	bool bComGo = false;
 	float InfBumpT = 0.f;
 	bool bInfHint = false;
+	/** P.introDone : le dialogue iaIntro joue au premier étage de chaque run. */
+	bool bIntroDone = false;
+	/** Marchands déjà salués (s.greeted). */
+	TSet<FIntPoint> Greeted;
+	void StartOrTitle();
 	// --- Hub 3D comme salle du C.O.M
 	bool bHub = false;
 	FVector HubCentre = FVector::ZeroVector;

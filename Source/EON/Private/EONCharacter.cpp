@@ -6,6 +6,7 @@
 #include "EONPlayerCameraManager.h"
 #include "EONProjectile.h"
 #include "EONItems.h"
+#include "EONMeta.h"
 #include "EONPickup.h"
 #include "Kismet/GameplayStatics.h"
 #include "EONTileRoom.h"
@@ -135,15 +136,25 @@ AEONPedestal* AEONCharacter::AutoFindPedestal(AEONTileRoom* Rm) const
 	return Best;
 }
 
+void AEONCharacter::ApplyCassettes()
+{
+	const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+	if (MS && MS->CasLvl(TEXT("shield")) >= 1) { ShieldMax = 1; Shield = 1; }
+}
+
 void AEONCharacter::ResetRun()
 {
-	MaxHP = StartHP;
+	// newPlayer : PV max + bonus des insignes (META.hpBonus).
+	const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+	MaxHP = StartHP + (MS && MS->M() ? MS->M()->HpBonus : 0);
 	HP = MaxHP;
 	// Jalon 6 : l'ADN, le scrap et les objets sont perdus à la mort.
 	EnergyMax = BaseEnergyMax; DashMax = BaseDashMax; DashCharges = DashMax;
 	Adn = 0.f; Lvl = 1; LvPend = 0; LvT = 0.f; LvOpts.Reset(); Scrap = 0; Items.Reset();
 	MagR = 40.f; AdnM = ScrapM = DonM = 1.f; RateM = RangeM = ChargeM = DashDistM = CdM = SpdItemM = 1.f;
 	Size = Revive = Shield = ShieldMax = Pierce = Bounce = Multi = 0;
+	ShieldT = 0.f;
+	ApplyCassettes();
 	DmgM = 1.f; bBerserk = bStab = bReg = false;
 	FallCount = 0;
 	// Jalon 4 : état sain, sans armure, énergie pleine, jauge d'ultime vide.
@@ -192,7 +203,13 @@ void AEONCharacter::HurtPlayer(int32 Amount, FVector SourceWorld)
 	if (Shield > 0)
 	{
 		--Shield;
+		ShieldT = 0.f;
 		InvTimer = 0.6f;
+		// Shield NV3 : nettoyant (A) ou miroir (B).
+		if (const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this); MS && MS->CasLvl(TEXT("shield")) >= 3)
+		{
+			if (AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld())) { D->ShieldBurst(MS->CasBr(TEXT("shield")) == TEXT("B")); }
+		}
 		if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.25f); }
 		if (AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld())) { D->AddNum(GetActorLocation() + FVector(0.f, 0.f, 120.f), TEXT("Bouclier"), FColor(62, 242, 224), 0.8f, -30.f); }
 		return;
@@ -207,6 +224,7 @@ void AEONCharacter::HurtPlayer(int32 Amount, FVector SourceWorld)
 	}
 	// Mutation (stade 1 ou plus) : les coups reçus font double dégât.
 	HP -= Amount * (Mut >= 1 ? 2 : 1);
+	ShieldT = 0.f;
 	InvTimer = 1.f;
 	HurtFlash = 0.25f;
 	if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.55f); }
@@ -233,6 +251,8 @@ void AEONCharacter::CheckDeath()
 	{
 		HP = 0;
 		bFireHeld = false;
+		// META.st.runs++, morts++ (checkDeath du proto).
+		if (UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this)) { MS->OnDeath(); }
 		GetCharacterMovement()->StopMovementImmediately();
 		UE_LOG(LogEON, Display, TEXT("EON Jira : signal perdu"));
 	}
@@ -301,6 +321,17 @@ void AEONCharacter::Tick(float DeltaSeconds)
 	const UEONTuningSubsystem* Tuning = UEONTuningSubsystem::Get(this);
 	const FEONGameFeelRow Feel = Tuning ? Tuning->GetGameFeel() : FEONGameFeelRow();
 	const float Dt = DeltaSeconds;
+
+	// --- Méta : stade de mutation le plus haut (META.st.maxMut) ; Shield NV2 : recharge après 10 s sans dégâts.
+	if (UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this))
+	{
+		if (Mut > 0) { MS->OnMut(Mut); }
+		if (ShieldMax > 0 && Shield < ShieldMax && MS->CasLvl(TEXT("shield")) >= 2 && !IsDead())
+		{
+			ShieldT += Dt;
+			if (ShieldT > 10.f) { Shield = ShieldMax; ShieldT = 0.f; }
+		}
+	}
 
 	// --- Démo de locomotion (eon.demo 1) : remplace l'entrée du joueur.
 	if (CVarEONDemo.GetValueOnGameThread() > 0)
@@ -851,9 +882,11 @@ TArray<FName> AEONCharacter::GetGreffeSet() const
 {
 	TArray<TPair<int32, FName>> L;
 	const UEONTuningSubsystem* T = UEONTuningSubsystem::Get(this);
+	// LOCK_G : une greffe verrouillée n'est nulle part (Jira démarre avec Standard et Rafale).
+	const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
 	if (UDataTable* Table = T ? T->GetGreffes() : nullptr)
 	{
-		Table->ForeachRow<FEONGreffeRow>(TEXT("EON"), [&L](const FName& Key, const FEONGreffeRow& R) { if (R.JiraOrder > 0) { L.Add({ R.JiraOrder, Key }); } });
+		Table->ForeachRow<FEONGreffeRow>(TEXT("EON"), [&L, MS](const FName& Key, const FEONGreffeRow& R) { if (R.JiraOrder > 0 && (!MS || MS->GreffeOk(Key))) { L.Add({ R.JiraOrder, Key }); } });
 	}
 	L.Sort([](const TPair<int32, FName>& A, const TPair<int32, FName>& B) { return A.Key < B.Key; });
 	TArray<FName> Out;
@@ -1330,7 +1363,7 @@ void AEONCharacter::TakeItem(FName Id)
 	else if (S == TEXT("p_dashd")) { DashDistM *= 1.25f; }
 	else if (S == TEXT("p_dashc")) { ++DashMax; ++DashCharges; }
 	else if (S == TEXT("p_revive")) { ++Revive; }
-	else if (S == TEXT("c_shield")) { ShieldMax = 1; Shield = 1; }
+	else if (S == TEXT("c_shield")) { ShieldMax = 1; Shield = 1; if (UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this)) { MS->CasUnlock(TEXT("shield")); } }
 	else if (S == TEXT("d_don")) { DonM *= 1.3f; }
 	else if (S == TEXT("e_berserk")) { bBerserk = true; }
 	else if (S == TEXT("e_stab")) { bStab = true; }

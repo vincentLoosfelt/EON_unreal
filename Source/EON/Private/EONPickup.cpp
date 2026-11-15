@@ -1,6 +1,9 @@
-#include "EONPickup.h"
+﻿#include "EONPickup.h"
 #include "EON.h"
 #include "EONCharacter.h"
+#include "EONCombatDirector.h"
+#include "EONMeta.h"
+#include "EONUI.h"
 #include "EONTileRoom.h"
 #include "EONTypes.h"
 #include "Components/StaticMeshComponent.h"
@@ -35,7 +38,7 @@ AEONPickup* AEONPickup::Spawn(UWorld* World, AEONTileRoom* Room, EEONPickup Type
 	P->T = T0;
 	// Couleurs du proto : ADN vert, scrap ambre, énergie cyan, cœur rouge. Formes provisoires.
 	const FLinearColor C = Type == EEONPickup::Adn ? FLinearColor(FColor(138, 240, 122)) : Type == EEONPickup::Scrap ? FLinearColor(FColor(255, 194, 61))
-		: Type == EEONPickup::Energy ? FLinearColor(FColor(62, 242, 224)) : FLinearColor(FColor(255, 61, 85));
+		: Type == EEONPickup::Energy ? FLinearColor(FColor(62, 242, 224)) : Type == EEONPickup::Donnee ? FLinearColor(FColor(154, 216, 255)) : FLinearColor(FColor(255, 61, 85));
 	const float S = Type == EEONPickup::Adn ? 0.12f + 0.03f * V : 0.2f;
 	P->Mesh->SetWorldScale3D(FVector(S));
 	if (UMaterialInterface* Flat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/EON/Materials/M_Flat.M_Flat")))
@@ -104,7 +107,7 @@ void AEONPickup::Tick(float Dt)
 	}
 	Px += Vel * Dt;
 	// Un ramassable ordinaire immobile au-dessus du vide finit par tomber (pas l'ADN).
-	if (Type != EEONPickup::Adn && T > 0.8f && D >= 40.f && Vel.Size() < 10.f && Rm->PitAtPx(Px)) { Destroy(); return; }
+	if (Type != EEONPickup::Adn && Type != EEONPickup::Donnee && T > 0.8f && D >= 40.f && Vel.Size() < 10.f && Rm->PitAtPx(Px)) { Destroy(); return; }
 	if (D < 8.f && T > 0.3f && !bHeartFull)
 	{
 		switch (Type)
@@ -113,6 +116,27 @@ void AEONPickup::Tick(float Dt)
 		case EEONPickup::Scrap: J->AddScrap(1); break;
 		case EEONPickup::Energy: J->PickupEnergy(14.f); break;
 		case EEONPickup::Heart: J->Heal(1); break;
+		case EEONPickup::Donnee:
+		{
+			// +v × donM, au moins 1 ; le premier ramassage déclenche le dialogue « donnees ».
+			const int32 Gn = FMath::Max(1, FMath::RoundToInt(Value * J->GetDonM()));
+			if (UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this))
+			{
+				MS->AddDonnees(Gn);
+				if (MS->M() && !MS->M()->bDonHint)
+				{
+					MS->M()->bDonHint = true;
+					MS->Save();
+					if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->Say(TEXT("donnees")); }
+				}
+			}
+			if (AEONCombatDirector* Dir = AEONCombatDirector::Get(GetWorld()))
+			{
+				Dir->Donnees += Gn;
+				Dir->AddNum(J->GetActorLocation() + FVector(0.f, 0.f, 160.f), FString::Printf(TEXT("+%d donnees"), Gn), FColor(154, 216, 255), 0.9f, -30.f);
+			}
+			break;
+		}
 		}
 		Destroy();
 		return;

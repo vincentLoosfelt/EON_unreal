@@ -3,6 +3,9 @@
 #include "EONCharacter.h"
 #include "EONFloorManager.h"
 #include "EONItems.h"
+#include "EONMeta.h"
+#include "EONUI.h"
+#include "Misc/App.h"
 #include "EONPedestal.h"
 #include "EONPlayerController.h"
 #include "EONTileRoom.h"
@@ -128,6 +131,11 @@ void AEONHUD::DrawHUD()
 		Rect(X, Y, 60 * U * FMath::Clamp(J->GetADN() / J->GetADNNeed(), 0.f, 1.f), 2 * U, Green);
 		Txt(FString::Printf(TEXT("Niv %d"), J->GetLevel()) + (J->GetLevelPending() > 0 ? TEXT(" +") : TEXT("")), X + 62 * U, Y - 3 * U, Green, U / 4.f);
 		Txt(FString::Printf(TEXT("Scrap %d"), J->GetScrap()), X + 82 * U, Y - 3 * U, Amber, U / 4.f);
+		// Données (méta) : affichées dès qu'on en a.
+		if (const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this); MS && MS->GetDonnees() > 0)
+		{
+			Txt(FString::Printf(TEXT("Donnees %d"), MS->GetDonnees()), X + 112 * U, Y - 3 * U, FLinearColor(FColor(154, 216, 255)), U / 4.f);
+		}
 	}
 
 	// --- En bas à gauche : greffe active
@@ -189,7 +197,10 @@ void AEONHUD::DrawHUD()
 		// Terminal du C.O.M : invite du levier.
 		if (FC->IsNearComTerminal() && !FC->IsComTravelling())
 		{
-			Txt(FC->IsFloorDone() ? TEXT("Interagir : tirer le levier - descendre") : TEXT("Interagir : terminal du C.O.M"), SX * 0.5f, SY * 0.7f, FC->IsFloorDone() ? Cyan : Dim, U / 3.f, true);
+			if (const UEONUISubsystem* UI = UEONUISubsystem::Get(this); !UI || !UI->IsBlocking())
+			{
+				Txt(TEXT("Interagir : consulter le C.O.M"), SX * 0.5f, SY * 0.7f, FC->IsFloorDone() ? Cyan : Dim, U / 3.f, true);
+			}
 		}
 	}
 
@@ -225,7 +236,7 @@ void AEONHUD::DrawHUD()
 		Txt(R.ToString(), SX - 80 * U, 64 * U, RoleColor(R), U / 3.5f);
 		Txt(FString::Printf(TEXT("Etage %d"), F->GetFloorN()), SX - 80 * U, 72 * U, Dim, U / 3.5f);
 		// --- Bannière centrale (1,8 s)
-		if (F->BannerT > 0.f)
+		if (F->BannerT > 0.f && !(UEONUISubsystem::Get(this) && UEONUISubsystem::Get(this)->IsTitleOpen()))
 		{
 			const float A = FMath::Min(1.f, F->BannerT / 0.3f);
 			Rect(0, SY * 0.3f, SX, 16 * U, FLinearColor(0.f, 0.f, 0.02f, 0.6f * A));
@@ -329,8 +340,306 @@ void AEONHUD::DrawHUD()
 		Rect(0, 0, SX, SY, FLinearColor(0.01f, 0.f, 0.02f, 0.75f));
 		Txt(TEXT("SIGNAL PERDU"), SX * 0.5f, SY * 0.4f, Red, U / 1.6f, true);
 		Txt(TEXT("R : nouvelle run"), SX * 0.5f, SY * 0.4f + 22 * U, Dim, U / 3.f, true);
+		if (const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this); MS && MS->GetRunUnlocks().Num())
+		{
+			const FLinearColor Am(FColor(255, 194, 61));
+			Txt(TEXT("DEBLOQUE PENDANT LA RUN"), SX * 0.5f, SY * 0.4f + 36 * U, Am, U / 3.5f, true);
+			int32 K = 0;
+			for (const FName& Id : MS->GetRunUnlocks())
+			{
+				for (const FEONUnlockDef& Ud : UEONMetaSubsystem::Unlocks())
+				{
+					if (Ud.Id == Id) { Txt(Ud.Kind + TEXT(" : ") + Ud.Name, SX * 0.5f, SY * 0.4f + (46 + 9 * K) * U, FLinearColor::White, U / 4.f, true); ++K; }
+				}
+			}
+		}
 	}
+	else { DrawToast(); }
+	DrawDialog();
+	DrawCom();
+	DrawTitle();
 	DrawDevMenu();
+}
+
+// ---------------------------------------------------------------- jalon 8
+
+void AEONHUD::Box(float X, float Y, float W, float H, const FLinearColor& Border, const FLinearColor& Fill)
+{
+	if (Fill.A > 0.f) { Rect(X, Y, W, H, Fill); }
+	Rect(X, Y, W, U * 0.5f, Border); Rect(X, Y + H - U * 0.5f, W, U * 0.5f, Border);
+	Rect(X, Y, U * 0.5f, H, Border); Rect(X + W - U * 0.5f, Y, U * 0.5f, H, Border);
+}
+
+TArray<FString> AEONHUD::Wrap(const FString& S, int32 N)
+{
+	TArray<FString> Out, Words;
+	S.ParseIntoArray(Words, TEXT(" "), true);
+	FString Cur;
+	for (const FString& W : Words)
+	{
+		if (Cur.Len() && Cur.Len() + 1 + W.Len() > N) { Out.Add(Cur); Cur.Reset(); }
+		Cur += (Cur.Len() ? TEXT(" ") : TEXT("")) + W;
+	}
+	if (Cur.Len() || !Out.Num()) { Out.Add(Cur); }
+	return Out;
+}
+
+int32 AEONHUD::Lines(const TArray<FString>& L, float X, float Y, const FLinearColor& C, int32 N)
+{
+	int32 K = 0;
+	for (const FString& S : L) { for (const FString& Ln : Wrap(S, N)) { Txt(Ln, X, Y + K * 8 * U, C, U / 4.1f); ++K; } }
+	return K;
+}
+
+void AEONHUD::DrawToast()
+{
+	// drawUnlToast : encart « DÉBLOQUÉ » en haut au centre, 3,2 s, fondu d'entrée et de sortie.
+	const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+	float Life = 0.f;
+	const FEONUnlockDef* Ud = MS ? MS->GetToast(Life) : nullptr;
+	if (!Ud) { return; }
+	const float K = FMath::Clamp(FMath::Min(Life * 3.f, (3.2f - Life) * 6.f), 0.f, 1.f);
+	const FLinearColor Am(1.f, 0.76f, 0.24f, K);
+	const float W = 210 * U, X = Canvas->ClipX * 0.5f - W * 0.5f, Y = 80 * U;
+	Box(X, Y, W, 26 * U, Am, FLinearColor(0.027f, 0.024f, 0.06f, 0.9f * K));
+	Txt(TEXT("DEBLOQUE  -  ") + Ud->Kind, Canvas->ClipX * 0.5f, Y + 3 * U, Am, U / 4.f, true);
+	Txt(Ud->Name, Canvas->ClipX * 0.5f, Y + 12 * U, FLinearColor(1.f, 1.f, 1.f, K), U / 3.f, true);
+}
+
+void AEONHUD::DrawDialog()
+{
+	// drawDialog : voile, boîte en bas sur toute la largeur, portrait au-dessus à gauche, nom, texte lettre par lettre.
+	const UEONUISubsystem* UI = UEONUISubsystem::Get(this);
+	const FEONDlgLine* L = UI ? UI->DlgLine() : nullptr;
+	if (!L) { return; }
+	const float SX = Canvas->ClipX, SY = Canvas->ClipY;
+	FString Name; FColor Col;
+	UEONUISubsystem::CharInfo(L->Who, Name, Col);
+	const FLinearColor C(Col);
+	Rect(0, 0, SX, SY, FLinearColor(0.027f, 0.024f, 0.06f, 0.55f));
+	const float Bx = 10 * U, By = SY - 56 * U, Bw = SX - 20 * U, Bh = 52 * U;
+	Rect(Bx, By, Bw, Bh, FLinearColor(0.04f, 0.035f, 0.094f, 0.94f));
+	for (float Y = By; Y < By + Bh; Y += 6 * U) { Rect(Bx, Y, Bw, 2 * U, FLinearColor(C.R, C.G, C.B, 0.08f)); }
+	Box(Bx, By, Bw, Bh, C, FLinearColor::Transparent);
+	// Portrait provisoire (MANQUANTS.md : vrais portraits à produire) : carré à la couleur du perso, initiale, expression.
+	const float Ps = 46 * U, Px = Bx + 6 * U, Py = By - Ps - 4 * U;
+	Rect(Px - U, Py - U, Ps + 2 * U, Ps + 2 * U, FLinearColor(0.027f, 0.024f, 0.06f, 1.f));
+	Rect(Px, Py, Ps, Ps, FLinearColor(C.R * 0.25f, C.G * 0.25f, C.B * 0.25f, 1.f));
+	Box(Px, Py, Ps, Ps, C, FLinearColor::Transparent);
+	Txt(Name.Left(1), Px + Ps * 0.5f, Py + 8 * U, C, U / 1.3f, true);
+	Txt(L->Ex.ToString(), Px + Ps * 0.5f, Py + Ps - 9 * U, FLinearColor(C.R, C.G, C.B, 0.7f), U / 5.f, true);
+	Txt(Name, Bx + 10 * U, By + 5 * U, C, U / 3.2f);
+	const FString Shown = L->T.Left(UI->DlgShown());
+	int32 K = 0;
+	for (const FString& Ln : Wrap(Shown, 92)) { Txt(Ln, Bx + 10 * U, By + 16 * U + K * 9 * U, FLinearColor(FColor(232, 228, 255)), U / 3.8f); ++K; }
+	if (UI->DlgShown() >= L->T.Len() && FMath::Fmod(FPlatformTime::Seconds(), 0.8) < 0.5)
+	{
+		Txt(TEXT("Espace / E / (A) : suite     Echap / (B) : passer"), Bx + Bw - 120 * U, By + Bh - 9 * U, Dim, U / 5.f);
+	}
+}
+
+void AEONHUD::DrawCom()
+{
+	// drawCOMUI : cadre 424 × 236, titre, 5 onglets, liste à gauche (18 lignes), fiche à droite.
+	const UEONUISubsystem* UI = UEONUISubsystem::Get(this);
+	if (!UI || !UI->IsComOpen()) { return; }
+	const AEONCharacter* J = Cast<AEONCharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
+	const AEONFloorManager* F = AEONFloorManager::Get(this);
+	const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+	if (!J) { return; }
+	const float SX = Canvas->ClipX, SY = Canvas->ClipY;
+	Ox = SX * 0.5f - 240 * U; Oy = SY * 0.5f - 135 * U;
+	auto PX = [this](float X) { return Ox + X * U; };
+	auto PY = [this](float Y) { return Oy + Y * U; };
+	const FLinearColor Wh(FColor(255, 255, 255)), Txc(FColor(207, 211, 255)), Gr(FColor(138, 240, 122)), Am(FColor(255, 194, 61)), Off(FColor(58, 52, 96)), Dk(FColor(90, 86, 136));
+	Rect(0, 0, SX, SY, FLinearColor(0.027f, 0.024f, 0.06f, 0.8f));
+	const float Bx = 28, By = 18, Bw = 424, Bh = 236;
+	Box(PX(Bx), PY(By), Bw * U, Bh * U, Cyan, FLinearColor(FColor(11, 10, 28)));
+	Txt(TEXT("C.O.M // TERMINAL"), PX(Bx + 10), PY(By + 4), Cyan, U / 3.6f);
+	Txt(FString::Printf(TEXT("%s  -  Jira"), UI->IsDocked() ? TEXT("A quai") : *FString::Printf(TEXT("Etage %d"), F ? F->GetFloorN() : 0)), PX(Bx + Bw - 90), PY(By + 5), Dim, U / 4.1f);
+	static const TCHAR* Tabs[5] = { TEXT("Ameliorations"), TEXT("Logs"), TEXT("Quetes"), TEXT("Descente"), TEXT("Cassettes") };
+	const int32 Tab = UI->GetComTab();
+	for (int32 I = 0; I < 5; ++I)
+	{
+		const bool bOn = I == Tab;
+		Box(PX(Bx + 8 + I * 82), PY(By + 16), 78 * U, 11 * U, bOn ? Cyan : Off, bOn ? FLinearColor(FColor(29, 42, 68)) : FLinearColor(FColor(20, 17, 40)));
+		Txt(FString::Printf(TEXT("%d  %s"), I + 1, Tabs[I]), PX(Bx + 8 + I * 82 + 39), PY(By + 17.5f), bOn ? Wh : Dim, U / 4.8f, true);
+	}
+	const float Rx = PX(Bx + 172), Ry = PY(By + 36);
+	const int32 Rn = 96;
+	auto Help = [&](const TCHAR* S) { Txt(S, SX * 0.5f, PY(By + Bh - 11), Dim, U / 5.f, true); };
+	const int32 Sel0 = UI->GetComSel(Tab);
+
+	if (Tab == 3)
+	{
+		// Le levier (drawCOMLever) : prêt quand le gardien est neutralisé.
+		const bool bReady = F && F->IsFloorDone();
+		const float Lx = PX(Bx + Bw / 2 - 24), Ly = PY(By + 50);
+		Box(Lx, Ly, 48 * U, 110 * U, bReady ? Cyan : Off, FLinearColor(FColor(20, 17, 40)));
+		Rect(Lx + 22 * U, Ly + 10 * U, 4 * U, 90 * U, Off);
+		const float Hy = bReady ? Ly + 14 * U : Ly + 80 * U;
+		Rect(Lx + 12 * U, Hy, 24 * U, 8 * U, bReady ? Cyan : Dk);
+		Txt(bReady ? TEXT("LEVIER PRET") : TEXT("VERROUILLE"), SX * 0.5f, Ly + 116 * U, bReady ? Cyan : Red, U / 3.5f, true);
+		if (!bReady && F)
+		{
+			Txt(FString::Printf(TEXT("Gardien : %s du C.O.M  -  carte rouge %s"), *F->GuardDir().ToUpper(), F->HasRedCard() ? TEXT("en main") : TEXT("a trouver")), SX * 0.5f, Ly + 128 * U, Txc, U / 4.1f, true);
+		}
+		Help(TEXT("Entree / (A) : tirer le levier     Q/D : onglet     C ou Echap / (B) : fermer"));
+		return;
+	}
+
+	if (Tab == 4)
+	{
+		// drawCOMCass : niveaux de cassette, solde de Données, bouton Installer.
+		const TArray<UEONUISubsystem::FCassRow>& Rows = UEONUISubsystem::CassRows();
+		const int32 Sel = FMath::Min(Sel0, Rows.Num() - 1);
+		Rect(PX(Bx + 164), Ry - 2 * U, U * 0.5f, (Bh - 52) * U, Off);
+		for (int32 Jn = 0; Jn < Rows.Num(); ++Jn)
+		{
+			const UEONUISubsystem::FCassRow& Rw = Rows[Jn];
+			FString T; int32 Cost = 0;
+			const int32 St = UI->CassState(Rw, T, Cost);
+			const float Yy = PY(By + 36 + Jn * 10);
+			const bool bOn = Jn == Sel;
+			if (bOn) { Rect(PX(Bx + 8), Yy, 152 * U, 9 * U, FLinearColor(FColor(34, 32, 74))); Rect(PX(Bx + 8), Yy, U * 0.5f, 9 * U, Cyan); }
+			const FString Lbl = Rw.Lock.Len() ? Rw.Lock : FString::Printf(TEXT("Shield NV%d%s"), Rw.Lvl, Rw.Br.Len() ? *(TEXT(" ") + Rw.Br) : TEXT(""));
+			const FLinearColor Cc = St == 0 ? Gr : St == 1 ? Wh : St == 2 ? Am : Dk;
+			Txt((St == 0 ? TEXT("[X] ") : St == 1 ? TEXT("[+] ") : TEXT("[ ] ")) + Lbl, PX(Bx + 12), Yy + 0.5f * U, bOn ? Wh : Cc, U / 4.1f);
+		}
+		Txt(FString::Printf(TEXT("Donnees : %d"), MS ? MS->GetDonnees() : 0), PX(Bx + Bw - 70), Ry, FLinearColor(FColor(154, 216, 255)), U / 4.2f);
+		const UEONUISubsystem::FCassRow& Rw = Rows[Sel];
+		FString T; int32 Cost = 0;
+		const int32 St = UI->CassState(Rw, T, Cost);
+		if (Rw.Lock.Len())
+		{
+			Txt(Rw.Lock, Rx, Ry, Dk, U / 3.6f);
+			Lines({ TEXT("Categorie prevue par le GDD Items (Survie, Mobilite, Cobra/Attaque)."), TEXT("A definir ensemble avant de la coder.") }, Rx, Ry + 14 * U, Dim, Rn);
+		}
+		else
+		{
+			const int32 L = MS ? MS->CasLvl(TEXT("shield")) : 0;
+			const FString Br = MS ? MS->CasBr(TEXT("shield")) : FString();
+			Txt(TEXT("Cassette Shield"), Rx, Ry, Cyan, U / 3.6f);
+			for (int32 K = 1; K <= 3; ++K) { Rect(Rx + (K * 14 - 14) * U, Ry + 12 * U, 10 * U, 4 * U, L >= K ? Cyan : Off); }
+			Txt(L ? FString::Printf(TEXT("NV%d%s"), L, Br.Len() ? *(TEXT(" ") + Br) : TEXT("")) : FString(TEXT("Pas encore trouvee")), Rx + 48 * U, Ry + 10.5f * U, L ? Wh : Dim, U / 4.1f);
+			// Textes de dialogues.json (cassettes.shield).
+			Lines({ TEXT("NV1 - Absorbe 1 coup. Revient a l'etage suivant."), TEXT("NV2 - Se recharge apres 10 s sans degats."),
+				TEXT("NV3 A - Shield nettoyant : a l'impact, explose et nettoie la salle autour de Jira."), TEXT("NV3 B - Shield miroir : a l'impact, renvoie les tirs ennemis a l'expediteur.") }, Rx, Ry + 24 * U, Txc, Rn);
+			if (Rw.Lvl == 3) { Txt(TEXT("Choix de branche definitif."), Rx, Ry + 92 * U, Am, U / 4.1f); }
+		}
+		const bool bCan = St == 1 && UI->IsDocked();
+		const float Bbx = PX(Bx + Bw - 110), Bby = PY(By + Bh - 40);
+		Box(Bbx, Bby, 100 * U, 14 * U, bCan ? Cyan : Off, bCan ? FLinearColor(FColor(29, 42, 68)) : FLinearColor(FColor(20, 17, 40)));
+		const FString Bt = St == 0 ? FString(TEXT("INSTALLE")) : (!UI->IsDocked() && St == 1) ? FString(TEXT("AU KIBO (A QUAI)")) : St == 1 ? TEXT("INSTALLER  ") + T : T.ToUpper();
+		Txt(Bt, Bbx + 50 * U, Bby + 3 * U, bCan ? Wh : Dim, U / 4.8f, true);
+		Help(TEXT("Z/S : choisir     Entree / (A) : installer     Q/D : onglet     C ou Echap / (B) : fermer"));
+		return;
+	}
+
+	// Onglets à liste : Améliorations (0), Logs (1), Quêtes (2).
+	const TArray<TPair<FName, int32>> Items = Tab == 0 ? UI->ComItems() : TArray<TPair<FName, int32>>();
+	const TArray<UEONUISubsystem::FQuest> Qs = Tab == 2 ? UI->Quests() : TArray<UEONUISubsystem::FQuest>();
+	const int32 N = Tab == 0 ? Items.Num() : Tab == 1 ? UEONUISubsystem::NumLogs() : Qs.Num();
+	const int32 Sel = FMath::Clamp(Sel0, 0, FMath::Max(0, N - 1));
+	const int32 Vis = 18;
+	const int32 OffI = FMath::Clamp(Sel - Vis + 1, 0, FMath::Max(0, N - Vis));
+	const int32 LogN = MS && MS->M() ? FMath::Min(MS->M()->LogN, UEONUISubsystem::NumLogs()) : 0;
+	Rect(PX(Bx + 164), Ry - 2 * U, U * 0.5f, (Bh - 52) * U, Off);
+	for (int32 Jn = 0; Jn < FMath::Min(Vis, N); ++Jn)
+	{
+		const int32 I = Jn + OffI;
+		const float Yy = PY(By + 36 + Jn * 10), X0 = PX(Bx + 8);
+		const bool bOn = I == Sel;
+		if (bOn) { Rect(X0, Yy, 152 * U, 9 * U, FLinearColor(FColor(34, 32, 74))); Rect(X0, Yy, U * 0.5f, 9 * U, Cyan); }
+		if (Tab == 0)
+		{
+			const FEONItemDef* It = EONItems::Find(Items[I].Key);
+			if (!It) { continue; }
+			const FLinearColor Rc = EONItems::Color(It->Rar);
+			Rect(X0 + 4 * U, Yy + 3 * U, 3 * U, 3 * U, Rc);
+			Txt(It->Name.Left(30) + (Items[I].Value > 1 ? FString::Printf(TEXT(" x%d"), Items[I].Value) : TEXT("")), X0 + 10 * U, Yy + 0.5f * U, bOn ? Wh : Rc, U / 4.1f);
+		}
+		else if (Tab == 1)
+		{
+			const bool bGot = I < LogN;
+			FString Title; UEONUISubsystem::Log(I).Split(TEXT("."), &Title, nullptr);
+			Txt(FString::Printf(TEXT("%02d"), I + 1), X0 + 4 * U, Yy + 0.5f * U, bGot ? Cyan : Off, U / 4.1f);
+			Txt(bGot ? Title.Left(31) : FString(TEXT("- - - - - - - -")), X0 + 16 * U, Yy + 0.5f * U, bGot ? (bOn ? Wh : Txc) : Off, U / 4.1f);
+		}
+		else
+		{
+			const UEONUISubsystem::FQuest& Q = Qs[I];
+			Txt(Q.bOk ? TEXT("[X]") : TEXT("[ ]"), X0 + 4 * U, Yy + 0.5f * U, Q.bOk ? Gr : Dim, U / 4.1f);
+			Txt(Q.T.Left(30), X0 + 20 * U, Yy + 0.5f * U, bOn ? Wh : FLinearColor(Q.C), U / 4.1f);
+		}
+	}
+	if (Tab == 0)
+	{
+		const FEONGreffeRow* Gd = nullptr;
+		if (const UEONTuningSubsystem* T = UEONTuningSubsystem::Get(this)) { if (UDataTable* G = T->GetGreffes()) { Gd = G->FindRow<FEONGreffeRow>(J->GetGreffeId(), TEXT("HUD"), false); } }
+		const int32 Hb = MS && MS->M() ? MS->M()->HpBonus : 0;
+		Txt(TEXT("Jira"), Rx, Ry, FLinearColor(FColor(184, 220, 88)), U / 3.6f);
+		Lines({ TEXT("Greffe active : ") + (Gd ? Gd->DisplayName : J->GetGreffeId().ToString()),
+			FString::Printf(TEXT("Niveau ADN : %d   (%d / %d)"), J->GetLevel(), FMath::FloorToInt(J->GetADN()), FMath::RoundToInt(J->GetADNNeed())),
+			FString::Printf(TEXT("PV : %d / %d"), J->GetHP(), J->GetMaxHP()) + (Hb ? FString::Printf(TEXT("   dont +%d permanents (insignes)"), Hb) : FString()),
+			FString::Printf(TEXT("Dash : %d charge%s   Scrap : %d"), J->GetDashMax(), J->GetDashMax() > 1 ? TEXT("s") : TEXT(""), J->GetScrap()),
+			FString::Printf(TEXT("Ameliorations prises : %d"), J->GetItems().Num()) }, Rx, Ry + 12 * U, Txc, Rn);
+		Rect(Rx, Ry + 56 * U, PX(Bx + Bw - 10) - Rx, U * 0.5f, Off);
+		if (!Items.IsValidIndex(Sel)) { Lines({ TEXT("Aucune amelioration pour l'instant."), TEXT("Les salles Opportunite, le marchand et les niveaux d'ADN en proposent.") }, Rx, Ry + 64 * U, Dim, Rn); }
+		else if (const FEONItemDef* It = EONItems::Find(Items[Sel].Key))
+		{
+			const FLinearColor Rc = EONItems::Color(It->Rar);
+			Rect(Rx + 4 * U, Ry + 66 * U, 6 * U, 6 * U, Rc);
+			Txt(It->Name + (Items[Sel].Value > 1 ? FString::Printf(TEXT("  x%d"), Items[Sel].Value) : TEXT("")), Rx + 16 * U, Ry + 64 * U, Rc, U / 3.8f);
+			Txt(EONItems::RarName(It->Rar) + TEXT("  -  ") + It->Cat.ToString(), Rx + 16 * U, Ry + 73 * U, Dim, U / 4.1f);
+			Lines({ It->Desc }, Rx, Ry + 86 * U, Txc, Rn);
+		}
+	}
+	else if (Tab == 1)
+	{
+		Txt(FString::Printf(TEXT("Logs retrouves : %d / %d"), LogN, UEONUISubsystem::NumLogs()), PX(Bx + Bw - 80), Ry, Dim, U / 4.1f);
+		if (Sel < LogN) { Txt(FString::Printf(TEXT("LOG %02d"), Sel + 1), Rx, Ry, Cyan, U / 3.6f); Lines({ UEONUISubsystem::Log(Sel) }, Rx, Ry + 14 * U, FLinearColor(FColor(232, 228, 255)), Rn); }
+		else { Lines({ TEXT("Signal non capte."), TEXT("Ce log est quelque part dans les etages. Les logs se trouvent dans les salles calmes et au sol, apres les combats.") }, Rx, Ry + 14 * U, Dk, Rn); }
+	}
+	else if (Qs.IsValidIndex(Sel))
+	{
+		const UEONUISubsystem::FQuest& Q = Qs[Sel];
+		Txt(Q.T, Rx, Ry, FLinearColor(Q.C), U / 3.6f);
+		Txt(Q.bOk ? TEXT("Terminee") : TEXT("En cours"), PX(Bx + Bw - 50), Ry, Q.bOk ? Gr : Am, U / 4.1f);
+		Lines(Q.L, Rx, Ry + 14 * U, Txc, Rn);
+	}
+	Help(TEXT("Q/D : onglet     Z/S : choisir     C ou Echap / (B) : fermer"));
+}
+
+void AEONHUD::DrawTitle()
+{
+	// drawTitle : E.O.N, la progression gardée, Continuer / Nouvelle partie (le second appui efface).
+	const UEONUISubsystem* UI = UEONUISubsystem::Get(this);
+	if (!UI || !UI->IsTitleOpen()) { return; }
+	const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+	const UEONSaveGame* M = MS ? MS->M() : nullptr;
+	const float SX = Canvas->ClipX, SY = Canvas->ClipY, Cx = SX * 0.5f, Cy = SY * 0.5f;
+	Rect(0, 0, SX, SY, FLinearColor(0.027f, 0.024f, 0.06f, 0.86f));
+	Txt(TEXT("E.O.N"), Cx, Cy - 64 * U, Cyan, U / 1.3f, true);
+	FString Info = TEXT("Partie en cours sur ce PC");
+	if (M)
+	{
+		if (M->bUlysse) { Info += TEXT(" - Ulysse au Kibo"); }
+		if (M->bCobUnlock) { Info += TEXT(" - Cobaye"); }
+		if (M->Crew.Num()) { Info += FString::Printf(TEXT(" - insignes %d/6"), M->Crew.Num()); }
+		if (M->Donnees) { Info += FString::Printf(TEXT(" - donnees %d"), M->Donnees); }
+		Info += FString::Printf(TEXT(" - %d run%s, %d deblocage%s"), M->Runs, M->Runs > 1 ? TEXT("s") : TEXT(""), M->Unl.Num(), M->Unl.Num() > 1 ? TEXT("s") : TEXT(""));
+	}
+	Txt(Info, Cx, Cy - 20 * U, FLinearColor(FColor(207, 211, 255)), U / 3.8f, true);
+	for (int32 I = 0; I < 2; ++I)
+	{
+		const bool bOn = UI->GetTitleSel() == I, bWarn = I == 1 && UI->IsTitleConfirm();
+		const float Bx = I == 0 ? Cx - 130 * U : Cx + 10 * U, By = Cy + 6 * U;
+		Box(Bx, By, 120 * U, 22 * U, bWarn ? Red : bOn ? Cyan : FLinearColor(FColor(58, 52, 96)), bOn ? FLinearColor(FColor(29, 42, 68)) : FLinearColor(FColor(20, 17, 40)));
+		Txt(I == 0 ? TEXT("Continuer") : bWarn ? TEXT("Confirmer : tout effacer") : TEXT("Nouvelle partie"), Bx + 60 * U, By + 8 * U, bWarn ? Red : bOn ? FLinearColor::White : Dim, U / 3.6f, true);
+	}
+	Txt(UI->IsTitleConfirm() ? TEXT("La progression sera effacee : Ulysse, Cobaye, insignes, logs, cassettes, donnees.") : TEXT("Fleches ou Q/D : choisir     Entree / (A) : valider"),
+		Cx, Cy + 42 * U, UI->IsTitleConfirm() ? FLinearColor(FColor(255, 194, 61)) : Dim, U / 4.2f, true);
 }
 
 void AEONHUD::DrawDevMenu()
@@ -371,7 +680,7 @@ void AEONHUD::DrawDevMenu()
 		Txt(L.Label, X0 + 6 * U, Y + 1.2f * U, L.bSelected ? FLinearColor::White : Text, U / 4.f);
 		const FLinearColor Vc = L.bChanged ? Amber : (L.Value == TEXT("OUI") ? On : (L.bSelected ? FLinearColor::White : Text));
 		Txt(L.Value, X0 + W - 34 * U, Y + 1.2f * U, Vc, U / 4.f);
-		if (!L.Hint.IsEmpty()) { Txt(TEXT("studio ") + L.Hint, X0 + W - 20 * U, Y + 1.4f * U, FLinearColor(FColor(150, 146, 185)), U / 4.6f); }
+		if (!L.Hint.IsEmpty()) { Txt(TEXT("studio ") + L.Hint, X0 + W - 20 * U, Y + 1.4f * U, FLinearColor(FColor(150, 146, 185)), U / 4.1f); }
 		Y += Lh;
 	}
 	Txt(Footer, X0 + 4 * U, Y + Lh * 0.6f, Footer.StartsWith(TEXT("Fl")) ? FLinearColor(FColor(170, 166, 205)) : Amber, U / 4.4f);

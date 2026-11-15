@@ -1,4 +1,4 @@
-#include "EONDevMenu.h"
+﻿#include "EONDevMenu.h"
 #include "EON.h"
 #include "EONCharacter.h"
 #include "EONFloorManager.h"
@@ -16,7 +16,7 @@ namespace
 	enum EAct : int32
 	{
 		A_Preset = 0, A_Export, A_Reset,
-		A_Heal, A_Kill, A_Wave, A_Adn, A_Scrap, A_GoRole, A_Door, A_Floor, A_Auto,
+		A_Heal, A_Kill, A_Wave, A_Adn, A_Scrap, A_GoRole, A_Door, A_Floor, A_Auto, A_Unlock, A_Donnees,
 	};
 	const TCHAR* Presets[] = { TEXT("studio"), TEXT("sec"), TEXT("max") };
 
@@ -108,6 +108,8 @@ void FEONDevMenu::Rebuild()
 		Act(TEXT("Soigner (coeurs et bouclier)"), A_Heal);
 		Act(TEXT("+100 ADN"), A_Adn);
 		Act(TEXT("+100 scrap"), A_Scrap);
+		Act(TEXT("+50 Données"), A_Donnees);
+		Act(TEXT("Tout débloquer"), A_Unlock);
 		Act(TEXT("Pilote automatique"), A_Auto);
 		Sec(TEXT("Salle"));
 		Act(TEXT("Tuer les ennemis"), A_Kill);
@@ -227,6 +229,8 @@ void FEONDevMenu::Activate(APlayerController* PC, int32 Action, int32 Dir, bool 
 	case A_Scrap: PC->ConsoleCommand(TEXT("eon.scrap 100")); Flash(TEXT("+100 scrap")); break;
 	case A_Door: PC->ConsoleCommand(TEXT("eon.go")); Flash(TEXT("Porte passée")); break;
 	case A_Floor: PC->ConsoleCommand(TEXT("eon.etage")); Flash(TEXT("Étage suivant")); break;
+	case A_Unlock: PC->ConsoleCommand(TEXT("eon.toutdebloquer")); Flash(TEXT("Tout est débloqué")); break;
+	case A_Donnees: PC->ConsoleCommand(TEXT("eon.meta plusdonnees 50")); Flash(TEXT("+50 Données")); break;
 	default: break;
 	}
 }

@@ -1,4 +1,4 @@
-// EON — Jira. Jalon 1 : déplacement lissé, dash (2 charges), course, énergie,
+﻿// EON — Jira. Jalon 1 : déplacement lissé, dash (2 charges), course, énergie,
 // greffe Standard (projectiles, cadence, dispersion), aide à la visée, game feel du tir.
 // Les règles viennent de 02_JOUEUR_ET_COMBAT.md et de update() du proto (v0.60.1).
 // Jalon 2 : PV, coups reçus (hurtPlayer), chute dans le vide (checkPlayerFall : 3 points sur 4, retour au dernier point sûr).
@@ -97,6 +97,9 @@ public:
 	int32 GetShield() const { return Shield; }
 	int32 GetShieldMax() const { return ShieldMax; }
 	void RefillShield() { Shield = ShieldMax; }
+	/** Cassettes gardées entre les runs (META.cass) : Shield NV1 et plus = un bouclier dès le départ. */
+	void ApplyCassettes();
+	float GetDonM() const { return DonM; }
 	int32 GetPierce() const { return Pierce; }
 	int32 GetBounce() const { return Bounce; }
 	/** Écran de niveau (1 parmi 3) : ouvert seulement hors combat, salle nettoyée et ADN ramassé (+0,6 s). Le jeu est en pause. */
@@ -299,6 +302,8 @@ private:
 	float MagR = 40.f, AdnM = 1.f, ScrapM = 1.f, DonM = 1.f;
 	float RateM = 1.f, RangeM = 1.f, ChargeM = 1.f, DashDistM = 1.f, CdM = 1.f, SpdItemM = 1.f;
 	int32 Size = 0, Revive = 0, Shield = 0, ShieldMax = 0, Pierce = 0, Bounce = 0, Multi = 0;
+	/** shieldT : temps sans dégâts (Shield NV2 : recharge à 10 s). */
+	float ShieldT = 0.f;
 	float BaseEnergyMax = 100.f;
 	int32 BaseDashMax = 2;
 	float Charge = 0.f;

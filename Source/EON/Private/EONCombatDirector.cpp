@@ -1,6 +1,8 @@
 ﻿#include "EONCombatDirector.h"
 #include "EONSfx.h"
 #include "EONPickup.h"
+#include "EONMeta.h"
+#include "EONProjectile.h"
 #include "EONCharacter.h"
 #include "EON.h"
 #include "EONCharacter.h"
@@ -407,6 +409,7 @@ void AEONCombatDirector::KillEnemy(AEONEnemy* E, float Dx, float Dy)
 	if (!E || E->bDead) { return; }
 	E->MarkDead();
 	++Kills;
+	if (UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this)) { MS->OnKill(); }
 	const FEONGameFeelRow F = UEONStatics::GetGameFeel(this);
 	Hitstop(F.Hitstop);
 	Shake(0.18f);
@@ -417,7 +420,7 @@ void AEONCombatDirector::KillEnemy(AEONEnemy* E, float Dx, float Dy)
 	AEONTileRoom* Rm = CurRoom.Get();
 	const AEONCharacter* J = GetJira();
 	if (Av) { AdnGained += Av + (E->bElite ? 6 : 0); AEONPickup::DropADN(GetWorld(), Rm, E->Pos, Av + (E->bElite ? 6 : 0)); }
-	if (E->bElite) { Donnees += 2; }   // Données (méta) : jalon 8
+	if (E->bElite) { AEONPickup::Spawn(GetWorld(), Rm, EEONPickup::Donnee, E->Pos, FVector2D(FMath::FRandRange(-30.f, 30.f), -40.f), 2.f); }
 	const int32 Nsc = ((Av && FMath::FRand() < 0.12f * Av * (J ? J->GetScrapM() : 1.f)) ? 1 : 0) + (E->bElite ? 3 : 0);
 	Scrap += Nsc;
 	for (int32 I = 0; I < Nsc; ++I) { AEONPickup::Spawn(GetWorld(), Rm, EEONPickup::Scrap, E->Pos, FVector2D(FMath::FRandRange(-40.f, 40.f), FMath::FRandRange(-40.f, 40.f))); }
@@ -484,6 +487,7 @@ void AEONCombatDirector::OnEnemyFell(AEONEnemy* E)
 {
 	if (!E) { return; }
 	++Kills;
+	if (UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this)) { MS->OnKill(); }
 	Scrap += 1;
 	AdnGained += E->Adn + (E->bElite ? 6 : 0);
 	// Tombé dans le vide : +1 scrap garanti, son ADN est crédité directement.
@@ -797,6 +801,52 @@ void AEONCombatDirector::Tick(float Dt)
 	}
 	UpdateEggs(Dt);
 	UpdateNums(Dt);
+}
+
+void AEONCombatDirector::ShieldBurst(bool bMirror)
+{
+	AEONTileRoom* Rm = CurRoom.Get();
+	if (!Rm) { return; }
+	const FVector2D P = JiraPx;
+	if (!bMirror)
+	{
+		ClearBullets([&P](const FVector2D& B) { return FVector2D::Distance(B, P) < 110.f; });
+		for (int32 I = 0; I < Enemies.Num(); ++I)
+		{
+			AEONEnemy* E = Enemies[I];
+			if (!E || E->bDead || E->IsFalling()) { continue; }
+			const float D = FVector2D::Distance(E->Pos, P);
+			if (D < 80.f) { const float Dd = D > 0.f ? D : 1.f; E->HitPx(E->IsBoss() ? 8.f : 5.f, (E->Pos.X - P.X) / Dd, (E->Pos.Y - P.Y) / Dd, 2.f); }
+		}
+		AoeRingT = 0.35f;
+		AoeRingLoc = Rm->RoomPxToWorld(P, EON::PxToCm(1.f));
+		AoeRingR = EON::PxToCm(80.f);
+		Shake(0.4f);
+		return;
+	}
+	// Miroir : chaque tir proche repart 1,6× plus vite dans l'autre sens, 2,5 dégâts.
+	int32 N = 0;
+	for (int32 I = Bullets.Num() - 1; I >= 0; --I)
+	{
+		AEONEnemyProjectile* B = Bullets[I];
+		if (!B || FVector2D::Distance(B->Pos, P) >= 120.f) { continue; }
+		const FVector2D Ground(B->Pos.X, B->Pos.Y + B->HeightPx);
+		const FVector Loc = Rm->RoomPxToWorld(Ground, EON::PxToCm(B->HeightPx));
+		const FVector Vel(-B->Vel.X * 1.6f, -B->Vel.Y * 1.6f, 0.f);
+		const FTransform Xf(Vel.Rotation(), Loc);
+		if (AEONProjectile* Pb = GetWorld()->SpawnActorDeferred<AEONProjectile>(AEONProjectile::StaticClass(), Xf, GetJira(), GetJira(), ESpawnActorCollisionHandlingMethod::AlwaysSpawn))
+		{
+			Pb->Setup(Vel * EON::PxToCm(1.f), 2.5f, 2.5f, 2.f, FLinearColor(FColor(62, 242, 224)));
+			Pb->FinishSpawning(Xf);
+		}
+		B->Destroy();
+		Bullets.RemoveAt(I);
+		++N;
+	}
+	AoeRingT = 0.25f;
+	AoeRingLoc = Rm->RoomPxToWorld(P, EON::PxToCm(1.f));
+	AoeRingR = EON::PxToCm(46.f);
+	if (N) { Banner(FString::Printf(TEXT("Miroir : %d tirs renvoyes"), N), FColor(62, 242, 224)); }
 }
 
 int32 AEONCombatDirector::ClearBullets(TFunctionRef<bool(const FVector2D&)> Pred)

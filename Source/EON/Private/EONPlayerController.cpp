@@ -1,4 +1,5 @@
-#include "EONPlayerController.h"
+﻿#include "EONPlayerController.h"
+#include "EONUI.h"
 #include "EON.h"
 #include "EONCharacter.h"
 #include "EONFloorManager.h"
@@ -302,6 +303,8 @@ void AEONPlayerController::OnNamedAction(const FInputActionValue&, FString Name)
 	// Jalon 4 : sorts, ultime et greffes.
 	AEONCharacter* Jira = Cast<AEONCharacter>(GetPawn());
 	if (!Jira) { return; }
+	// Terminal, dialogue ou écran titre ouverts : ils lisent leurs touches eux-mêmes (TickUI).
+	if (const UEONUISubsystem* UI = UEONUISubsystem::Get(this); UI && (UI->IsBlocking() || (Name == TEXT("Interagir") && UI->JustClosed()))) { return; }
 	// Choix de niveau : [1] [2] [3] directement, ou greffe suivante / précédente puis tir ou Interagir.
 	if (Jira->IsLevelUpOpen())
 	{
@@ -334,6 +337,12 @@ void AEONPlayerController::PlayerTick(float DeltaTime)
 	if (!Jira) { return; }
 	DevMenu.Tick(this, FMath::Min((float)FApp::GetDeltaTime(), 0.1f));
 	ApplyPostProcess();
+	// Jalon 8 : écran titre, dialogues, terminal du C.O.M (temps réel, jeu en pause).
+	if (UEONUISubsystem* UI = UEONUISubsystem::Get(this))
+	{
+		UI->TickUI(this, FMath::Min((float)FApp::GetDeltaTime(), 0.1f));
+		if (UI->IsBlocking()) { Jira->SetFireHeld(false); Jira->SetMoveInput(FVector2D::ZeroVector); return; }
+	}
 	if (DevMenu.IsOpen())
 	{
 		// Menu ouvert : Jira se déplace en ZQSD / WASD seulement.

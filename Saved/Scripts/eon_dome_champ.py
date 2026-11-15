@@ -213,7 +213,7 @@ fill = op(ADD, op(ADD, op(MUL, onde, sp("FillOnde", 0.06, -1300, 850), -1150, 85
 gcol = op(MUL, op(MUL, op(ADD, op(MUL, grille, anim, -850, 400), fill, -700, 600), vp("GridColor", (1.0, 0.38, 0.03), -700, 750), -550, 600),
           sp("GridIntensity", 0.5, -700, 880), -400, 600)
 fond = op(MUL, vp("Base", (0.358, 0.005, 0.005), -700, -500), sp("BaseGain", 0.07, -700, -350), -500, -450)
-emi = op(MUL, op(ADD, op(ADD, rim, gcol, -250, 0), fond, -100, -100), sp("Glow", 1.0, -100, 100), 50, 0)
+emi = op(MUL, op(ADD, op(ADD, rim, gcol, -250, 0), fond, -100, -100), sp("Glow", 0.7, -100, 100), 50, 0)
 MEL.connect_material_property(emi, "", P.MP_EMISSIVE_COLOR)
 
 # Déplacement d'un bloc par hexagone : bruit(UV1 + t × HexaVitesse) × DisplaceCm le long de la normale de la sphère

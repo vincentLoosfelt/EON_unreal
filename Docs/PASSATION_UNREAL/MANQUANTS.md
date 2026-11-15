@@ -205,3 +205,46 @@ Fait : ADN aspiré et barre de niveau, écran de niveau à 3 cartes (jeu en paus
 - Nouveaux réglages ajoutés au banc (pas dans le proto) : DashMul, EnemyHp, EnemySpeed, EnemyDmg, WaveMul, InfEnergy, InfDash, OneShot.
 - Rubrique « Rendu » du menu F6 : « Filtre peinture » (poids du blendable M_PP_EON_Peinture) et « Post-process complet » (active/coupe PP_Etage ou PP_HUB entier : exposition manuelle, bloom). Réglages PPPaint / PPAll.
 - Retirés du menu F6 car branchés sur rien dans le portage : Crt, Paint, Dark, Holes, Light, Ambient, Sound, Vol, Shells, Regen, BossHp. Ils restent dans DT_GameFeel (données du proto) ; à rebrancher avec le son, les douilles, les boss, ou à supprimer.
+
+## Jalon 8 : la méta (16/11), première partie
+
+Fait :
+- **Sauvegarde** : un emplacement `EON_Meta` (`Saved/SaveGames/EON_Meta.sav`). Il garde tous les champs de META (05, section 10). Il est sauvé dès qu'il change, et vérifié toutes les 0,5 s.
+- **Écran titre** : il s'affiche au lancement, seulement s'il existe une progression. Deux choix : Continuer, ou Nouvelle partie (le deuxième appui efface tout).
+- **Stats cumulées et 12 déblocages** :
+  - stats suivies : runs et morts (à la mort), kills, étage le plus lointain, stade de mutation le plus haut, gardiens par étage ;
+  - encart « DÉBLOQUÉ » de 3,2 s, et récapitulatif sur l'écran de mort ;
+  - un élément verrouillé est absent du tirage et de la liste des greffes : Jira démarre avec Standard et Rafale.
+- **Données** :
+  - ramassable « donnée » qui ne tombe jamais, multiplié par la Disquette Données ;
+  - un élite en lâche 2, le gardien 4 paquets de 3 ;
+  - premier ramassage : dialogue `donnees`.
+- **Cassette Shield** :
+  - NV1 trouvée en run, puis gardée pour toutes les runs (elle ne sort plus au tirage) ;
+  - NV2 : recharge après 10 s sans dégâts ;
+  - NV3 A (onde nettoyante) ou NV3 B (miroir), un choix définitif ;
+  - achat dans l'onglet Cassettes, seulement à quai.
+- **Terminal du C.O.M** :
+  - la touche Interagir ouvre le terminal, avec ses 5 onglets : Améliorations, Logs, Quêtes, Descente (le levier), Cassettes ;
+  - le jeu est en pause tant qu'il est ouvert.
+- **Dialogues** :
+  - boîte, portrait, texte lettre par lettre ; Espace, E ou A pour la suite, Échap ou B pour tout passer ;
+  - le texte vient de `dialogues.json`, via `Saved/Scripts/gen_dialogues.py`, qui écrit `EONDialogData.inl` ;
+  - déjà déclenchés : `iaIntro`, `cuves`, `labos`, `serres` (et la phrase générique des autres étages), `card` (l'embuscade suit la fin du dialogue), `redDoor`, `infestCom`, `infestBoss`, `marchand`, `donnees`.
+- **Tests** :
+  - menu F7 : « Tout débloquer » et « +50 Données » ;
+  - console : `eon.meta` (voir et modifier la sauvegarde, `eon.meta effacer`), `eon.toutdebloquer`, `eon.terminal ONGLET [LIGNE] [1]`, `eon.dialogue CLE`, `eon.ui continuer|nouvelle|suite|passer`, `eon.objet ID`, `eon.blesse N` ;
+  - `eon.debut` et `eon.apres` comptent maintenant en temps réel : ils partent même pendant une pause (dialogue, terminal).
+
+Provisoire ou manquant :
+- **Pas de Kibo**, donc :
+  - pas de C.O.M à quai, pas de réveil en cuve (`wake`), pas de `dock` ;
+  - pour l'instant, « à quai » veut dire : salle du C.O.M de l'étage 1, tant que Jira n'en est pas sortie. C'est le seul endroit où l'on installe une cassette.
+- **Attendent le Kibo et les salles Événement (jalon 9)** :
+  - Ulysse : sauvetage, refuge, insignes, PV permanents ;
+  - le Cobaye jouable : seul son déblocage est en place, avec la bannière « Une cuve s'est ouverte au Kibo » ;
+  - la gamine, la vieille dame, les logs à ramasser, le cartographe, le chercheur, la rupture de paroi.
+  - Leurs champs de sauvegarde, leurs entrées dans l'onglet Quêtes et l'onglet Logs sont déjà prêts.
+- **Portraits** : un carré provisoire à la couleur du personnage, avec son initiale et l'expression en petit. Les vrais portraits restent à produire (§6).
+- **Sons** : `item` (déblocage) et les voix de dialogue (une par personnage) n'ont pas de fichier (§8).
+- **Interface** : le terminal et l'écran titre sont dessinés au Canvas, en attendant l'habillage UMG selon la charte (§6).
