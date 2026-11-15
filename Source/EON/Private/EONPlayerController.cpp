@@ -2,6 +2,9 @@
 #include "EON.h"
 #include "EONCharacter.h"
 #include "EONFloorManager.h"
+#include "EONCombatDirector.h"
+#include "Engine/StaticMeshActor.h"
+#include "Kismet/GameplayStatics.h"
 #include "EONPlayerCameraManager.h"
 #include "EONRoomBounds.h"
 #include "EONTuningSubsystem.h"
@@ -11,6 +14,9 @@
 #include "InputMappingContext.h"
 #include "InputAction.h"
 #include "InputModifiers.h"
+#include "Misc/App.h"
+#include "Engine/PostProcessVolume.h"
+#include "EngineUtils.h"
 #include "Engine/Engine.h"
 #include "Engine/LocalPlayer.h"
 #include "Framework/Application/IInputProcessor.h"
@@ -234,6 +240,7 @@ void AEONPlayerController::NotifyDeviceUsed(bool bGamepad)
 
 void AEONPlayerController::OnMove(const FInputActionValue& V)
 {
+	if (DevMenu.IsOpen()) { return; }   // les flèches servent au menu ; ZQSD est lu dans PlayerTick
 	if (AEONCharacter* Jira = Cast<AEONCharacter>(GetPawn())) { Jira->SetMoveInput(V.Get<FVector2D>()); }
 }
 
@@ -287,7 +294,8 @@ void AEONPlayerController::OnNamedAction(const FInputActionValue&, FString Name)
 		else if (Name == TEXT("Tir") || Name == TEXT("Interagir")) { Jira->PickLevel(Jira->GetLevelSel()); }
 		return;
 	}
-	if (Name == TEXT("Interagir")) { if (AEONFloorManager* F = AEONFloorManager::Get(this)) { F->TryInteract(); } }
+	if (DevMenu.IsOpen() && (Name == TEXT("Interagir") || Name == TEXT("Pause"))) { return; }   // Entrée et Échap servent au menu
+	if (Name == TEXT("Interagir")) { Interact(); }
 	else if (Name == TEXT("Onde")) { Jira->SetSpellHeld(true); Jira->PressSpell(); }
 	else if (Name == TEXT("Hologramme")) { Jira->PressHolo(); }
 	else if (Name == TEXT("Ultime")) { Jira->PressUlt(); }
@@ -307,6 +315,15 @@ void AEONPlayerController::PlayerTick(float DeltaTime)
 
 	AEONCharacter* Jira = Cast<AEONCharacter>(GetPawn());
 	if (!Jira) { return; }
+	DevMenu.Tick(this, FMath::Min((float)FApp::GetDeltaTime(), 0.1f));
+	ApplyPostProcess();
+	if (DevMenu.IsOpen())
+	{
+		// Menu ouvert : Jira se déplace en ZQSD / WASD seulement.
+		const float X = (IsInputKeyDown(EKeys::D) ? 1.f : 0.f) - ((IsInputKeyDown(EKeys::Q) || IsInputKeyDown(EKeys::A)) ? 1.f : 0.f);
+		const float Y = ((IsInputKeyDown(EKeys::Z) || IsInputKeyDown(EKeys::W)) ? 1.f : 0.f) - (IsInputKeyDown(EKeys::S) ? 1.f : 0.f);
+		Jira->SetMoveInput(FVector2D(X, Y).GetSafeNormal());
+	}
 	Jira->TickLevelUp(DeltaTime);
 	if (Jira->IsLevelUpOpen()) { Jira->SetFireHeld(false); return; }
 
@@ -323,7 +340,28 @@ void AEONPlayerController::PlayerTick(float DeltaTime)
 	}
 	Jira->SetFireHeld(bFire);
 
-	if (bShowDebug) { DrawDebug(); }
+	if (HubComT >= 0.f)
+	{
+		HubComT += DeltaTime;
+		if (HubComT > 1.7f) { HubComT = -100.f; UGameplayStatics::OpenLevel(this, FName(TEXT("L_Etage"))); }
+	}
+	if (const UEONTuningSubsystem* TS = UEONTuningSubsystem::Get(this); TS && TS->GetGameFeel().DebugText) { DrawDebug(); }
+}
+
+void AEONPlayerController::ApplyPostProcess()
+{
+	const UEONTuningSubsystem* T = UEONTuningSubsystem::Get(this);
+	if (!T || !GetWorld()) { return; }
+	const FEONGameFeelRow& F = T->GetGameFeel();
+	const int32 State = (F.PPPaint ? 1 : 0) | (F.PPAll ? 2 : 0);
+	if (State == PPState && PPWorld.Get() == GetWorld()) { return; }
+	PPState = State;
+	PPWorld = GetWorld();
+	for (TActorIterator<APostProcessVolume> It(GetWorld()); It; ++It)
+	{
+		It->bEnabled = F.PPAll;
+		for (FWeightedBlendable& B : It->Settings.WeightedBlendables.Array) { B.Weight = F.PPPaint ? 1.f : 0.f; }
+	}
 }
 
 void AEONPlayerController::UpdateStickAim(AEONCharacter* Jira)
@@ -397,4 +435,52 @@ void AEONPlayerController::DrawDebug() const
 		T ? *T->GetValueAsString(TEXT("Lookahead")) : TEXT("?"),
 		T ? *T->GetValueAsString(TEXT("Shake")) : TEXT("?"));
 	GEngine->AddOnScreenDebugMessage(9001, 0.f, FColor(62, 242, 224), Msg);
+}
+
+AActor* AEONPlayerController::GetHubCom() const
+{
+	if (!bHubComSearched && GetWorld())
+	{
+		bHubComSearched = true;
+		if (!AEONFloorManager::Get(this))
+		{
+			for (TActorIterator<AStaticMeshActor> It(GetWorld()); It; ++It)
+			{
+				const UStaticMesh* M = It->GetStaticMeshComponent() ? It->GetStaticMeshComponent()->GetStaticMesh() : nullptr;
+				if (M && M->GetName().StartsWith(TEXT("COMv1"))) { HubCom = *It; break; }
+			}
+		}
+	}
+	return HubCom.Get();
+}
+
+bool AEONPlayerController::IsNearHubCom() const
+{
+	const AActor* Com = GetHubCom();
+	const APawn* J = GetPawn();
+	if (!Com || !J) { return false; }
+	FVector C, E;
+	Com->GetActorBounds(true, C, E);
+	// Sur le quai : dans la moitié centrale de l'emprise du C.O.M (le dôme), comme les 56 px du proto.
+	return FVector2D::Distance(FVector2D(J->GetActorLocation()), FVector2D(C)) < FMath::Max(E.X, E.Y) * 0.5f;
+}
+
+void AEONPlayerController::Interact()
+{
+	if (AEONFloorManager* F = AEONFloorManager::Get(this)) { F->TryInteract(); }
+	else if (HubComT < 0.f && IsNearHubCom())
+	{
+		// pullCOM au quai du Kibo : la sphère s'emballe 1,7 s, puis étage 1 (L_Etage).
+		HubComT = 0.f;
+		if (AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld())) { D->Shake(0.5f); }
+	}
+}
+
+namespace
+{
+	FAutoConsoleCommandWithWorld GEONCmdInteragir(TEXT("eon.interagir"), TEXT("eon.interagir : comme la touche Interagir (tests sans clavier)"),
+		FConsoleCommandWithWorldDelegate::CreateLambda([](UWorld* W)
+		{
+			if (AEONPlayerController* PC = W ? Cast<AEONPlayerController>(W->GetFirstPlayerController()) : nullptr) { PC->Interact(); }
+		}));
 }

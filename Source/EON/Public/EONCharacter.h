@@ -11,6 +11,7 @@
 #include "EONCharacter.generated.h"
 
 class UPointLightComponent;
+class UAnimInstance;
 class AEONPlayerCameraManager;
 
 UCLASS(Blueprintable)
@@ -40,6 +41,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "EON|Jira")
 	void SetFireHeld(bool bHeld) { bFireHeld = bHeld; }
+
+	UFUNCTION(BlueprintPure, Category = "EON|Jira")
+	bool IsFireHeld() const { return bFireHeld; }
 
 	/** Bouton de dash maintenu : au-delà de 0,2 s en mouvement, Jira court. */
 	UFUNCTION(BlueprintCallable, Category = "EON|Jira")
@@ -147,7 +151,7 @@ public:
 	/** P.ult += dégâts × 0,8 (hitEnemy). */
 	void AddUlt(float Damage) { Ult = FMath::Min(100.f, Ult + Damage * 0.8f); }
 	/** dmgMult() : Catalyseur Berserk (+35 % par stade) au jalon 6. */
-	float DmgMult() const { return DmgM * (bBerserk ? 1.f + 0.35f * Mut : 1.f); }
+	float DmgMult() const;
 	// Hologramme (decoy)
 	bool HasDecoy() const { return DecoyT > 0.f; }
 	FVector GetDecoyLocation() const { return DecoyLoc; }
@@ -212,6 +216,11 @@ private:
 	bool bFallingIntoVoid = false;
 
 	bool bFireHeld = false;
+	/** Poids de la couche « tir » du haut du corps (variable EONTirAlpha de l'ABP d'Epic), lissé. */
+	float TirAlpha = 0.f;
+	/** ABP de locomotion du Game Animation Sample (SandboxCharacter_CMC_ABP). */
+	UPROPERTY(Transient)
+	TSubclassOf<UAnimInstance> LocoAnimClass;
 	bool bDashHeld = false;
 	bool bRunning = false;
 	float HoldTimer = 0.f;

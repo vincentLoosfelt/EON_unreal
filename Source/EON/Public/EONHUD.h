@@ -17,6 +17,7 @@ private:
 	void Rect(float X, float Y, float W, float H, const FLinearColor& C);
 	void Txt(const FString& S, float X, float Y, const FLinearColor& C, float Scale = 1.f, bool bCenter = false);
 	void DrawMinimap(float S);
+	void DrawDevMenu();
 	/** Échelle : 4 px écran par px du proto à 1920 × 1080. */
 	float U = 4.f;
 	float Time = 0.f;

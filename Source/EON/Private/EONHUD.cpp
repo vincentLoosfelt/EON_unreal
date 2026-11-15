@@ -3,6 +3,7 @@
 #include "EONFloorManager.h"
 #include "EONItems.h"
 #include "EONPedestal.h"
+#include "EONPlayerController.h"
 #include "EONTileRoom.h"
 #include "EngineUtils.h"
 #include "EONTuningSubsystem.h"
@@ -183,6 +184,16 @@ void AEONHUD::DrawHUD()
 		}
 	}
 
+	// HUB (Kibo) : C.O.M à quai, le levier est déjà prêt.
+	if (!AEONFloorManager::Get(this))
+	{
+		if (const AEONPlayerController* HPC = Cast<AEONPlayerController>(GetOwningPlayerController()))
+		{
+			if (HPC->IsHubComTravelling()) { Txt(TEXT("Le C.O.M descend"), SX * 0.5f, SY * 0.7f, Cyan, U / 3.f, true); }
+			else if (HPC->IsNearHubCom()) { Txt(TEXT("Interagir : tirer le levier - descendre"), SX * 0.5f, SY * 0.7f, Cyan, U / 3.f, true); }
+		}
+	}
+
 	// --- En haut à droite : mini-carte, rôle, étage
 	if (const AEONFloorManager* F = AEONFloorManager::Get(this))
 	{
@@ -296,6 +307,51 @@ void AEONHUD::DrawHUD()
 		Txt(TEXT("SIGNAL PERDU"), SX * 0.5f, SY * 0.4f, Red, U / 1.6f, true);
 		Txt(TEXT("R : nouvelle run"), SX * 0.5f, SY * 0.4f + 22 * U, Dim, U / 3.f, true);
 	}
+	DrawDevMenu();
+}
+
+void AEONHUD::DrawDevMenu()
+{
+	const AEONPlayerController* PC = Cast<AEONPlayerController>(GetOwningPlayerController());
+	if (!PC || !PC->GetDevMenu().IsOpen()) { return; }
+	FString Title, Footer;
+	TArray<FEONMenuLine> Lines;
+	PC->GetDevMenu().Build(PC, Title, Lines, Footer);
+	const bool bTweak = PC->GetDevMenu().GetOpen() == EEONDevMenu::Tweak;
+	const FLinearColor Accent = bTweak ? Cyan : FLinearColor(FColor(255, 194, 61));
+	const FLinearColor Amber = FLinearColor(FColor(255, 194, 61));
+	const FLinearColor Text = FLinearColor(FColor(216, 212, 240));
+	const FLinearColor On = FLinearColor(FColor(120, 230, 120));
+
+	// Panneau à droite, sous la mini-carte : 150 px du proto de large.
+	const float Lh = 7.5f * U, W = 160.f * U;
+	const float X0 = Canvas->ClipX - W - 6 * U, Y0 = 40 * U;
+	const float H = (Lines.Num() + 5) * Lh;
+	Rect(X0, Y0, W, H, FLinearColor(0.012f, 0.01f, 0.03f, 0.88f));
+	Rect(X0, Y0, W, U * 0.6f, Accent);
+	Txt(Title, X0 + 4 * U, Y0 + 2 * U, Accent, U / 3.2f);
+	float Y = Y0 + 2 * Lh;
+	for (const FEONMenuLine& L : Lines)
+	{
+		if (L.bSection)
+		{
+			Txt(L.Label.ToUpper(), X0 + 4 * U, Y + U, Dim, U / 4.2f);
+			Rect(X0 + 4 * U, Y + Lh - 1.5f * U, W - 8 * U, U * 0.3f, FLinearColor(Dim.R, Dim.G, Dim.B, 0.5f));
+			Y += Lh;
+			continue;
+		}
+		if (L.bSelected)
+		{
+			Rect(X0 + 2 * U, Y, W - 4 * U, Lh, FLinearColor(Accent.R, Accent.G, Accent.B, 0.18f));
+			Rect(X0 + 2 * U, Y, U, Lh, Accent);
+		}
+		Txt(L.Label, X0 + 6 * U, Y + 1.2f * U, L.bSelected ? FLinearColor::White : Text, U / 4.f);
+		const FLinearColor Vc = L.bChanged ? Amber : (L.Value == TEXT("OUI") ? On : (L.bSelected ? FLinearColor::White : Text));
+		Txt(L.Value, X0 + W - 34 * U, Y + 1.2f * U, Vc, U / 4.f);
+		if (!L.Hint.IsEmpty()) { Txt(TEXT("studio ") + L.Hint, X0 + W - 20 * U, Y + 1.4f * U, FLinearColor(FColor(150, 146, 185)), U / 4.6f); }
+		Y += Lh;
+	}
+	Txt(Footer, X0 + 4 * U, Y + Lh * 0.6f, Footer.StartsWith(TEXT("Fl")) ? FLinearColor(FColor(170, 166, 205)) : Amber, U / 4.4f);
 }
 
 void AEONHUD::DrawMinimap(float S)

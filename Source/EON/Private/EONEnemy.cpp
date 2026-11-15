@@ -71,7 +71,7 @@ bool AEONEnemy::Init(AEONCombatDirector* InDirector, AEONTileRoom* InRoom, FName
 
 	// mkEnemy : sc = 1 + combatN × 0,07 ; hp = ceil(d.hp × sc)
 	const float Sc = 1.f + CombatN * 0.07f;
-	Hp = MaxHp = FMath::CeilToFloat(Row->Hp * Sc);
+	Hp = MaxHp = FMath::CeilToFloat(Row->Hp * Sc * UEONStatics::GetGameFeel(this).EnemyHp);
 	R = Row->R;
 	Flash = 0.f; St = EEONEnemySt::Move; StT = 0.f;
 	Ft = 1.f + FRand01() * 1.2f;
@@ -212,7 +212,7 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 	const FEONGameFeelRow F = UEONStatics::GetGameFeel(this);
 	// Écart 3D (MANQUANTS §9) : les vitesses de croisière suivent SpeedMul3D comme Jira ;
 	// les élans (dash, charge 235 px/s) et le recul restent ceux du proto, liés aux distances en tuiles.
-	const float Mul = F.SpeedMul3D;
+	const float Mul = F.SpeedMul3D * F.EnemySpeed;
 	const float Dx = Tg.X - Pos.X, Dy = Tg.Y - Pos.Y;
 	const float D = FMath::Max(FMath::Sqrt(Dx * Dx + Dy * Dy), 1e-4f);
 	const float Nx = Dx / D, Ny = Dy / D, Sp = Spd * Mul;

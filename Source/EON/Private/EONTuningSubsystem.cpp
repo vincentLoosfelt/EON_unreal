@@ -140,9 +140,22 @@ bool UEONTuningSubsystem::ApplyPreset(FName Preset)
 	if (!GameFeelTable) { return false; }
 	const FEONGameFeelRow* Row = GameFeelTable->FindRow<FEONGameFeelRow>(Preset, TEXT("EON"), false);
 	if (!Row) { return false; }
+	// Les triches (menu F7) restent actives quand on change de préréglage.
+	const FEONGameFeelRow Old = Feel;
 	Feel = *Row;
+	Feel.God = Old.God; Feel.InfEnergy = Old.InfEnergy; Feel.InfDash = Old.InfDash; Feel.OneShot = Old.OneShot;
 	OnGameFeelChanged.Broadcast();
 	return true;
+}
+
+FString UEONTuningSubsystem::GetPresetValueAsString(FName Preset, const FString& Key) const
+{
+	const FEONGameFeelRow* Row = GameFeelTable ? GameFeelTable->FindRow<FEONGameFeelRow>(Preset, TEXT("EON"), false) : nullptr;
+	FProperty* Prop = FindFeelProperty(Key);
+	if (!Row || !Prop) { return FString(); }
+	FString Out;
+	Prop->ExportTextItem_Direct(Out, Prop->ContainerPtrToValuePtr<void>(Row), nullptr, nullptr, PPF_None);
+	return Out;
 }
 
 FProperty* UEONTuningSubsystem::FindFeelProperty(const FString& Key) const

@@ -1,9 +1,9 @@
 {
  "Barrier01": {
   "K": [
-   0.7232661453011759,
-   0.4438719017642691,
-   0.2999414698152021
+   0.4653777722967939,
+   0.3212224889312856,
+   0.3264639913694848
   ],
   "BC1": [
    1.0,
@@ -11,21 +11,26 @@
    1.0
   ],
   "BC": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/yellow_black_strips.png",
-  "Normal": null,
+  "Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
   "RimPower": 3.05,
   "RimBright": 4.6,
   "Triplanar": 1,
   "Scale1": 0.33,
   "Blend": 1.0,
   "tex": {
+   "_Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
+   "_PigmentBehavior": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
+   "_dark_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/dark_gray.png",
+   "_light_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/gray__light2.png",
+   "_mid_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
    "_BC": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/yellow_black_strips.png"
   }
  },
  "Grille01": {
   "K": [
-   0.7232661453011759,
-   0.4438719017642691,
-   0.2999414698152021
+   0.6,
+   0.36822287727522707,
+   0.24882248817851402
   ],
   "BC1": [
    1.0,
@@ -40,6 +45,7 @@
   "Scale1": 0.0,
   "Blend": 0.0,
   "tex": {
+   "_PigmentBehavior": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
    "_BC": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/Grille01_Material_AlbedoTransparency.png",
    "_BaseMap": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/Grille01_Material_AlbedoTransparency.png",
    "_BumpMap": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/Grille01_Material_Normal.png",
@@ -49,9 +55,9 @@
  },
  "New Material 1": {
   "K": [
-   0.7232661453011759,
-   0.4438719017642691,
-   0.2999414698152021
+   0.49640295711658017,
+   0.3426373215267046,
+   0.3482282574607838
   ],
   "BC1": [
    0.5007473555077729,
@@ -59,19 +65,25 @@
    0.25802465210695086
   ],
   "BC": null,
-  "Normal": null,
-  "RimPower": 5.0,
-  "RimBright": 2.0,
+  "Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
+  "RimPower": 6.2,
+  "RimBright": 10.2,
   "Triplanar": 0,
   "Scale1": 0.0,
   "Blend": 0.0,
-  "tex": {}
+  "tex": {
+   "_Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
+   "_PigmentBehavior": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
+   "_dark_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/dark_gray.png",
+   "_light_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/gray__light2.png",
+   "_mid_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png"
+  }
  },
  "New Material 2": {
   "K": [
-   0.7232661453011759,
-   0.4438719017642691,
-   0.2999414698152021
+   0.49640295711658017,
+   0.3426373215267046,
+   0.3482282574607838
   ],
   "BC1": [
    0.25064605719141536,
@@ -79,19 +91,25 @@
    0.25064605719141536
   ],
   "BC": null,
-  "Normal": null,
-  "RimPower": 5.0,
-  "RimBright": 2.0,
+  "Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
+  "RimPower": 6.2,
+  "RimBright": 10.2,
   "Triplanar": 0,
   "Scale1": 0.0,
   "Blend": 0.0,
-  "tex": {}
+  "tex": {
+   "_Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
+   "_PigmentBehavior": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
+   "_dark_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/dark_gray.png",
+   "_light_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/gray__light2.png",
+   "_mid_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png"
+  }
  },
  "New Material 3": {
   "K": [
-   0.7232661453011759,
-   0.4438719017642691,
-   0.2999414698152021
+   0.49640295711658017,
+   0.3426373215267046,
+   0.3482282574607838
   ],
   "BC1": [
    0.575444242541137,
@@ -99,19 +117,25 @@
    0.575444242541137
   ],
   "BC": null,
-  "Normal": null,
-  "RimPower": 5.0,
-  "RimBright": 2.0,
+  "Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
+  "RimPower": 6.2,
+  "RimBright": 10.2,
   "Triplanar": 0,
   "Scale1": 0.0,
   "Blend": 0.0,
-  "tex": {}
+  "tex": {
+   "_Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
+   "_PigmentBehavior": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
+   "_dark_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/dark_gray.png",
+   "_light_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/gray__light2.png",
+   "_mid_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png"
+  }
  },
  "New Material": {
   "K": [
-   0.7232661453011759,
-   0.4438719017642691,
-   0.2999414698152021
+   0.49640295711658017,
+   0.3426373215267046,
+   0.3482282574607838
   ],
   "BC1": [
    0.23648480660250454,
@@ -119,19 +143,25 @@
    0.33098942811153986
   ],
   "BC": null,
-  "Normal": null,
-  "RimPower": 5.0,
-  "RimBright": 2.0,
+  "Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
+  "RimPower": 6.2,
+  "RimBright": 10.2,
   "Triplanar": 0,
   "Scale1": 0.0,
   "Blend": 0.0,
-  "tex": {}
+  "tex": {
+   "_Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
+   "_PigmentBehavior": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
+   "_dark_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/dark_gray.png",
+   "_light_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/gray__light2.png",
+   "_mid_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png"
+  }
  },
  "panel": {
   "K": [
-   0.7232661453011759,
-   0.4438719017642691,
-   0.2999414698152021
+   0.49640295711658017,
+   0.3426373215267046,
+   0.3482282574607838
   ],
   "BC1": [
    1.0,
@@ -146,19 +176,22 @@
   "Scale1": 0.0,
   "Blend": 0.0,
   "tex": {
+   "_Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
+   "_PigmentBehavior": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
+   "_dark_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/dark_gray.png",
+   "_light_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/gray__light2.png",
+   "_mid_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
    "_BC": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/Panel_DefaultMaterial_AlbedoTransparency.png",
    "_BaseMap": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/Panel_DefaultMaterial_AlbedoTransparency.png",
    "_BumpMap": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/Panel_DefaultMaterial_Normal.png",
-   "_MainTex": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/Panel_DefaultMaterial_AlbedoTransparency.png",
-   "_Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
-   "_dark_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/dark_gray.png"
+   "_MainTex": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/Panel_DefaultMaterial_AlbedoTransparency.png"
   }
  },
  "pipe 1": {
   "K": [
-   0.7232661453011759,
-   0.4438719017642691,
-   0.2999414698152021
+   0.4653777722967939,
+   0.3212224889312856,
+   0.3264639913694848
   ],
   "BC1": [
    0.19226321812207717,
@@ -166,19 +199,25 @@
    0.4725526846155064
   ],
   "BC": null,
-  "Normal": null,
+  "Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
   "RimPower": 3.05,
   "RimBright": 4.6,
   "Triplanar": 0,
   "Scale1": 0.0,
   "Blend": 0.0,
-  "tex": {}
+  "tex": {
+   "_Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
+   "_PigmentBehavior": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
+   "_dark_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/dark_gray.png",
+   "_light_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/gray__light2.png",
+   "_mid_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png"
+  }
  },
  "pipe": {
   "K": [
-   0.7232661453011759,
-   0.4438719017642691,
-   0.2999414698152021
+   0.4653777722967939,
+   0.3212224889312856,
+   0.3264639913694848
   ],
   "BC1": [
    0.46336549196827936,
@@ -186,44 +225,54 @@
    0.0032100754409270034
   ],
   "BC": null,
-  "Normal": null,
+  "Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
   "RimPower": 3.05,
   "RimBright": 4.6,
   "Triplanar": 0,
   "Scale1": 0.0,
   "Blend": 0.0,
-  "tex": {}
+  "tex": {
+   "_Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
+   "_PigmentBehavior": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
+   "_dark_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/dark_gray.png",
+   "_light_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/gray__light2.png",
+   "_mid_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png"
+  }
  },
  "Pipe01": {
   "K": [
-   0.7232661453011759,
-   0.4438719017642691,
-   0.2999414698152021
+   0.49640295711658017,
+   0.3426373215267046,
+   0.3482282574607838
   ],
   "BC1": [
-   1.0,
-   1.0,
-   1.0
+   0.22840829363866672,
+   0.42766411242857605,
+   0.3916730298627924
   ],
   "BC": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/ASSET02_DefaultMaterial_AlbedoTransparency.png",
   "Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/ASSET02_DefaultMaterial_Normal.png",
-  "RimPower": 5.0,
-  "RimBright": 2.0,
+  "RimPower": 6.2,
+  "RimBright": 10.2,
   "Triplanar": 0,
   "Scale1": 0.0,
   "Blend": 0.0,
   "tex": {
+   "_Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/ASSET02_DefaultMaterial_Normal.png",
+   "_PigmentBehavior": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
+   "_dark_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/dark_gray.png",
+   "_light_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/gray__light2.png",
+   "_mid_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
    "_BC": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/ASSET02_DefaultMaterial_AlbedoTransparency.png",
    "_BaseMap": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/ASSET02_DefaultMaterial_AlbedoTransparency.png",
-   "_MainTex": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/ASSET02_DefaultMaterial_AlbedoTransparency.png",
-   "_Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/ASSET02_DefaultMaterial_Normal.png"
+   "_MainTex": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/ASSET02_DefaultMaterial_AlbedoTransparency.png"
   }
  },
  "Pipe02": {
   "K": [
-   0.7232661453011759,
-   0.4438719017642691,
-   0.2999414698152021
+   0.6,
+   0.36822287727522707,
+   0.24882248817851402
   ],
   "BC1": [
    1.0,
@@ -232,12 +281,13 @@
   ],
   "BC": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/Pipe02_DefaultMaterial_AlbedoTransparency.png",
   "Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/Pipe02_DefaultMaterial_Normal.png",
-  "RimPower": 5.0,
-  "RimBright": 2.0,
+  "RimPower": 3.59,
+  "RimBright": 3.56,
   "Triplanar": 0,
   "Scale1": 0.0,
   "Blend": 0.0,
   "tex": {
+   "_PigmentBehavior": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
    "_BC": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/Pipe02_DefaultMaterial_AlbedoTransparency.png",
    "_BaseMap": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/Pipe02_DefaultMaterial_AlbedoTransparency.png",
    "_BumpMap": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/enviro/Pipe02_DefaultMaterial_Normal.png",
@@ -257,41 +307,52 @@
    1.0
   ],
   "BC": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Porte_BC.png",
-  "Normal": null,
+  "Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
   "RimPower": 5.0,
   "RimBright": 2.0,
   "Triplanar": 0,
   "Scale1": 0.0,
   "Blend": 0.0,
   "tex": {
+   "_Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
+   "_PigmentBehavior": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
+   "_dark_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/dark_gray.png",
+   "_light_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/gray__light2.png",
+   "_mid_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
    "_BC": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Porte_BC.png"
   }
  },
  "walll painted": {
   "K": [
-   0.6436875937349011,
-   0.423697600446555,
-   0.38314475921781505
+   0.5149500749879209,
+   0.338958080357244,
+   0.30651580737425205
   ],
   "BC1": [
-   1.0,
-   1.0,
-   1.0
+   0.22840829363866672,
+   0.42766411242857605,
+   0.3916730298627924
   ],
   "BC": null,
-  "Normal": null,
-  "RimPower": 5.0,
-  "RimBright": 2.0,
+  "Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
+  "RimPower": 6.2,
+  "RimBright": 10.2,
   "Triplanar": 0,
   "Scale1": 0.0,
   "Blend": 0.0,
-  "tex": {}
+  "tex": {
+   "_Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
+   "_PigmentBehavior": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
+   "_dark_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/dark_gray.png",
+   "_light_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/gray__light2.png",
+   "_mid_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png"
+  }
  },
  "YELLOW": {
   "K": [
-   0.7232661453011759,
-   0.4438719017642691,
-   0.2999414698152021
+   0.4653777722967939,
+   0.3212224889312856,
+   0.3264639913694848
   ],
   "BC1": [
    1.0,
@@ -299,13 +360,19 @@
    0.031084365952726935
   ],
   "BC": null,
-  "Normal": null,
+  "Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
   "RimPower": 3.05,
   "RimBright": 4.6,
   "Triplanar": 0,
   "Scale1": 0.0,
   "Blend": 0.0,
-  "tex": {}
+  "tex": {
+   "_Normal": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/test02.png",
+   "_PigmentBehavior": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png",
+   "_dark_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/dark_gray.png",
+   "_light_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/gray__light2.png",
+   "_mid_trame": "D:/_PROJETS/briscard/GIT/EON_Project/Assets/import/textures/Shaders/Pigment01.png"
+  }
  },
  "BG_Test": {
   "K": [

@@ -28,18 +28,19 @@ namespace
 AEONTileRoom::AEONTileRoom()
 {
 	bLiftBox = false;
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> Cube(TEXT("/Engine/BasicShapes/Cube.Cube"));
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> Cyl(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
-	// Couleurs du HUB Unity (M_EON_BG) : sol gris (New Material 2), murs peints, décor rouge (pipe), cuves bleues (pipe 1).
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MFloor(TEXT("/Game/EON/Materials/BG/MI_BG_New_Material_2.MI_BG_New_Material_2"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> Cube(TEXT("/Game/EON/Meshes/SM_Cube_N.SM_Cube_N"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> Cyl(TEXT("/Game/EON/Meshes/SM_Cylinder_N.SM_Cylinder_N"));
+	// Sol éclairé (MI_Sol_Eclaire, teinte du sol Unity) pour recevoir les ombres ; décor rouge (pipe), cuves bleues (pipe 1) en M_EON_BG.
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MFloor(TEXT("/Game/EON/Materials/MI_Sol_Eclaire.MI_Sol_Eclaire"));
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MWall(TEXT("/Game/EON/Materials/BG/MI_BG_walll_painted.MI_BG_walll_painted"));
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MCrate(TEXT("/Game/EON/Materials/BG/MI_BG_Barrier01.MI_BG_Barrier01"));
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MTank(TEXT("/Game/EON/Materials/BG/MI_BG_pipe_1.MI_BG_pipe_1"));
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MDoor(TEXT("/Game/EON/Materials/BG/MI_BG_pipe.MI_BG_pipe"));
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MGap(TEXT("/Game/EON/Materials/BG/MI_BG_Grille01.MI_BG_Grille01"));
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> HubWall(TEXT("/Game/EON/Unity/import/fbx/enviro/wall/WallA320.WallA320"));
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MHubWall(TEXT("/Game/EON/Unity/Materials/MI_Unity_Mur.MI_Unity_Mur"));
-	HubWallMesh = HubWall.Object; HubWallMaterial = MHubWall.Object;
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MHubWall(TEXT("/Game/EON/Materials/BG/MI_BG_walll_painted.MI_BG_walll_painted"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MHubNeon(TEXT("/Game/EON/Materials/BG/MI_BG_Room_light.MI_BG_Room_light"));
+	HubWallMesh = HubWall.Object; HubWallMaterial = MHubWall.Object; HubWallLightMaterial = MHubNeon.Object;
 	WallHeightCm = 220.f;
 	FloorMaterial = MFloor.Object; WallMaterial = MWall.Object; CrateMaterial = MCrate.Object;
 	TankMaterial = MTank.Object; DoorMaterial = MDoor.Object; GapMaterial = MGap.Object;
@@ -304,9 +305,12 @@ void AEONTileRoom::BuildHubWalls(const FVector& Origin)
 	HubWallISM->ClearInstances();
 	if (!bHubWalls || !HubWallMesh) { return; }
 	HubWallISM->SetStaticMesh(HubWallMesh);
-	for (int32 I = 0; I < HubWallMesh->GetStaticMaterials().Num(); ++I)
+	// Par nom d'emplacement (l'ordre d'Unreal n'est pas celui d'Unity) : « light » = fines lignes lumineuses.
+	const TArray<FStaticMaterial>& Slots = HubWallMesh->GetStaticMaterials();
+	for (int32 I = 0; I < Slots.Num(); ++I)
 	{
-		HubWallISM->SetMaterial(I, HubWallMaterial ? HubWallMaterial.Get() : HubWallMesh->GetMaterial(I));
+		UMaterialInterface* M = Slots[I].MaterialSlotName == FName(TEXT("light")) ? HubWallLightMaterial.Get() : HubWallMaterial.Get();
+		HubWallISM->SetMaterial(I, M ? M : HubWallMesh->GetMaterial(I));
 	}
 	// Module du HUB : largeur en X, épaisseur en Y, face peinte vers -Y local (vérifié en jeu).
 	const FBox Bx = HubWallMesh->GetBoundingBox();

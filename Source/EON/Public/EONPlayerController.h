@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "InputActionValue.h"
+#include "EONDevMenu.h"
 #include "EONPlayerController.generated.h"
 
 class UInputMappingContext;
@@ -36,9 +37,6 @@ public:
 	/** Appelé par l'écouteur Slate (thread jeu). */
 	void NotifyDeviceUsed(bool bGamepad);
 
-	/** Affiche les infos de debug du jalon 0 à l'écran. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EON|Debug")
-	bool bShowDebug = true;
 
 	// --- Assets d'entrée (créés par Saved/Scripts/eon_inputs.py)
 	UPROPERTY(EditDefaultsOnly, Category = "EON|Entrées") TSoftObjectPtr<UInputMappingContext> MappingContext;
@@ -59,6 +57,16 @@ public:
 	/** Zone morte du stick de visée (proto : 0,18). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EON|Entrées") float AimDeadZone = 0.18f;
 
+	/** Menus de test F6 (Tweak) et F7 (Triche). */
+	const FEONDevMenu& GetDevMenu() const { return DevMenu; }
+
+	/** HUB (Kibo, L_HUB) : Jira est sur le quai du C.O.M, le levier est prêt (proto : COM à quai). */
+	bool IsNearHubCom() const;
+	/** Touche Interagir : levier du C.O.M (étage ou HUB). */
+	void Interact();
+	/** Descente du C.O.M depuis le HUB en cours (1,7 s puis étage 1). */
+	bool IsHubComTravelling() const { return HubComT >= 0.f; }
+
 	/** Dernière action reçue (debug). */
 	UPROPERTY(BlueprintReadOnly, Category = "EON|Debug") FString LastAction;
 
@@ -69,6 +77,11 @@ protected:
 	virtual void PlayerTick(float DeltaTime) override;
 
 private:
+	FEONDevMenu DevMenu;
+	/** Applique PPPaint / PPAll aux volumes de post-process de la carte (à chaque changement ou carte). */
+	void ApplyPostProcess();
+	int32 PPState = -1;
+	TWeakObjectPtr<UWorld> PPWorld;
 	void OnMove(const FInputActionValue& V);
 	void OnMoveStop(const FInputActionValue& V);
 	void OnAim(const FInputActionValue& V);
@@ -83,6 +96,12 @@ private:
 	void UpdateMouseAim(AEONCharacter* Jira);
 	void UpdateStickAim(AEONCharacter* Jira);
 	void DrawDebug() const;
+
+	/** C.O.M du HUB (acteur au mesh COMv1), trouvé une fois ; absent dans les étages. */
+	mutable TWeakObjectPtr<AActor> HubCom;
+	mutable bool bHubComSearched = false;
+	AActor* GetHubCom() const;
+	float HubComT = -1.f;
 
 	TSharedPtr<FEONDeviceInputProcessor> DeviceProcessor;
 	bool bUsingGamepad = false;

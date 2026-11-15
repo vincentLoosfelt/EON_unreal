@@ -22,15 +22,20 @@ for meta in glob.glob(ROOT + "/**/*.meta", recursive=True):
 
 
 def parse(path):
+    """Propriétés du .mat, héritées de son parent (Material Variant, m_Parent) : une variante ne stocke que ce
+    qu'elle surcharge (ex. « walll painted » ne garde que sa rampe ; sa couleur BC_1 vert-de-gris vient de
+    MasterPainted). Sans l'héritage, BC_1 retombait sur le blanc par défaut -> murs roses (corrigé le 15/11)."""
     t = open(path, encoding="utf-8").read()
     if BG not in t:
         return None
-    p = dict(DEF)
+    par = re.search(r"m_Parent: \{fileID: \d+, guid: (\w+)", t)
+    base = parse(guid2path[par.group(1)]) if par and par.group(1) in guid2path else None
+    p = dict(base) if base else dict(DEF)
+    tex = dict(base["tex"]) if base else {}
     for k, v in re.findall(r"- (\w+): ([-\d.e]+)\n", t):
         p[k] = float(v)
     for k, r, g, b in re.findall(r"- (\w+): \{r: ([-\d.e]+), g: ([-\d.e]+), b: ([-\d.e]+)", t):
         p[k] = (float(r), float(g), float(b))   # couleurs de .mat = espace gamma (linéarisées à l'usage, URP en linéaire)
-    tex = {}
     for k, g in re.findall(r"- (\w+):\n\s+m_Texture: \{fileID: \d+, guid: (\w+)", t):
         tex[k] = guid2path.get(g, g)
     p["tex"] = tex

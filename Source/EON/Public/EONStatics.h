@@ -6,6 +6,10 @@
 #include "EONTypes.h"
 class UToonProfile;
 class UMaterialInstanceConstant;
+class USkeleton;
+class UAnimBlueprint;
+class UAnimSequence;
+class UBlueprint;
 #include "EONStatics.generated.h"
 
 UCLASS()
@@ -52,4 +56,35 @@ public:
 	/** Outil éditeur : profil toon propre à une instance (ToonProfileOverride n'est pas exposé à Python). */
 	UFUNCTION(BlueprintCallable, Category = "EON|Outils")
 	static bool SetInstanceToonProfile(UMaterialInstanceConstant* Instance, UToonProfile* Profile);
+
+	/** Outil éditeur : modes de retarget de translation d'un squelette partagé par des corps de proportions différentes.
+	 *  Tous les os en Skeleton, sauf AnimationBones (Animation) et ScaledBones (AnimationScaled). Renvoie le nb d'os réglés. */
+	UFUNCTION(BlueprintCallable, Category = "EON|Outils")
+	static int32 SetTranslationRetargeting(USkeleton* Skeleton, const TArray<FName>& AnimationBones, const TArray<FName>& ScaledBones);
+	/** Outil éditeur : insère juste avant la sortie de l'AnimGraph d'un Animation Blueprint une couche haut du corps
+	 *  (Layered Blend per Bone depuis SpineBone, rotations en espace maillage) jouant Pose en boucle, pondérée par la
+	 *  variable float AlphaVar (créée si absente). Idempotent (nœud marqué « EON_TIR »). Renvoie un compte rendu. */
+	UFUNCTION(BlueprintCallable, Category = "EON|Outils")
+	static FString AddUpperBodyLayer(UAnimBlueprint* AnimBlueprint, UAnimSequence* Pose, FName SpineBone, FName AlphaVar);
+	/** Remplit une structure de propriétés d'animation (S_CharacterPropertiesForAnimation du Game Animation Sample)
+	 *  depuis un AEONCharacter, champ par champ selon leur nom. Appelée par BP_Jira (interface BPI_SandboxCharacter_Pawn). */
+	UFUNCTION(BlueprintCallable, CustomThunk, Category = "EON|Anim", meta = (CustomStructureParam = "Props", DefaultToSelf = "Character"))
+	static void FillAnimProps(AActor* Character, UPARAM(ref) int32& Props);
+	DECLARE_FUNCTION(execFillAnimProps)
+	{
+		P_GET_OBJECT(AActor, Character);
+		Stack.StepCompiledIn<FStructProperty>(nullptr);
+		void* Addr = Stack.MostRecentPropertyAddress;
+		FStructProperty* SP = CastField<FStructProperty>(Stack.MostRecentProperty);
+		P_FINISH;
+		P_NATIVE_BEGIN;
+		if (SP && Addr) { FillAnimPropsImpl(Character, SP->Struct, Addr); }
+		P_NATIVE_END;
+	}
+	static void FillAnimPropsImpl(AActor* Character, const UScriptStruct* Struct, void* Data);
+
+	/** Outil éditeur : fait implémenter Interface à Blueprint et écrit la fonction FuncName : variable locale du type de
+	 *  sa sortie, remplie par FillAnimProps(self), renvoyée. Idempotent. Renvoie un compte rendu. */
+	UFUNCTION(BlueprintCallable, Category = "EON|Outils")
+	static FString ImplementAnimPropsInterface(UBlueprint* Blueprint, UClass* Interface, FName FuncName);
 };

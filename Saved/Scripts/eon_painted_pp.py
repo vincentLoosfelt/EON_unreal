@@ -53,11 +53,15 @@ tg = node(unreal.MaterialExpressionTextureObjectParameter, -900, 650, parameter_
 tm = node(unreal.MaterialExpressionTime, -900, 800)
 
 CODE = r'''
-float2 uv = GetDefaultSceneTextureUV(Parameters, 14);
+float2 uv = GetViewportUV(Parameters);                 // UV de vue (0-1 sur l'image visible)
 float keep = (ST0.r + ST1.r + ST2.r + ST3.r) * 0.0;   // garde les SceneTexture dans le graphe
-float2 px = View.BufferSizeAndInvSize.zw;
-float3 orig = SceneTextureLookup(uv, 14, false).rgb;
-if (SceneTextureLookup(uv, 25, false).r > 0.5) return orig;      // celluloïd : ennemis, sbires
+float2 px = View.ViewSizeAndInvSize.zw;
+// Chaque lecture passe de l'UV de vue à l'UV de sa scene texture (PostProcessInput0 et GBuffer n'ont pas le même
+// tampon), bornée à la zone visible : sinon, au bord (surtout en bas), flou, Sobel et distorsion lisaient des restes
+// HDR hors de l'image -> taches rouges et vertes clignotantes après le bloom (15/11).
+#define LK(u, id, f) SceneTextureLookup(ClampSceneTextureUV(ViewportUVToSceneTextureUV(u, id), id), id, f)
+float3 orig = LK(uv, 14, false).rgb;
+if (LK(uv, 25, false).r > 0.5) return orig;      // celluloïd : ennemis, sbires
 float hdrBoost = max(1.0, max(orig.r, max(orig.g, orig.b)));
 // distorsion « wet » : mapping monde XZ d'Unity = XY d'Unreal, unités Unity = m
 float2 buv = WP.xy * 0.01 * BrushTiling * 0.1;
@@ -68,7 +72,7 @@ float3 sum = 0; float tw = 0;
 [unroll] for (int x = -2; x <= 2; x++) [unroll] for (int y = -2; y <= 2; y++) {
     float2 o = float2(x, y) * px * BrushSize;
     float w = exp(-dot(o, o) * 2.0);
-    sum += SceneTextureLookup(uv + o + dist + roff, 14, true).rgb * w; tw += w; }
+    sum += LK(uv + o + dist + roff, 14, true).rgb * w; tw += w; }
 float3 painted = sum / tw * hdrBoost;
 // Sobel sur normales, anti-crénelé (5 échantillons)
 float e = 0;
@@ -77,21 +81,21 @@ float2 offs[5] = { float2(0,0), float2(ho.x,0), float2(0,ho.y), float2(-ho.x,0),
 float wts[5] = { 2, 1, 1, 1, 1 };
 [unroll] for (int k = 0; k < 5; k++) {
     float2 c = uv + offs[k] + edist; float2 t = px * EdgeWidth;
-    float3 n00 = SceneTextureLookup(c + float2(-1,-1)*t, 8, false).rgb, n01 = SceneTextureLookup(c + float2(0,-1)*t, 8, false).rgb, n02 = SceneTextureLookup(c + float2(1,-1)*t, 8, false).rgb;
-    float3 n10 = SceneTextureLookup(c + float2(-1,0)*t, 8, false).rgb, n12 = SceneTextureLookup(c + float2(1,0)*t, 8, false).rgb;
-    float3 n20 = SceneTextureLookup(c + float2(-1,1)*t, 8, false).rgb, n21 = SceneTextureLookup(c + float2(0,1)*t, 8, false).rgb, n22 = SceneTextureLookup(c + float2(1,1)*t, 8, false).rgb;
+    float3 n00 = LK(c + float2(-1,-1)*t, 8, false).rgb, n01 = LK(c + float2(0,-1)*t, 8, false).rgb, n02 = LK(c + float2(1,-1)*t, 8, false).rgb;
+    float3 n10 = LK(c + float2(-1,0)*t, 8, false).rgb, n12 = LK(c + float2(1,0)*t, 8, false).rgb;
+    float3 n20 = LK(c + float2(-1,1)*t, 8, false).rgb, n21 = LK(c + float2(0,1)*t, 8, false).rgb, n22 = LK(c + float2(1,1)*t, 8, false).rgb;
     float3 sx = n00 + 2*n10 + n20 - n02 - 2*n12 - n22; float3 sy = n00 + 2*n01 + n02 - n20 - 2*n21 - n22;
     e += sqrt(dot(sx,sx) + dot(sy,sy)) * wts[k]; }
 float edge = saturate(e / 6.0 * 8.0);
 float2 lo = px * 2.0; float3 L = float3(0.299, 0.587, 0.114);
-float avgL = (dot(SceneTextureLookup(uv + float2(-lo.x,0), 14, false).rgb, L) + dot(SceneTextureLookup(uv + float2(lo.x,0), 14, false).rgb, L)
-            + dot(SceneTextureLookup(uv + float2(0,-lo.y), 14, false).rgb, L) + dot(SceneTextureLookup(uv + float2(0,lo.y), 14, false).rgb, L)) * 0.25;
+float avgL = (dot(LK(uv + float2(-lo.x,0), 14, false).rgb, L) + dot(LK(uv + float2(lo.x,0), 14, false).rgb, L)
+            + dot(LK(uv + float2(0,-lo.y), 14, false).rgb, L) + dot(LK(uv + float2(0,lo.y), 14, false).rgb, L)) * 0.25;
 float3 adapt = lerp(0, 1, smoothstep(0.25, 0.75, avgL));
 float3 tint = lerp(painted * 0.3, adapt, EdgeLumAdapt);
 float3 col = lerp(orig, lerp(painted, tint, saturate(edge * EdgeStrength)), PaintStrength);
 // grain
-float2 sp = uv * View.BufferSizeAndInvSize.xy;
-float2 nuv = (sp + frac(T) * 1000.0) * NoiseScale / View.BufferSizeAndInvSize.y;
+float2 sp = uv * View.ViewSizeAndInvSize.xy;
+float2 nuv = (sp + frac(T) * 1000.0) * NoiseScale / View.ViewSizeAndInvSize.y;
 float nz = (Texture2DSample(NoiseTex, NoiseTexSampler, nuv).r - 0.5) * 2.0;
 col += nz * NoiseStrength * lerp(1.0, 1.0 - edge, NoiseMask);
 return col + keep;

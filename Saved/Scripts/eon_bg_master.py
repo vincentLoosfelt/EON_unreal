@@ -1,12 +1,9 @@
 # EON — matériau maître M_EON_BG = BG.shadergraph d'Unity, à l'identique (Vincent, 14/11 : « respecter les couleurs
 # et les matériaux d'Unity, reprendre les mêmes principes »).
 #   UnrealEditor-Cmd.exe EON.uproject -run=pythonscript -script=Saved/Scripts/eon_bg_master.py
-# Le graphe BG est un Lit URP à BaseColor 0 : tout sort en émission.
-#   Base   = BC_1 × BC (UV, ou triplanaire monde si _triplanar)
-#   K      = lumière principale × (rampe + Toon_Ramp_Tint), passée par la trame (Blend Multiply, opacité _Strength).
-#            Dans la scène Unity la lumière principale n'a pas d'ombre : la rampe vaut 1 partout, K est une constante
-#            par matériau (calculée par unity_bg_couleurs.py -> eon_bg_params.json).
-#   Émission = saturate(Base² × K) + saturate(Base² × K × Brightness_Rim × step(0,5, dot(N, L) × fresnel^Rim_Power))
+# 15/11 : éclairé par Lumen (Vincent : le lightmapping d'Unity devient Lumen). Couleur de base = BC × BC_1, sans
+# normal map ; émission = néons seulement (EmisAdd).
+# Couleurs héritées des Material Variant (unity_bg_couleurs.py). Reconstruit SUR PLACE : références gardées.
 # Lu par eon_hub_bg.py, qui pose les MI_BG_* pièce par pièce comme dans le prefab Room_elevator.
 import json, os, re, unreal
 EAL = unreal.EditorAssetLibrary
@@ -16,8 +13,6 @@ DIR = "/Game/EON/Materials"
 MI_DIR = "/Game/EON/Materials/BG"
 HERE = "D:/_PROJETS/briscard/EON_UE/Saved/Scripts/"
 PARAMS = json.load(open(HERE + "eon_bg_params.json", encoding="utf-8"))
-# Direction vers la lumière principale Unity (Directional Light (1)), repère Unreal (X = z, Y = x, Z = y Unity).
-LIGHT_DIR = (0.14797, -0.62558, 0.76599)
 LOG = []
 
 
@@ -26,10 +21,15 @@ def log(m):
 
 
 path = DIR + "/M_EON_BG"
-if EAL.does_asset_exist(path):
-    EAL.delete_asset(path)
-m = AT.create_asset("M_EON_BG", DIR, unreal.Material, unreal.MaterialFactoryNew())
-m.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+# Le maître est construit sous un nom provisoire, les MI_BG_* (mises à jour SUR PLACE, références des cartes gardées)
+# y sont rattachées, puis l'ancien maître, devenu libre, est supprimé et le nouveau prend son nom. (Vider un graphe
+# sur place plante l'éditeur, et un maître encore référencé ne se supprime pas.)
+TMP = DIR + "/M_EON_BG_neuf"
+if EAL.does_asset_exist(TMP):
+    EAL.delete_asset(TMP)
+m = AT.create_asset("M_EON_BG_neuf", DIR, unreal.Material, unreal.MaterialFactoryNew())
+# Éclairé (15/11, Vincent : « la version finale, avec Lumen ») : le lightmapping d'Unity devient Lumen.
+m.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_DEFAULT_LIT)
 for _u in ("used_with_instanced_static_meshes", "used_with_skeletal_mesh"):
     m.set_editor_property(_u, True)
 P = unreal.MaterialProperty
@@ -82,21 +82,13 @@ sw = node(unreal.MaterialExpressionStaticSwitchParameter, -1200, -300, parameter
 con(tri, "XYZ Texture", sw, "True")
 con(uv, "RGB", sw, "False")
 base = op(MUL, sw, "", vparam("BC1", (1, 1, 1, 1), -1200, -50), "", -1000, -250)
-b2 = op(MUL, base, "", base, "", -850, -250)
-b2k = op(MUL, b2, "", vparam("K", (0.723, 0.444, 0.3, 1), -1000, -50), "", -700, -250)
-flat = node(unreal.MaterialExpressionSaturate, -500, -250)
-con(b2k, "", flat, "")
-
-# Liseré : step(0,5, dot(N, L) × fresnel^RimPower) × RimBright × Base² × K
-fres = node(unreal.MaterialExpressionFresnel, -1200, 250, base_reflect_fraction=0.0)
-con(sparam("RimPower", 5.0, -1500, 300), "", fres, "ExponentIn")
-ndl = op(DOT, node(unreal.MaterialExpressionVertexNormalWS, -1500, 450), "", vparam("LightDir", (*LIGHT_DIR, 0), -1500, 550), "", -1200, 450)
-x = op(MUL, ndl, "", fres, "", -1000, 350)
-stp = node(unreal.MaterialExpressionSaturate, -600, 350)
-con(op(MUL, op(SUB, x, "", const(0.5, -1000, 500), "", -850, 400), "", const(10000.0, -850, 550), "", -700, 400), "", stp, "")
-rim = node(unreal.MaterialExpressionSaturate, -300, 250)
-con(op(MUL, op(MUL, b2k, "", sparam("RimBright", 2.0, -700, 150), "", -500, 150), "", stp, "", -400, 250), "", rim, "")
-emi = op(ADD, op(ADD, flat, "", rim, "", -150, -100), "", vparam("EmisAdd", (0, 0, 0, 0), -400, 500), "", 0, 0)
+# Couleur de base = BC × BC_1 d'Unity ; l'ombrage vient de Lumen (lumières + GI des néons), plus de rampe figée.
+MEL.connect_material_property(base, "", P.MP_BASE_COLOR)
+MEL.connect_material_property(sparam("Roughness", 0.85, -700, 100), "", P.MP_ROUGHNESS)
+MEL.connect_material_property(const(0.0, -700, 200), "", P.MP_METALLIC)
+# Pas de normal map ni de triplanaire (Vincent, 15/11 : « enlève le normal mapping ») : un vrai master paint viendra.
+# Émission : seulement les néons (EmisAdd, Room light).
+emi = vparam("EmisAdd", (0, 0, 0, 0), -400, 500)
 MEL.connect_material_property(emi, "", P.MP_EMISSIVE_COLOR)
 MEL.recompile_material(m)
 EAL.save_loaded_asset(m)
@@ -119,25 +111,24 @@ def ue_texture(unity_path):
     return None
 
 
-def make_mi(name, bc1=None, K=None, tex=None, triplanar=False, trisize=None, rim=(5.0, 2.0), emis=None):
+def make_mi(name, bc1=None, tex=None, triplanar=False, trisize=None, emis=None):
     p = MI_DIR + "/" + name
     if EAL.does_asset_exist(p):
-        EAL.delete_asset(p)
-    mi = AT.create_asset(name, MI_DIR, unreal.MaterialInstanceConstant, unreal.MaterialInstanceConstantFactoryNew())
+        mi = unreal.load_asset(p)
+        MEL.clear_all_material_instance_parameters(mi)   # retire les anciens K / Rim de la version unlit
+    else:
+        mi = AT.create_asset(name, MI_DIR, unreal.MaterialInstanceConstant, unreal.MaterialInstanceConstantFactoryNew())
     MEL.set_material_instance_parent(mi, m)
     if bc1 is not None:
         MEL.set_material_instance_vector_parameter_value(mi, "BC1", unreal.LinearColor(*bc1, 1.0))
-    if K is not None:
-        MEL.set_material_instance_vector_parameter_value(mi, "K", unreal.LinearColor(*K, 1.0))
     if tex:
         MEL.set_material_instance_texture_parameter_value(mi, "BaseTex", tex)
     if triplanar:
         MEL.set_material_instance_static_switch_parameter_value(mi, "Triplanar", True)
         MEL.set_material_instance_scalar_parameter_value(mi, "TriSize", trisize)
-    MEL.set_material_instance_scalar_parameter_value(mi, "RimPower", rim[0])
-    MEL.set_material_instance_scalar_parameter_value(mi, "RimBright", rim[1])
     if emis:
         MEL.set_material_instance_vector_parameter_value(mi, "EmisAdd", unreal.LinearColor(*emis, 0.0))
+    MEL.update_material_instance(mi)
     EAL.save_loaded_asset(mi)
     return mi
 
@@ -146,14 +137,15 @@ for mat, p in PARAMS.items():
     name = "MI_BG_" + re.sub(r"[^A-Za-z0-9]", "_", mat)
     t = ue_texture(p.get("BC"))
     tri = bool(p["Triplanar"]) and p["Scale1"] > 0
-    make_mi(name, p["BC1"], p["K"], t, tri, 100.0 / p["Scale1"] if tri else None, (p["RimPower"], p["RimBright"]))
-    log("%s : K=%s BC1=%s tex=%s tri=%s rim=%s/%s" % (name, [round(c, 3) for c in p["K"]], [round(c, 3) for c in p["BC1"]],
-                                                    t.get_name() if t else "-", tri, p["RimPower"], p["RimBright"]))
+    make_mi(name, p["BC1"], t, tri, 100.0 / p["Scale1"] if tri else None)
+    log("%s : BC1=%s tex=%s tri=%s" % (name, [round(c, 3) for c in p["BC1"]], t.get_name() if t else "-", tri))
 
 # Room light.mat (URP Lit, base noire, émission HDR (2 ; 1,09 ; 0,53)) : bandeaux lumineux des murs, au-dessus de 1 -> bloom.
 make_mi("MI_BG_Room_light", bc1=(0, 0, 0), emis=(2.0, 1.0935495, 0.53459084))
-# BaseWhite (URP Lit blanc, échantillon URP) : dans Unity, éclairé par ambiance grise 0,855 + deux directionnelles.
-# Ici en aplat : ambiance linéaire 0,70 + moitié des directionnelles en moyenne -> blanc cassé chaud.
-make_mi("MI_BG_BaseWhite", bc1=(1, 1, 1), K=(0.98, 0.9, 0.85), rim=(5.0, 0.0))
+# BaseWhite (URP Lit blanc, échantillon URP).
+make_mi("MI_BG_BaseWhite", bc1=(1, 1, 1))
 log("instances : %d" % (len(PARAMS) + 2))
+if EAL.does_asset_exist(path):
+    log("ancien maître supprimé : %s" % EAL.delete_asset(path))
+log("nouveau maître renommé : %s" % EAL.rename_asset(TMP, path))
 open(unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_saved_dir()) + "Logs/eon_bg_master.txt", "w", encoding="utf-8").write("\n".join(LOG))

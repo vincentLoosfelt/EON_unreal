@@ -66,8 +66,10 @@ public:
 	// --- Murs du HUB (Unity) : façades WallA320 le long des murs qui donnent sur la salle.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EON|Salle|Rendu") bool bHubWalls = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EON|Salle|Rendu") TObjectPtr<UStaticMesh> HubWallMesh;
-	/** Matériau des murs du HUB : celui du mesh (MI_Unity_Mur), sans peinture rose ni bandeau lumineux. */
+	/** Matériau des murs du HUB : walll painted d'Unity (vert-de-gris de MasterPainted), comme dans le HUB. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EON|Salle|Rendu") TObjectPtr<UMaterialInterface> HubWallMaterial;
+	/** Emplacement « light » du mur (fines lignes lumineuses) : Room light d'Unity. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EON|Salle|Rendu") TObjectPtr<UMaterialInterface> HubWallLightMaterial;
 	/** Dessus des murs épais (vu de haut). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EON|Salle|Rendu") TObjectPtr<UMaterialInterface> WallTopMaterial;
 

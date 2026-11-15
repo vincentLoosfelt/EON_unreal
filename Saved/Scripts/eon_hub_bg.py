@@ -81,6 +81,25 @@ for o in DATA:
     done += 1
 log("pièces habillées : %d ; sans acteur correspondant : %d" % (done, miss))
 
+# Murs du HUB (Vincent, 15/11) : « un shader unique, vert de gris assez foncé, voire kaki, avec l'effet painting ».
+# Les emplacements d'Unreal ne suivent pas l'ordre des sous-meshes d'Unity (WallA320 : « light » = 4 triangles des
+# fines lignes lumineuses, « metal01 » = le mur). Poser par index mettait Room light sur tout le mur (murs blancs) :
+# on pose donc par nom d'emplacement. light -> Room light ; le reste -> walll painted (vert-de-gris de MasterPainted).
+MUR = unreal.load_asset(MI_DIR + "MI_BG_walll_painted")
+NEON = unreal.load_asset(MI_DIR + "MI_BG_Room_light")
+MURS = ("WallA320", "WallA160CornerIn", "walldooreno")
+murs = neons = 0
+for a in smas:
+    comp = a.static_mesh_component
+    if not comp.static_mesh.get_name().startswith(MURS):
+        continue
+    for slot in comp.get_material_slot_names():
+        if str(slot).lower() == "light":
+            comp.set_material_by_name(slot, NEON); neons += 1
+        else:
+            comp.set_material_by_name(slot, MUR); murs += 1
+log("murs : %d emplacements en MI_BG_walll_painted, %d lignes lumineuses en MI_BG_Room_light" % (murs, neons))
+
 # Lumières de SampleScene. URP : radiance = couleur linéaire × intensité, sans 1/π -> Unreal : lux = intensité × π.
 UNITY_LIGHTS = [("Soleil_principal", (0.2622, 0.7108, -0.3314, 0.5623), (1.0, 0.8058, 0.6761), 0.6, False),
                 ("Soleil_2", (0.1094, -0.8754, 0.4082, 0.2346), (1.0, 1.0, 1.0), 0.56, True)]

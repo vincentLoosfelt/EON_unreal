@@ -63,7 +63,21 @@ struct EON_API FEONGameFeelRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Énergie") float Regen = 0.5f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendu") bool Ambient = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interface") bool LockUI = true;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug") bool God = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mouvement") float DashMul = 1.f;
+	// Post-process des cartes (PP_Etage, PP_HUB) : filtre peinture seul, ou tout le volume (exposition, bloom).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendu") bool PPPaint = false;   // coupé le 15/11 (Vincent)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendu") bool PPAll = true;
+	// Texte de debug en haut à gauche (entrée, énergie, vitesse...) : caché par défaut (Vincent, 15/11), menu Tweak.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interface") bool DebugText = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ennemis") float EnemyHp = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ennemis") float EnemySpeed = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ennemis") float EnemyDmg = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ennemis") float WaveMul = 1.f;
+	// Triche (menu F7) : gardées quand on change de préréglage.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Triche") bool God = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Triche") bool InfEnergy = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Triche") bool InfDash = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Triche") bool OneShot = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Son") bool Sound = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Son") float Vol = 0.5f;
 

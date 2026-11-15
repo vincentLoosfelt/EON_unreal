@@ -1,4 +1,5 @@
 #include "EONCharacter.h"
+#include "GameFramework/PlayerStart.h"
 #include "EONPedestal.h"
 #include "EON.h"
 #include "EONPlayerCameraManager.h"
@@ -55,14 +56,15 @@ AEONCharacter::AEONCharacter(const FObjectInitializer& ObjectInitializer)
 	Move->bConstrainToPlane = true;
 	Move->SetPlaneConstraintNormal(FVector::UpVector);
 
-	// Jira en 3D : Cyborg_mode.fbx skinné sur l'armature de ses animations (Saved/Scripts/blender_rig_jira.py),
-	// locomotion = ABP du mannequin retargeté, avec les idle / marche / course de Jira (eon_jira_cyborg.py).
-	// Jira 29 px = 181 cm : échelle ajustée sur HeightPx.
-	static ConstructorHelpers::FObjectFinder<USkeletalMesh> JiraMesh(TEXT("/Game/EON/Characters/Jira/SK_Jira.SK_Jira"));
-	static ConstructorHelpers::FClassFinder<UAnimInstance> LocoAnim(TEXT("/Game/EON/Characters/Jira/Anims/ABP_Unarmed_Jira"));
+	// Jira en 3D riggée sur le squelette du mannequin UEFN (Saved/Scripts/blender_jira_uefn.py) : locomotion =
+	// Animation Blueprint du Game Animation Sample 5.8 (SandboxCharacter_CMC_ABP), alimenté par BP_Jira
+	// (interface BPI_SandboxCharacter_Pawn -> UEONStatics::FillAnimProps). Pendant le tir : couche haut du corps
+	// (A_Jira_shoot_front depuis spine_01, variable EONTirAlpha). Jira 29 px = 181 cm : échelle ajustée sur HeightPx.
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> JiraMesh(TEXT("/Game/EON/Characters/Jira/SK_Jira_UEFN.SK_Jira_UEFN"));
+	// L'ABP n'est chargé qu'au BeginPlay : chargé ici (CDO, au démarrage du module), il se compilait avant le plugin
+	// DrawDebugLibrary et perdait ses fonctions (15/11).
 	USkeletalMeshComponent* Body = GetMesh();
 	if (JiraMesh.Succeeded()) { Body->SetSkeletalMeshAsset(JiraMesh.Object); }
-	if (LocoAnim.Succeeded()) { Body->SetAnimInstanceClass(LocoAnim.Class); }
 	Body->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 	// Le mannequin regarde vers +Y : -90° pour qu'il regarde vers +X (sens de la visée).
 	Body->SetRelativeLocationAndRotation(FVector(0.f, 0.f, -HalfHeight), FRotator(0.f, -90.f, 0.f));
@@ -81,6 +83,32 @@ AEONCharacter::AEONCharacter(const FObjectInitializer& ObjectInitializer)
 void AEONCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	// Pose au sol : la contrainte de plan interdit toute vitesse verticale, un départ en l'air restait en chute
+	// sans jamais atterrir (Jira bloquée dans le HUB, 15/11). Hors étage en tuiles (HUB : sol à marches),
+	// pas de contrainte : Jira suit le sol.
+	{
+		FHitResult Hit;
+		FCollisionQueryParams Q(SCENE_QUERY_STAT(EONSpawnGround), true, this);
+		const FVector P = GetActorLocation();
+		if (GetWorld()->LineTraceSingleByChannel(Hit, P + FVector(0.f, 0.f, 50.f), P - FVector(0.f, 0.f, 5000.f), ECC_WorldStatic, Q))
+		{
+			SetActorLocation(Hit.ImpactPoint + FVector(0.f, 0.f, GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 2.f), false, nullptr, ETeleportType::TeleportPhysics);
+			UE_LOG(LogEON, Display, TEXT("EON_SPAWN sol sur %s à Z=%.0f (départ %s)"), *GetNameSafe(Hit.GetActor()), Hit.ImpactPoint.Z, *P.ToCompactString());
+		}
+		if (!AEONFloorManager::Get(this)) { GetCharacterMovement()->SetPlaneConstraintEnabled(false); }
+		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	}
+	// BP_Jira a pu garder l'ancien maillage / AnimBP dans ses propriétés sauvegardées.
+	if (USkeletalMesh* Uefn = LoadObject<USkeletalMesh>(nullptr, TEXT("/Game/EON/Characters/Jira/SK_Jira_UEFN.SK_Jira_UEFN")))
+	{
+		if (GetMesh()->GetSkeletalMeshAsset() != Uefn) { GetMesh()->SetSkeletalMeshAsset(Uefn); }
+	}
+	LocoAnimClass = LoadClass<UAnimInstance>(nullptr, TEXT("/Game/Blueprints/SandboxCharacter_CMC_ABP.SandboxCharacter_CMC_ABP_C"));
+	if (LocoAnimClass && GetMesh()->GetAnimClass() != LocoAnimClass)
+	{
+		GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+		GetMesh()->SetAnimInstanceClass(LocoAnimClass);
+	}
 	GetCharacterMovement()->MaxWalkSpeed = EON::PxToCm(WalkSpeedPx);
 	BaseEnergyMax = EnergyMax;
 	BaseDashMax = DashMax;
@@ -147,6 +175,12 @@ void AEONCharacter::ResetForRoom(FVector Location)
 }
 
 // ---------------------------------------------------------------- PV, coups, chute
+
+float AEONCharacter::DmgMult() const
+{
+	// Triche « tue en un coup » : dégâts x1000.
+	return DmgM * (bBerserk ? 1.f + 0.35f * Mut : 1.f) * (UEONStatics::GetGameFeel(this).OneShot ? 1000.f : 1.f);
+}
 
 void AEONCharacter::HurtPlayer(int32 Amount, FVector SourceWorld)
 {
@@ -270,13 +304,17 @@ void AEONCharacter::Tick(float DeltaSeconds)
 	// --- Démo de locomotion (eon.demo 1) : remplace l'entrée du joueur.
 	if (CVarEONDemo.GetValueOnGameThread() > 0)
 	{
+		if (DemoTime < 0.f && CVarEONDemo.GetValueOnGameThread() == 4) { DemoTime = 0.f; }   // 4 = cercle, sans téléport ni retrait de contrainte (chemin du jeu normal)
 		if (DemoTime < 0.f)
 		{
 			DemoTime = 0.f;
-			// Jira posée sur le plancher de la COM, sous le dôme (dôme sans collision).
+			// Jira posée au point de départ de la carte (PlayerStart : passerelle du HUB ; le centre du C.O.M, ce sont
+			// des ordinateurs, on n'y circule pas — Vincent 15/11). Sans PlayerStart : là où elle est.
 			FHitResult Hit;
 			FCollisionQueryParams Q(SCENE_QUERY_STAT(EONDemo), true, this);
-			const FVector C(-240.f, 53.f, 3000.f);
+			FVector C = GetActorLocation();
+			for (TActorIterator<APlayerStart> It(GetWorld()); It; ++It) { C = It->GetActorLocation(); break; }
+			C.Z = 3000.f;
 			float Z = 600.f;
 			if (GetWorld()->LineTraceSingleByChannel(Hit, C, C - FVector(0.f, 0.f, 6000.f), ECC_WorldStatic, Q))
 			{
@@ -297,9 +335,22 @@ void AEONCharacter::Tick(float DeltaSeconds)
 		else if (T >= 9.f && T < 12.f)   { M = Circle(T - 9.f); bRun = true; }
 		else if (T >= 13.f)              { M = FVector2D((T < 13.5f || (T >= 14.5f && T < 15.5f)) ? 1.f : -1.f, 0.f); }
 		if (CVarEONDemo.GetValueOnGameThread() == 2) { M = FVector2D::ZeroVector; bRun = false; }   // 2 = immobile au centre
+		// 3 = visée fixe vers le haut de l'écran, marche avant / gauche / arrière / droite puis course avant / arrière
+		// (2 s chacune, 1 s d'arrêt entre) : teste les pas de côté et le recul des jambes.
+		const bool bFixedAim = CVarEONDemo.GetValueOnGameThread() == 3;
+		if (bFixedAim)
+		{
+			static const FVector2D Dirs[6] = { {0.f, 1.f}, {-1.f, 0.f}, {0.f, -1.f}, {1.f, 0.f}, {0.f, 1.f}, {0.f, -1.f} };
+			const float T3 = FMath::Fmod(DemoTime, 19.f);
+			const int32 I = FMath::FloorToInt((T3 - 1.f) / 3.f);
+			const bool bGo = T3 >= 1.f && I < 6 && FMath::Fmod(T3 - 1.f, 3.f) < 2.f;
+			M = bGo ? Dirs[I] : FVector2D::ZeroVector;
+			bRun = bGo && I >= 4;
+		}
 		RawMove = M;
 		bDashHeld = bRun;
-		if (M.Size() > 0.1f) { RawAimAngle = FMath::Atan2(-M.Y, M.X); }
+		if (bFixedAim) { RawAimAngle = UE_HALF_PI * -1.f; }   // haut de l'écran = -Y monde
+		else if (M.Size() > 0.1f) { RawAimAngle = FMath::Atan2(-M.Y, M.X); }
 		if (FMath::Fmod(DemoTime, 0.5f) < Dt)
 		{
 			UE_LOG(LogEON, Display, TEXT("EON_DEMO t=%.1f pos=%s mode=%d vit=%.0f course=%d"), DemoTime, *GetActorLocation().ToCompactString(),
@@ -390,7 +441,7 @@ void AEONCharacter::Tick(float DeltaSeconds)
 	if (DashRemaining > 0.f)
 	{
 		DashRemaining -= Dt;
-		Move->MaxWalkSpeed = EON::PxToCm(DashSpeedPx) * DashDistM;   // pas de SpeedMul3D : la portée du dash est une règle de terrain (fossés de 2 tuiles)
+		Move->MaxWalkSpeed = EON::PxToCm(DashSpeedPx) * DashDistM * Feel.DashMul;   // pas de SpeedMul3D : la portée du dash est une règle de terrain (fossés de 2 tuiles)
 		AddMovementInput(DashDir, 1.f);
 	}
 	else
@@ -438,6 +489,17 @@ void AEONCharacter::Tick(float DeltaSeconds)
 
 	// --- Orientation : Jira regarde où elle vise.
 	SetActorRotation(FRotator(0.f, FMath::RadiansToDegrees(AimAngle), 0.f));
+	// Couche « tir » du haut du corps dans l'ABP d'Epic (variable EONTirAlpha ajoutée par UEONStatics::AddUpperBodyLayer).
+	TirAlpha = FMath::FInterpTo(TirAlpha, bFireHeld ? 1.f : 0.f, DeltaSeconds, 14.f);
+	if (UAnimInstance* AI = GetMesh()->GetAnimInstance())
+	{
+		if (FProperty* P = AI->GetClass()->FindPropertyByName(TEXT("EONTirAlpha")))
+		{
+			void* TirAddr = P->ContainerPtrToValuePtr<void>(AI);
+			if (FDoubleProperty* D = CastField<FDoubleProperty>(P)) { D->SetPropertyValue(TirAddr, TirAlpha); }
+			else if (FFloatProperty* F = CastField<FFloatProperty>(P)) { F->SetPropertyValue(TirAddr, TirAlpha); }
+		}
+	}
 
 	// --- Vide (jalon 2)
 	CheckPlayerFall();
@@ -460,6 +522,7 @@ void AEONCharacter::PressDash()
 	}
 	DashRemaining = DashDuration;
 	--DashCharges;
+	if (UEONStatics::GetGameFeel(this).InfDash) { DashCharges = DashMax; }
 	InvTimer = FMath::Max(InvTimer, DashInvulnerability);
 	HoldTimer = 0.f;
 
@@ -535,7 +598,7 @@ void AEONCharacter::Spend(float Cost)
 	// spend(c) : toute action compte comme dépense (nourrit la mutation) ; l'énergie ne baisse qu'à l'état sain.
 	LastSpendTime = WorldTime;
 	RecT = 0.f;
-	if (Cost <= 0.f || Mut > 0) { return; }
+	if (Cost <= 0.f || Mut > 0 || UEONStatics::GetGameFeel(this).InfEnergy) { return; }
 	Energy -= Cost;
 	if (Energy <= 0.f)
 	{

@@ -40,6 +40,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "EON|Réglages")
 	FString GetValueAsString(const FString& Key) const;
 
+	/** Valeur d'un réglage dans un préréglage de DT_GameFeel (vide si inconnu). */
+	FString GetPresetValueAsString(FName Preset, const FString& Key) const;
+
 	/** Liste "clé = valeur" de tous les réglages. */
 	UFUNCTION(BlueprintPure, Category = "EON|Réglages")
 	TArray<FString> DescribeAll() const;

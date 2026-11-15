@@ -9,6 +9,7 @@
 #include "EONPickup.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
@@ -17,6 +18,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "TimerManager.h"
 #include "GameFramework/PlayerController.h"
 #include "HAL/IConsoleManager.h"
 #include "Kismet/GameplayStatics.h"
@@ -86,6 +88,40 @@ namespace
 		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
 		{
 			if (AEONCharacter* J = Cast<AEONCharacter>(UGameplayStatics::GetPlayerPawn(World, 0))) { J->AddScrap(Args.Num() ? FCString::Atoi(*Args[0]) : 30); }
+		}));
+	FAutoConsoleCommandWithWorldAndArgs GEONCmdApres(TEXT("eon.apres"), TEXT("eon.apres SECONDES CMD... : lance CMD plus tard dans la même partie (tests avant / après au même endroit)"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			if (!World || Args.Num() < 2) { return; }
+			const float Delay = FMath::Max(0.01f, FCString::Atof(*Args[0]));
+			const FString Cmd = FString::Join(TArrayView<const FString>(Args).RightChop(1), TEXT(" "));
+			TWeakObjectPtr<UWorld> W(World);
+			FTimerHandle H;
+			World->GetTimerManager().SetTimer(H, FTimerDelegate::CreateLambda([W, Cmd]()
+			{
+				if (!W.IsValid()) { return; }
+				UE_LOG(LogEON, Display, TEXT("eon.apres : %s"), *Cmd);
+				// Par le contrôleur : les commandes du viewport (show, viewmode...) passent aussi.
+				if (APlayerController* PC = W->GetFirstPlayerController()) { PC->ConsoleCommand(Cmd); }
+				else if (GEngine) { GEngine->Exec(W.Get(), *Cmd); }
+			}), Delay, false);
+		}));
+	FAutoConsoleCommandWithWorldAndArgs GEONCmdCache(TEXT("eon.cache"), TEXT("eon.cache NOM [0|1] : masque (0, défaut) ou remontre (1) l'ISM NOM de toutes les salles (Sol, Murs, Decor, Cuves, Portes, PorteRouge, BordsDuVide, MursHUB, Chair)"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			if (!World || !Args.Num()) { return; }
+			const bool bShow = Args.Num() > 1 && FCString::Atoi(*Args[1]) != 0;
+			int32 N = 0;
+			for (TActorIterator<AEONTileRoom> It(World); It; ++It)
+			{
+				TArray<UInstancedStaticMeshComponent*> Comps;
+				It->GetComponents(Comps);
+				for (UInstancedStaticMeshComponent* C : Comps)
+				{
+					if (C->GetName() == Args[0]) { C->SetVisibility(bShow); ++N; }
+				}
+			}
+			UE_LOG(LogEON, Display, TEXT("eon.cache %s %d : %d composant(s)"), *Args[0], bShow ? 1 : 0, N);
 		}));
 	TAutoConsoleVariable<FString> CVarEONDebut(TEXT("eon.debut"), TEXT(""), TEXT("eon.debut \"cmd1;cmd2\" : commandes lancées 2 s après le début (tests, ExecCmds trop tôt)"));
 	TAutoConsoleVariable<int32> CVarEONTrace(TEXT("eon.trace"), 0, TEXT("eon.trace 1 : eon.ou toutes les 2 s"));

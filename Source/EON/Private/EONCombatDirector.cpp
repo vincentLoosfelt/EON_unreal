@@ -12,6 +12,7 @@
 #include "EONTuningSubsystem.h"
 #include "EONTypes.h"
 #include "DrawDebugHelpers.h"
+#include "Misc/PackageName.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -292,6 +293,7 @@ void AEONCombatDirector::SpawnWave(float Mul)
 {
 	AEONTileRoom* Rm = CurRoom.Get();
 	if (!Rm) { return; }
+	Mul *= UEONStatics::GetGameFeel(this).WaveMul;
 	// Le corridor : que du corps à corps, et tout arrive du fond du couloir
 	const bool bCor = Cur.Role == TEXT("CORRIDOR");
 	TArray<FVector2D> Cand;
@@ -524,6 +526,9 @@ void AEONCombatDirector::HurtJira(int32 Amount, const FVector2D& SourcePx, const
 	AEONCharacter* J = GetJira();
 	const AEONTileRoom* Rm = CurRoom.Get();
 	if (!J || !Rm) { return; }
+	// Menu Tweak : dégâts des ennemis en coeurs (0 = inoffensifs).
+	Amount = FMath::RoundToInt(Amount * UEONStatics::GetGameFeel(this).EnemyDmg);
+	if (Amount <= 0) { return; }
 	if (!PushPx.IsNearlyZero() && JiraHittable())
 	{
 		// Brainless : P.kx += lx × 170 en plus du recul de hurtPlayer
@@ -685,9 +690,10 @@ void AEONCombatDirector::RestartRun()
 	DeadSince = -1.0;
 	States.Reset();
 	Cur = FRoomState();
-	if (AEONFloorManager* F = GetFloor())
+	// Nouvelle run : on repart du Kibo (HUB), comme le proto. Sans HUB (carte de test), on recharge la carte.
+	if (GetFloor() && FPackageName::DoesPackageExist(TEXT("/Game/EON/Maps/L_HUB")))
 	{
-		F->NewRun();   // remet Jira (ResetRun), étage 1, et recharge la salle de départ
+		UGameplayStatics::OpenLevel(this, FName(TEXT("L_HUB")));
 		return;
 	}
 	UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this, true)));

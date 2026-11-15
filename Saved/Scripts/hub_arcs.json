@@ -1,0 +1,154 @@
+[
+ {
+  "name": "ElectricArcVFX (1)",
+  "startPoint": [
+   10.495984736595169,
+   -4.756350478774758,
+   7.250026799373297
+  ],
+  "startPoint_name": "start",
+  "startPoint_actif": false,
+  "endPoint": [
+   7.917592079958291,
+   -4.556350474628718,
+   4.79403732099199
+  ],
+  "endPoint_name": "end",
+  "endPoint_actif": false,
+  "startPointRadius": 0.2,
+  "endPointRadius": 0.2
+ },
+ {
+  "name": "ElectricArcVFX (6)",
+  "startPoint": [
+   -9.170959508443508,
+   0.8436498960912964,
+   7.756688865391609
+  ],
+  "startPoint_name": "start",
+  "startPoint_actif": false,
+  "endPoint": [
+   -6.571893323197831,
+   1.0436499015601752,
+   5.322587770086183
+  ],
+  "endPoint_name": "end",
+  "endPoint_actif": false,
+  "startPointRadius": 0.2,
+  "endPointRadius": 0.2
+ },
+ {
+  "name": "ElectricArcVFX (2)",
+  "startPoint": [
+   10.380318847883006,
+   0.8436501575685851,
+   -12.381404545504815
+  ],
+  "startPoint_name": "start",
+  "startPoint_actif": false,
+  "endPoint": [
+   7.895236491346186,
+   1.0436501492755017,
+   -9.83104043156575
+  ],
+  "endPoint_name": "end",
+  "endPoint_actif": false,
+  "startPointRadius": 0.2,
+  "endPointRadius": 0.2
+ },
+ {
+  "name": "ElectricArcVFX (7)",
+  "startPoint": [
+   -9.170959508443508,
+   -4.156350103908704,
+   7.756688865391609
+  ],
+  "startPoint_name": "start",
+  "startPoint_actif": false,
+  "endPoint": [
+   -6.571893323197831,
+   -3.9563500984398248,
+   5.322587770086183
+  ],
+  "endPoint_name": "end",
+  "endPoint_actif": false,
+  "startPointRadius": 0.2,
+  "endPointRadius": 0.2
+ },
+ {
+  "name": "ElectricArcVFX (5)",
+  "startPoint": [
+   -9.460375969555642,
+   -4.15635013121208,
+   -12.262641583290478
+  ],
+  "startPoint_name": "start",
+  "startPoint_actif": false,
+  "endPoint": [
+   -6.88412829310519,
+   -3.956350124306181,
+   -9.804402117890035
+  ],
+  "endPoint_name": "end",
+  "endPoint_actif": false,
+  "startPointRadius": 0.2,
+  "endPointRadius": 0.2
+ },
+ {
+  "name": "ElectricArcVFX",
+  "startPoint": [
+   10.495984736595169,
+   0.8436499212252424,
+   7.250026799373297
+  ],
+  "startPoint_name": "start",
+  "startPoint_actif": false,
+  "endPoint": [
+   7.917592079958291,
+   1.043649925371282,
+   4.79403732099199
+  ],
+  "endPoint_name": "end",
+  "endPoint_actif": false,
+  "startPointRadius": 0.2,
+  "endPointRadius": 0.2
+ },
+ {
+  "name": "ElectricArcVFX (4)",
+  "startPoint": [
+   -9.460375969555642,
+   0.8436498687879199,
+   -12.262641583290478
+  ],
+  "startPoint_name": "start",
+  "startPoint_actif": false,
+  "endPoint": [
+   -6.88412829310519,
+   1.043649875693819,
+   -9.804402117890035
+  ],
+  "endPoint_name": "end",
+  "endPoint_actif": false,
+  "startPointRadius": 0.2,
+  "endPointRadius": 0.2
+ },
+ {
+  "name": "ElectricArcVFX (3)",
+  "startPoint": [
+   10.380318847883006,
+   -4.156349842431415,
+   -12.381404545504815
+  ],
+  "startPoint_name": "start",
+  "startPoint_actif": false,
+  "endPoint": [
+   7.895236491346186,
+   -3.9563498507244983,
+   -9.83104043156575
+  ],
+  "endPoint_name": "end",
+  "endPoint_actif": false,
+  "startPointRadius": 0.2,
+  "endPointRadius": 0.2
+ }
+]

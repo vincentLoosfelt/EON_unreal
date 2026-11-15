@@ -57,6 +57,19 @@ def transform_of(o):
     rot = unreal.MathLibrary.make_rot_from_xz(ax, az)
     s = o["scale"]
     loc = to_ue(o["pos"]) * 100.0
+    if o.get("fbx", "").endswith("walldooreno.fbx"):
+        # importé à part (/Game/EON/Unity/import/) avec un autre repère : sans ce retournement sur X il était à
+        # l'envers, enfoncé et derrière les murs (trous, passage inversé ; Vincent 15/11, voir eon_hub_portes.py)
+        rot = unreal.MathLibrary.compose_rotators(unreal.Rotator(roll=180.0, pitch=0.0, yaw=0.0), rot)
+    if o.get("fbx", "").endswith("enviro/porte.fbx"):
+        # porte : retournée sur X puis 90° sur la verticale (debout, dans le plan du mur ; 15/11, eon_hub_vantaux.py)
+        rot = unreal.MathLibrary.compose_rotators(unreal.Rotator(roll=180.0, pitch=0.0, yaw=0.0), rot)
+        rot = unreal.MathLibrary.compose_rotators(unreal.Rotator(roll=0.0, pitch=0.0, yaw=90.0), rot)
+    if o.get("fbx", "").endswith("WallA160CornerIn.fbx"):
+        # coin à 45° : -90° autour du pivot pour que sa diagonale rejoigne le second mur (15/11, eon_hub_coins.py)
+        rot = unreal.MathLibrary.compose_rotators(unreal.Rotator(roll=0.0, pitch=0.0, yaw=-90.0), rot)
+    if o.get("fbx", "").split("/")[-1].startswith("WallA") and abs(s[1] - 2.0) < 0.01 and abs(s[2] - 1.0) < 0.01:
+        s = [s[0], 1.0, 2.0]   # rangées basses : le 2 est la hauteur (6,1 m entre rangées), sinon 3 m de trou (15/11)
     return loc, rot, unreal.Vector(s[0], s[1], s[2])   # signe gardé : pièces en miroir
 
 
@@ -84,7 +97,10 @@ for o in DATA:
     a = cache.get(o["fbx"]) if o["fbx"] in cache else cache.setdefault(o["fbx"], ue_asset_for(o["fbx"]))
     if a is None:
         missing.add(o["fbx"]); continue
-    if isinstance(a, unreal.StaticMesh):
+    if o["fbx"].endswith("enviro/porte.fbx"):
+        # porte Sas d'Unity : cadre + 2 vantaux coulissants, ouverte sans ennemis (AEONSlidingDoor, 15/11)
+        act = eas.spawn_actor_from_class(unreal.EONSlidingDoor, loc, rot)
+    elif isinstance(a, unreal.StaticMesh):
         act = eas.spawn_actor_from_class(unreal.StaticMeshActor, loc, rot)
         act.static_mesh_component.set_static_mesh(a)
     else:

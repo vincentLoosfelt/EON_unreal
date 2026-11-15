@@ -4,6 +4,7 @@
 #   transparent additif, base (0.358, 0.005, 0.005), Fresnel orange (1, 0.547, 0) puissance 5.28 × 1.26,
 #   sommets poussés le long de la normale par un bruit (UV0 défilant à la vitesse 1, échelle 5) × -0.005
 #   en unités objet Unity (× 100 du FBX × 1,5 du prefab ≈ -75 cm).
+#   15/11 : bruit lu en UV1 = centre de chaque hexagone (eon_dome_hexa.py) -> hexagones plats, déplacés d'un bloc.
 #   La réfraction (Scene Color) du graphe n'est branchée sur aucune sortie dans Unity : non reprise.
 # Collision : coupée sur le dôme ; le reste de la COM en collision exacte (complexe = simple).
 import unreal
@@ -59,17 +60,17 @@ col = op(unreal.MaterialExpressionAdd, op(unreal.MaterialExpressionMultiply, bas
 MEL.connect_material_property(op(unreal.MaterialExpressionMultiply, col, "", glow, "", -150, 0), "", P.MP_EMISSIVE_COLOR)
 
 # --- Mouvement des hexagones : normale × bruit(UV0 + temps × vitesse) × amplitude
-uv = node(unreal.MaterialExpressionTextureCoordinate, -1300, 600)
+uv = node(unreal.MaterialExpressionTextureCoordinate, -1300, 600, coordinate_index=1)   # UV1 = centre d'hexagone (eon_dome_hexa.py)
 t = node(unreal.MaterialExpressionTime, -1300, 750)
-spd = op(unreal.MaterialExpressionMultiply, t, "", sp("NoiseSpeed", 1.0, -1300, 850), "", -1100, 750)
+spd = op(unreal.MaterialExpressionMultiply, t, "", sp("HexaVitesse", 0.05, -1300, 850), "", -1100, 750)
 uvt = op(unreal.MaterialExpressionAdd, uv, "", spd, "", -950, 650)
 pos3 = node(unreal.MaterialExpressionAppendVector, -800, 650)
 MEL.connect_material_expressions(uvt, "", pos3, "A")
 MEL.connect_material_expressions(node(unreal.MaterialExpressionConstant, -950, 780, r=0.0), "", pos3, "B")
 noise = node(unreal.MaterialExpressionNoise, -620, 650, scale=5.0, output_min=0.0, output_max=1.0, quality=2)
-MEL.connect_material_expressions(pos3, "", noise, "Position")
+MEL.connect_material_expressions(pos3, "", noise, "World Position")   # 15/11 : « Position » n'existe pas -> Noise débranché
 nrm = node(unreal.MaterialExpressionVertexNormalWS, -620, 850)
-amp = sp("DisplaceCm", -75.0, -620, 950)
+amp = sp("DisplaceCm", -20.0, -620, 950)
 wpo = op(unreal.MaterialExpressionMultiply, op(unreal.MaterialExpressionMultiply, noise, "", amp, "", -420, 700), "", nrm, "", -250, 800)
 MEL.connect_material_property(wpo, "", P.MP_WORLD_POSITION_OFFSET)
 MEL.recompile_material(m)
