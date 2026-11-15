@@ -1,0 +1,144 @@
+#include "EONProjectile.h"
+#include "EONTrainingDummy.h"
+#include "EONEnemy.h"
+#include "EONTypes.h"
+#include "Components/SphereComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "GameFramework/ProjectileMovementComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "UObject/ConstructorHelpers.h"
+
+int32 AEONProjectile::StatShots = 0;
+int32 AEONProjectile::StatHits = 0;
+int32 AEONProjectile::StatWalls = 0;
+
+AEONProjectile::AEONProjectile()
+{
+	PrimaryActorTick.bCanEverTick = false;
+
+	Sphere = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
+	Sphere->InitSphereRadius(EON::PxToCm(1.f));
+	// Bloque murs, décor et créatures ; ignore les autres projectiles (WorldDynamic).
+	Sphere->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+	Sphere->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Ignore);
+	Sphere->SetGenerateOverlapEvents(false);
+	RootComponent = Sphere;
+
+	Visual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Visual"));
+	Visual->SetupAttachment(Sphere);
+	Visual->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Visual->SetCastShadow(false);
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+	if (SphereMesh.Succeeded()) { Visual->SetStaticMesh(SphereMesh.Object); }
+	// Trait allongé dans le sens du tir : 0,5 m de long, 0,1 m de large.
+	Visual->SetRelativeScale3D(FVector(0.5f, 0.1f, 0.1f));
+
+	Movement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("Movement"));
+	Movement->UpdatedComponent = Sphere;
+	Movement->ProjectileGravityScale = 0.f;
+	Movement->bRotationFollowsVelocity = true;
+	// Chaque contact passe par OnBounce : on y décide (dégâts, perforation, ricochet ou fin de course).
+	Movement->bShouldBounce = true;
+	Movement->Bounciness = 1.f;
+	Movement->Friction = 0.f;
+	Movement->BounceVelocityStopSimulatingThreshold = 0.f;
+	Movement->InitialSpeed = 0.f; // la vitesse vient de Setup()
+	// Setup() donne une vitesse monde : sans ça, elle est tournée une 2e fois par l'orientation de la balle (angle doublé).
+	Movement->bInitialVelocityInLocalSpace = false;
+	Movement->MaxSpeed = 0.f;     // 0 = pas de plafond
+}
+
+void AEONProjectile::Setup(const FVector& InVelocityCm, float InLifeSeconds, float InDamage, float InRadiusPx, const FLinearColor& InColor)
+{
+	Movement->Velocity = InVelocityCm;
+	ShotDir = InVelocityCm.GetSafeNormal2D();
+	SpeedCm = InVelocityCm.Size2D();
+	LifeSeconds = InLifeSeconds;
+	Damage = InDamage;
+	Color = InColor;
+	Sphere->SetSphereRadius(EON::PxToCm(InRadiusPx));
+}
+
+void AEONProjectile::BeginPlay()
+{
+	Super::BeginPlay();
+	++StatShots;
+
+	if (AActor* Shooter = GetInstigator())
+	{
+		Sphere->IgnoreActorWhenMoving(Shooter, true);
+	}
+	Movement->OnProjectileStop.AddDynamic(this, &AEONProjectile::OnStop);
+	Movement->OnProjectileBounce.AddDynamic(this, &AEONProjectile::OnBounce);
+	SetLifeSpan(FMath::Max(0.01f, LifeSeconds));
+
+	if (UMaterialInterface* Flat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/EON/Materials/M_Flat.M_Flat")))
+	{
+		Mid = UMaterialInstanceDynamic::Create(Flat, this);
+		Mid->SetVectorParameterValue(TEXT("Color"), Color);
+		Visual->SetMaterial(0, Mid);
+	}
+}
+
+void AEONProjectile::OnBounce(const FHitResult& Hit, const FVector& ImpactVelocity)
+{
+	if (IsActorBeingDestroyed()) { return; }
+	AActor* A = Hit.GetActor();
+	if (AEONTrainingDummy* Dummy = Cast<AEONTrainingDummy>(A)) { Dummy->ApplyShot(Damage, ShotDir, 1.f, Hit.ImpactPoint); Destroy(); return; }
+	if (AEONEnemy* Enemy = Cast<AEONEnemy>(A))
+	{
+		Enemy->ApplyHit(Damage, ShotDir, 1.f);
+		++StatHits;
+		if (PierceLeft > 0)
+		{
+			// Perforation : on traverse cet ennemi et on garde la trajectoire.
+			--PierceLeft;
+			Sphere->IgnoreActorWhenMoving(Enemy, true);
+			Movement->Velocity = ShotDir * SpeedCm;
+			return;
+		}
+		Destroy();
+		return;
+	}
+	if (BounceLeft > 0)
+	{
+		// Ricochet : la vitesse réfléchie est gardée, à plat et à vitesse constante.
+		--BounceLeft;
+		FVector V = Movement->Velocity; V.Z = 0.f;
+		ShotDir = V.GetSafeNormal2D();
+		Movement->Velocity = ShotDir * SpeedCm;
+		return;
+	}
+	++StatWalls;
+	if (StatWalls <= 40)
+	{
+		UE_LOG(LogTemp, Display, TEXT("EON balle arretee par %s / %s en %s (z %.0f, n %s)"), A ? *A->GetName() : TEXT("-"),
+			Hit.GetComponent() ? *Hit.GetComponent()->GetName() : TEXT("-"), *Hit.ImpactPoint.ToCompactString(), GetActorLocation().Z, *Hit.ImpactNormal.ToCompactString());
+	}
+	Destroy();
+}
+
+void AEONProjectile::OnStop(const FHitResult& Hit)
+{
+	if (AEONTrainingDummy* Dummy = Cast<AEONTrainingDummy>(Hit.GetActor()))
+	{
+		// Movement->Velocity est déjà remis à zéro quand OnProjectileStop part : on garde la direction du tir.
+		Dummy->ApplyShot(Damage, ShotDir, 1.f, Hit.ImpactPoint);
+	}
+	else if (AEONEnemy* Enemy = Cast<AEONEnemy>(Hit.GetActor()))
+	{
+		// hitEnemy(e, b.dmg, dx, dy) : recul dans le sens du tir
+		Enemy->ApplyHit(Damage, ShotDir, 1.f);
+		++StatHits;
+	}
+	else
+	{
+		++StatWalls;
+		if (StatWalls <= 25)
+		{
+			UE_LOG(LogTemp, Display, TEXT("EON balle arretee par %s / %s en %s (z depart %.0f)"), Hit.GetActor() ? *Hit.GetActor()->GetName() : TEXT("-"),
+				Hit.GetComponent() ? *Hit.GetComponent()->GetName() : TEXT("-"), *Hit.ImpactPoint.ToCompactString(), GetActorLocation().Z);
+		}
+	}
+	Destroy();
+}

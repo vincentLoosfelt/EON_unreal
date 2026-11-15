@@ -68,7 +68,7 @@ struct EON_API FEONGameFeelRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Son") float Vol = 0.5f;
 
 	// --- Multiplicateurs d'écart 3D (MANQUANTS.md §9). 1 = valeur du proto. ---
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Écarts 3D") float SpeedMul3D = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Écarts 3D") float SpeedMul3D = 0.55f;   // Vincent 14/11 : Jira trop rapide (MANQUANTS §9)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Écarts 3D") float RangeMul3D = 1.f;
 
 	// --- Caméra 3D (pas dans le proto : choix du portage) ---

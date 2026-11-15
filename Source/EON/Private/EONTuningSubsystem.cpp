@@ -87,6 +87,45 @@ void UEONTuningSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		Sprites ? Sprites->GetRowMap().Num() : -1);
 }
 
+void UEONTuningSubsystem::Deinitialize()
+{
+	EndHitstop();
+	Super::Deinitialize();
+}
+
+void UEONTuningSubsystem::RequestHitstop(float Ms)
+{
+	if (Ms <= 0.f) { return; }
+	UWorld* World = GetWorld();
+	if (!World) { return; }
+	HitstopEnd = FMath::Max(HitstopEnd, FPlatformTime::Seconds() + Ms / 1000.0);
+	if (!HitstopHandle.IsValid())
+	{
+		// Le ticker tourne en temps réel : il n'est pas ralenti par la dilatation qu'il pilote.
+		UGameplayStatics::SetGlobalTimeDilation(World, 0.0001f);
+		HitstopHandle = FTSTicker::GetCoreTicker().AddTicker(
+			FTickerDelegate::CreateUObject(this, &UEONTuningSubsystem::TickHitstop));
+	}
+}
+
+bool UEONTuningSubsystem::TickHitstop(float)
+{
+	if (FPlatformTime::Seconds() < HitstopEnd) { return true; }
+	HitstopHandle.Reset();
+	if (UWorld* World = GetWorld()) { UGameplayStatics::SetGlobalTimeDilation(World, 1.f); }
+	return false;
+}
+
+void UEONTuningSubsystem::EndHitstop()
+{
+	if (HitstopHandle.IsValid())
+	{
+		FTSTicker::GetCoreTicker().RemoveTicker(HitstopHandle);
+		HitstopHandle.Reset();
+		if (UWorld* World = GetWorld()) { UGameplayStatics::SetGlobalTimeDilation(World, 1.f); }
+	}
+}
+
 UEONTuningSubsystem* UEONTuningSubsystem::Get(const UObject* WorldContext)
 {
 	if (const UGameInstance* GI = UGameplayStatics::GetGameInstance(WorldContext))

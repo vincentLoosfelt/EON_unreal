@@ -1,0 +1,5047 @@
+[
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   13.3766836,
+   4.74365,
+   -3.72508249
+  ],
+  "rot": [
+   -2.0787118e-06,
+   0.7071067,
+   0.7071069,
+   2.0712612e-06
+  ],
+  "scale": [
+   1.0000004599999999,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Grille01",
+  "fbx": "import/fbx/enviro/Grille01.fbx",
+  "vfx": null,
+  "pos": [
+   13.726681000000001,
+   4.64365,
+   -2.3974
+  ],
+  "rot": [
+   -0.5,
+   0.5,
+   0.5,
+   0.5
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   3.9229000000000003
+  ],
+  "mats": [
+   "materials/enviro/Grille01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Tube01.fbx",
+  "vfx": null,
+  "pos": [
+   -6.992308993052038,
+   -1.9543809433578119,
+   -16.98136126751865
+  ],
+  "rot": [
+   0.0,
+   0.0,
+   0.7071068,
+   -0.7071068
+  ],
+  "scale": [
+   2.0,
+   2.0,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "cadre",
+  "fbx": "import/fbx/enviro/porte.fbx",
+  "vfx": null,
+  "pos": [
+   0.52668,
+   4.64365,
+   -16.8974002
+  ],
+  "rot": [
+   0.49999999999997535,
+   -0.49999999999997535,
+   0.4999998430417606,
+   0.5000001569582394
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/porte.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Tube01.fbx",
+  "vfx": null,
+  "pos": [
+   -13.97331998,
+   -2.7583211000000007,
+   -9.897393580000001
+  ],
+  "rot": [
+   0.4999993,
+   0.5000007,
+   0.4999993,
+   0.5000007
+  ],
+  "scale": [
+   2.0,
+   2.0,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Tube01.fbx",
+  "vfx": null,
+  "pos": [
+   7.927690403092961,
+   -1.9543809433578119,
+   -16.98136126751865
+  ],
+  "rot": [
+   0.0,
+   0.0,
+   0.7071068,
+   -0.7071068
+  ],
+  "scale": [
+   2.0,
+   2.0,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   4.64365,
+   -8.796874200000001
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -5.8733203,
+   4.64365,
+   -16.796874199999998
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   14.976684,
+   4.74365,
+   -1.06942643
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   0.9999998499999999,
+   0.9999998499999999
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "ElectricArcVFX (1)",
+  "fbx": null,
+  "vfx": "ElectricArc",
+  "pos": [
+   9.917693,
+   -0.9563503999999998,
+   6.993945
+  ],
+  "rot": [
+   0.0,
+   -0.047542214,
+   0.0,
+   0.99886924
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [],
+  "active": false
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   10.126681,
+   4.64365,
+   -16.796874199999998
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   1.904516816883112,
+   4.743650208885413,
+   7.202749334370829
+  ],
+  "rot": [
+   -0.500000761997312,
+   0.49999927721281257,
+   0.49999931949944004,
+   0.5000007618574694
+  ],
+  "scale": [
+   1.0000001,
+   1.0000001,
+   0.9999998499999999
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   4.64365,
+   -5.5968751999999995
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "Grille01 (2)",
+  "fbx": "import/fbx/enviro/Grille01.fbx",
+  "vfx": null,
+  "pos": [
+   -10.673319,
+   4.64365,
+   -2.3974
+  ],
+  "rot": [
+   -0.5,
+   0.5,
+   0.5,
+   0.5
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   3.9229000000000003
+  ],
+  "mats": [
+   "materials/enviro/Grille01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "ElectricArcVFX (6)",
+  "fbx": null,
+  "vfx": "ElectricArc",
+  "pos": [
+   -8.882308000000002,
+   4.64365,
+   7.193946
+  ],
+  "rot": [
+   0.0,
+   -0.75881684,
+   0.0,
+   0.6513041
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [],
+  "active": false
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Rampe electro.fbx",
+  "vfx": null,
+  "pos": [
+   11.52668,
+   4.64365,
+   -14.397400000000001
+  ],
+  "rot": [
+   0.27059794316450453,
+   0.6532814769433775,
+   0.6532815833764484,
+   -0.27059789907850734
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/New Material 2.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   -0.7511576066439467,
+   4.743650208885413,
+   -13.597256475918536
+  ],
+  "rot": [
+   0.4999979504235922,
+   0.5000022159215389,
+   0.5000023432009502,
+   -0.49999782314454816
+  ],
+  "scale": [
+   1.0000004,
+   1.0000004,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02 (3)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   -12.67467598,
+   5.818744963007653,
+   2.7712294199999996
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   -12.67467598,
+   -6.177050663066566,
+   2.7712294199999996
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02 (2)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   -12.67467598,
+   1.8215480209976445,
+   2.7712294199999996
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02 (1)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   -12.67467598,
+   -2.1798537210565567,
+   2.7712294199999996
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   -0.7511687826368338,
+   4.743650208885413,
+   12.002743299708804
+  ],
+  "rot": [
+   0.4999979504235922,
+   0.5000022159215389,
+   0.5000023432009502,
+   -0.49999782314454816
+  ],
+  "scale": [
+   1.0000004,
+   1.0000004,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Grille01 (4)",
+  "fbx": "import/fbx/enviro/Grille01.fbx",
+  "vfx": null,
+  "pos": [
+   0.5265933795500001,
+   4.64365,
+   -15.5974
+  ],
+  "rot": [
+   -3.0472875e-06,
+   -0.7071068,
+   -0.7071068,
+   3.0472875e-06
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   3.9229000000000003
+  ],
+  "mats": [
+   "materials/enviro/Grille01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "cadre",
+  "fbx": "import/fbx/enviro/porte.fbx",
+  "vfx": null,
+  "pos": [
+   15.02668,
+   4.64365,
+   -2.3974
+  ],
+  "rot": [
+   1.1098622099137145e-07,
+   -0.707106910986221,
+   0.7071066890137442,
+   1.1098625585237443e-07
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/porte.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Tube01.fbx",
+  "vfx": null,
+  "pos": [
+   -8.192309556907041,
+   -2.758321486137479,
+   -16.98136126751865
+  ],
+  "rot": [
+   0.0,
+   0.0,
+   0.70710581005048,
+   0.70710778994952
+  ],
+  "scale": [
+   2.0,
+   2.0,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   11.7766832,
+   4.74365,
+   -3.72509083
+  ],
+  "rot": [
+   -2.0787118e-06,
+   0.7071067,
+   0.7071069,
+   2.0712612e-06
+  ],
+  "scale": [
+   1.0000004599999999,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -5.8733203,
+   4.64365,
+   12.0031248
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Tube01.fbx",
+  "vfx": null,
+  "pos": [
+   -13.50331998,
+   -2.7583211000000007,
+   6.362599919999999
+  ],
+  "rot": [
+   0.4999993,
+   0.5000007,
+   0.4999993,
+   0.5000007
+  ],
+  "scale": [
+   2.0,
+   2.0,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02 (3)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   -12.67466898,
+   5.818744963007653,
+   3.3369149199999995
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   -12.67466898,
+   -6.177050663066566,
+   3.3369149199999995
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02 (2)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   -12.67466898,
+   1.8215480209976445,
+   3.3369149199999995
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02 (1)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   -12.67466898,
+   -2.1798537210565567,
+   3.3369149199999995
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Grille01 (7)",
+  "fbx": "import/fbx/enviro/Grille01.fbx",
+  "vfx": null,
+  "pos": [
+   0.52677031594,
+   4.64365,
+   10.802599
+  ],
+  "rot": [
+   -3.0472875e-06,
+   -0.7071068,
+   -0.7071068,
+   3.0472875e-06
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   3.9229000000000003
+  ],
+  "mats": [
+   "materials/enviro/Grille01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Rampe electro.fbx",
+  "vfx": null,
+  "pos": [
+   -11.47332,
+   4.64365,
+   -13.397400000000001
+  ],
+  "rot": [
+   -0.6532815550921748,
+   -0.2705980263577176,
+   -0.27059807044373557,
+   0.6532814486591085
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/New Material 2.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "cadre",
+  "fbx": "import/fbx/enviro/porte.fbx",
+  "vfx": null,
+  "pos": [
+   0.52668,
+   4.64365,
+   12.1026008
+  ],
+  "rot": [
+   0.4999998430417606,
+   0.5000001569582394,
+   -0.49999999999997535,
+   0.49999999999997535
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/porte.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   -0.7511446506482676,
+   4.743650208885413,
+   -15.19725715154084
+  ],
+  "rot": [
+   0.4999979504235922,
+   0.5000022159215389,
+   0.5000023432009502,
+   -0.49999782314454816
+  ],
+  "scale": [
+   1.0000004,
+   1.0000004,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   11.7766832,
+   4.74365,
+   -1.06942643
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   0.9999998499999999,
+   0.9999998499999999
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -9.073319999999999,
+   4.64365,
+   12.0031248
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Tube01.fbx",
+  "vfx": null,
+  "pos": [
+   9.127690966947963,
+   -1.9543809433578119,
+   -16.98136126751865
+  ],
+  "rot": [
+   0.0,
+   0.0,
+   0.7071068,
+   -0.7071068
+  ],
+  "scale": [
+   2.0,
+   2.0,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   -10.6233164,
+   4.74365,
+   -3.72508249
+  ],
+  "rot": [
+   -2.0787118e-06,
+   0.7071067,
+   0.7071069,
+   2.0712612e-06
+  ],
+  "scale": [
+   1.0000004599999999,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   -9.023316,
+   4.74365,
+   -1.06942643
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   0.9999998499999999,
+   0.9999998499999999
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   -12.2233168,
+   4.74365,
+   -1.06942643
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   0.9999998499999999,
+   0.9999998499999999
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   3.7266798000000003,
+   4.64365,
+   12.0031248
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Tube01.fbx",
+  "vfx": null,
+  "pos": [
+   -13.50331998,
+   -1.9543805999999995,
+   6.362599919999999
+  ],
+  "rot": [
+   0.5,
+   -0.5,
+   0.5,
+   -0.5
+  ],
+  "scale": [
+   2.0,
+   2.0,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   1.9045168168802262,
+   4.743650208885413,
+   -16.79724966562906
+  ],
+  "rot": [
+   -0.500000761997312,
+   0.49999927721281257,
+   0.49999931949944004,
+   0.5000007618574694
+  ],
+  "scale": [
+   1.0000001,
+   1.0000001,
+   0.9999998499999999
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "ElectricArcVFX (2)",
+  "fbx": null,
+  "vfx": "ElectricArc",
+  "pos": [
+   10.117693,
+   4.64365,
+   -11.806055229999998
+  ],
+  "rot": [
+   0.0,
+   0.66848177,
+   0.0,
+   0.7437285
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [],
+  "active": false
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   -0.7511687826368338,
+   4.743650208885413,
+   -11.997256700291196
+  ],
+  "rot": [
+   0.4999979504235922,
+   0.5000022159215389,
+   0.5000023432009502,
+   -0.49999782314454816
+  ],
+  "scale": [
+   1.0000004,
+   1.0000004,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Tube01.fbx",
+  "vfx": null,
+  "pos": [
+   -13.97331998,
+   -1.9543805999999995,
+   -9.897393580000001
+  ],
+  "rot": [
+   0.5,
+   -0.5,
+   0.5,
+   -0.5
+  ],
+  "scale": [
+   2.0,
+   2.0,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   6.92668,
+   4.64365,
+   12.0031248
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   -0.7511576066439467,
+   4.743650208885413,
+   10.402743524081464
+  ],
+  "rot": [
+   0.4999979504235922,
+   0.5000022159215389,
+   0.5000023432009502,
+   -0.49999782314454816
+  ],
+  "scale": [
+   1.0000004,
+   1.0000004,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   4.64365,
+   -11.9968752
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   4.64365,
+   4.0031232
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02 (3)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   15.40667202,
+   5.568744963007653,
+   2.7712294199999996
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   15.40667202,
+   -6.427050663066566,
+   2.7712294199999996
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02 (2)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   15.40667202,
+   1.5715480209976445,
+   2.7712294199999996
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02 (1)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   15.40667202,
+   -2.4298537210565567,
+   2.7712294199999996
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Grille01 (5)",
+  "fbx": "import/fbx/enviro/Grille01.fbx",
+  "vfx": null,
+  "pos": [
+   0.52675688999,
+   4.64365,
+   8.802599999999998
+  ],
+  "rot": [
+   -3.0472875e-06,
+   -0.7071068,
+   -0.7071068,
+   3.0472875e-06
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   3.9229000000000003
+  ],
+  "mats": [
+   "materials/enviro/Grille01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Tube01.fbx",
+  "vfx": null,
+  "pos": [
+   -13.97331998,
+   -2.7583211000000007,
+   -11.09739308
+  ],
+  "rot": [
+   0.4999993,
+   0.5000007,
+   0.4999993,
+   0.5000007
+  ],
+  "scale": [
+   2.0,
+   2.0,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   1.9045075848909878,
+   4.743650208885413,
+   -13.597248414336342
+  ],
+  "rot": [
+   -0.500000761997312,
+   0.49999927721281257,
+   0.49999931949944004,
+   0.5000007618574694
+  ],
+  "scale": [
+   1.0000001,
+   1.0000001,
+   0.9999998499999999
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Tube01.fbx",
+  "vfx": null,
+  "pos": [
+   9.127690966947963,
+   -2.758321486137479,
+   -16.98136126751865
+  ],
+  "rot": [
+   0.0,
+   0.0,
+   0.70710581005048,
+   0.70710778994952
+  ],
+  "scale": [
+   2.0,
+   2.0,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Grille01 (6)",
+  "fbx": "import/fbx/enviro/Grille01.fbx",
+  "vfx": null,
+  "pos": [
+   0.526606790595,
+   4.64365,
+   -13.5974
+  ],
+  "rot": [
+   -3.0472875e-06,
+   -0.7071068,
+   -0.7071068,
+   3.0472875e-06
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   3.9229000000000003
+  ],
+  "mats": [
+   "materials/enviro/Grille01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "ElectricArcVFX (7)",
+  "fbx": null,
+  "vfx": "ElectricArc",
+  "pos": [
+   -8.882308000000002,
+   -0.35634999999999994,
+   7.193946
+  ],
+  "rot": [
+   0.0,
+   -0.75881684,
+   0.0,
+   0.6513041
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [],
+  "active": false
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   6.9266796,
+   -1.4563499999999996,
+   -16.796874
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.87332,
+   -1.4563499999999996,
+   0.8031261999999999
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -1.4563499999999996,
+   -11.996875
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -9.073319999999999,
+   -1.4563499999999996,
+   -16.796874
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   0.52668,
+   -1.4563499999999996,
+   -16.796874
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   3.7266798000000003,
+   -1.4563499999999996,
+   12.003125
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -9.073319999999999,
+   -1.4563499999999996,
+   12.003125
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -12.27332,
+   -1.4563499999999996,
+   12.003125
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA160CornerIn.fbx",
+  "vfx": null,
+  "pos": [
+   13.326679,
+   -1.4563499999999996,
+   12.003127
+  ],
+  "rot": [
+   0.5,
+   0.5,
+   0.5,
+   -0.5
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -1.4563499999999996,
+   -8.796873999999999
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.861345,
+   -1.4563499999999996,
+   -2.3974
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA160CornerIn.fbx",
+  "vfx": null,
+  "pos": [
+   -12.27332,
+   -1.4563499999999996,
+   -16.796874
+  ],
+  "rot": [
+   0.5,
+   -0.49999997,
+   -0.5,
+   -0.5
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.87332,
+   -1.4563499999999996,
+   -8.796873999999999
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -1.4563499999999996,
+   7.203126
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.861345,
+   -1.4563499999999996,
+   -5.5973998
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA160CornerIn.fbx",
+  "vfx": null,
+  "pos": [
+   -13.873320999999999,
+   -1.4563499999999996,
+   10.403127000000001
+  ],
+  "rot": [
+   0.0,
+   0.7071068,
+   0.7071068,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.87332,
+   -1.4563499999999996,
+   7.203126
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -1.4563499999999996,
+   -5.596875300000001
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.87332,
+   -1.4563499999999996,
+   -15.196874000000001
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   10.12668,
+   -1.4563499999999996,
+   -16.796874
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   3.7266798000000003,
+   -1.4563499999999996,
+   -16.796874
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -1.4563499999999996,
+   4.0031229999999995
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   13.326680000000001,
+   -1.4563499999999996,
+   -16.796874
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.87332,
+   -1.4563499999999996,
+   0.8031261999999999
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   0.52667976158142,
+   -1.4563499999999996,
+   12.003125
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -2.6733203000000003,
+   -1.4563499999999996,
+   12.003125
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.87332,
+   -1.4563499999999996,
+   4.003125
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -5.8733200000000005,
+   -1.4563499999999996,
+   -16.796874
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA160CornerIn.fbx",
+  "vfx": null,
+  "pos": [
+   14.926681,
+   -1.4563499999999996,
+   -15.196874000000001
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071068
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -1.4563499999999996,
+   4.0031229999999995
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.87332,
+   -1.4563499999999996,
+   -11.996874000000002
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -1.4563499999999996,
+   10.403125
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   10.126679000000001,
+   -1.4563499999999996,
+   12.003125
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -2.6733203000000003,
+   -1.4563499999999996,
+   -16.796874
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -5.8733206000000004,
+   -1.4563499999999996,
+   12.003125
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -1.4563499999999996,
+   0.8025997999999999
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   6.9266796,
+   -1.4563499999999996,
+   12.003125
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -1.4563499999999996,
+   -2.39740023841858
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA160CornerIn.fbx",
+  "vfx": null,
+  "pos": [
+   -12.27332,
+   4.64365,
+   -16.796874
+  ],
+  "rot": [
+   0.5,
+   -0.49999997,
+   -0.5,
+   -0.5
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   13.32668,
+   4.64365,
+   -16.796874199999998
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "ElectricArcVFX (5)",
+  "fbx": null,
+  "vfx": "ElectricArc",
+  "pos": [
+   -8.882308000000002,
+   -0.35634999999999994,
+   -12.006055039999998
+  ],
+  "rot": [
+   0.0,
+   0.9988484,
+   0.0,
+   0.047978207
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [],
+  "active": false
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.873319,
+   4.64365,
+   -15.1968742
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA160CornerIn.fbx",
+  "vfx": null,
+  "pos": [
+   13.326679,
+   4.64365,
+   12.003127
+  ],
+  "rot": [
+   0.5,
+   0.5,
+   0.5,
+   -0.5
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   10.12668,
+   4.64365,
+   12.0031248
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Rampe electro.fbx",
+  "vfx": null,
+  "pos": [
+   12.52668,
+   4.64365,
+   8.602599999999999
+  ],
+  "rot": [
+   -0.27059807044373557,
+   0.6532814486591085,
+   0.6532815550921748,
+   0.2705980263577176
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/New Material 2.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.873319,
+   4.64365,
+   0.8031262
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Tube01.fbx",
+  "vfx": null,
+  "pos": [
+   -8.192309556907041,
+   -1.9543809433578119,
+   -16.98136126751865
+  ],
+  "rot": [
+   0.0,
+   0.0,
+   0.7071068,
+   -0.7071068
+  ],
+  "scale": [
+   2.0,
+   2.0,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Grille01 (1)",
+  "fbx": "import/fbx/enviro/Grille01.fbx",
+  "vfx": null,
+  "pos": [
+   11.726681000000001,
+   4.64365,
+   -2.3974
+  ],
+  "rot": [
+   -0.5,
+   0.5,
+   0.5,
+   0.5
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   3.9229000000000003
+  ],
+  "mats": [
+   "materials/enviro/Grille01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA160CornerIn.fbx",
+  "vfx": null,
+  "pos": [
+   14.926681,
+   4.64365,
+   -15.196874000000001
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071068
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -2.6733203,
+   4.64365,
+   -16.796874199999998
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.873319,
+   4.64365,
+   7.2031258000000005
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/walldooreno.fbx",
+  "vfx": null,
+  "pos": [
+   0.52668,
+   4.64365,
+   -17.3974
+  ],
+  "rot": [
+   -2.2902387868073858e-15,
+   0.7071067235853865,
+   -0.7071068387877039,
+   -2.2902384136801566e-15
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/walldooreno.fbx",
+  "vfx": null,
+  "pos": [
+   15.52668,
+   4.64365,
+   -2.39743380177
+  ],
+  "rot": [
+   -0.49999859739319963,
+   -0.5000014292127994,
+   0.5000015106733787,
+   -0.49999851593309497
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/walldooreno.fbx",
+  "vfx": null,
+  "pos": [
+   0.52668,
+   4.64365,
+   12.602599999999999
+  ],
+  "rot": [
+   0.7071068387877039,
+   2.2902384136801566e-15,
+   -2.2902387868073858e-15,
+   0.7071067235853865
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/walldooreno.fbx",
+  "vfx": null,
+  "pos": [
+   -14.47332,
+   4.64365,
+   -2.3973661982300003
+  ],
+  "rot": [
+   -0.5000015106733787,
+   0.49999851593309497,
+   -0.49999859739319963,
+   -0.5000014292127994
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02 (3)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   15.40668402,
+   5.568744963007653,
+   3.9025999199999997
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   15.40668402,
+   -6.427050663066566,
+   3.9025999199999997
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02 (2)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   15.40668402,
+   1.5715480209976445,
+   3.9025999199999997
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02 (1)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   15.40668402,
+   -2.4298537210565567,
+   3.9025999199999997
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02 (3)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   -12.67466498,
+   5.818744963007653,
+   3.9025999199999997
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   -12.67466498,
+   -6.177050663066566,
+   3.9025999199999997
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02 (2)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   -12.67466498,
+   1.8215480209976445,
+   3.9025999199999997
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02 (1)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   -12.67466498,
+   -2.1798537210565567,
+   3.9025999199999997
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Tube01.fbx",
+  "vfx": null,
+  "pos": [
+   -13.97331998,
+   -1.9543805999999995,
+   -11.09739308
+  ],
+  "rot": [
+   0.5,
+   -0.5,
+   0.5,
+   -0.5
+  ],
+  "scale": [
+   2.0,
+   2.0,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "cadre",
+  "fbx": "import/fbx/enviro/porte.fbx",
+  "vfx": null,
+  "pos": [
+   -13.97332,
+   4.64365,
+   -2.3974
+  ],
+  "rot": [
+   0.7071066890137442,
+   1.1098625585237443e-07,
+   -1.1098622099137145e-07,
+   0.707106910986221
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/porte.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.873319,
+   4.64365,
+   -8.796874200000001
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "ElectricArcVFX",
+  "fbx": null,
+  "vfx": "ElectricArc",
+  "pos": [
+   9.917693,
+   4.64365,
+   6.993945
+  ],
+  "rot": [
+   0.0,
+   -0.047542214,
+   0.0,
+   0.99886924
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [],
+  "active": false
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   -13.823316199999999,
+   4.74365,
+   -3.72509727
+  ],
+  "rot": [
+   -2.0787118e-06,
+   0.7071067,
+   0.7071069,
+   2.0712612e-06
+  ],
+  "scale": [
+   1.0000004599999999,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   13.3766836,
+   4.74365,
+   -1.06942643
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   0.9999998499999999,
+   0.9999998499999999
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   1.9045122008857516,
+   4.743650208885413,
+   -15.197249089982707
+  ],
+  "rot": [
+   -0.500000761997312,
+   0.49999927721281257,
+   0.49999931949944004,
+   0.5000007618574694
+  ],
+  "scale": [
+   1.0000001,
+   1.0000001,
+   0.9999998499999999
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -12.27332,
+   4.64365,
+   12.0031248
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Tube01.fbx",
+  "vfx": null,
+  "pos": [
+   7.927690403092961,
+   -2.758321486137479,
+   -16.98136126751865
+  ],
+  "rot": [
+   0.0,
+   0.0,
+   0.70710581005048,
+   0.70710778994952
+  ],
+  "scale": [
+   2.0,
+   2.0,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Grille01 (3)",
+  "fbx": "import/fbx/enviro/Grille01.fbx",
+  "vfx": null,
+  "pos": [
+   -12.673319,
+   4.64365,
+   -2.3974
+  ],
+  "rot": [
+   -0.5,
+   0.5,
+   0.5,
+   0.5
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   3.9229000000000003
+  ],
+  "mats": [
+   "materials/enviro/Grille01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   6.92668,
+   4.64365,
+   -16.796874199999998
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   4.64365,
+   10.4031238
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   4.64365,
+   7.2031258000000005
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   -12.2233168,
+   4.74365,
+   -3.72509083
+  ],
+  "rot": [
+   -2.0787118e-06,
+   0.7071067,
+   0.7071069,
+   2.0712612e-06
+  ],
+  "scale": [
+   1.0000004599999999,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   1.9045075848909878,
+   4.743650208885413,
+   10.402751585663658
+  ],
+  "rot": [
+   -0.500000761997312,
+   0.49999927721281257,
+   0.49999931949944004,
+   0.5000007618574694
+  ],
+  "scale": [
+   1.0000001,
+   1.0000001,
+   0.9999998499999999
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   1.9045122008857516,
+   4.743650208885413,
+   8.802750910017293
+  ],
+  "rot": [
+   -0.500000761997312,
+   0.49999927721281257,
+   0.49999931949944004,
+   0.5000007618574694
+  ],
+  "scale": [
+   1.0000001,
+   1.0000001,
+   0.9999998499999999
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/COMv1.fbx",
+  "vfx": null,
+  "pos": [
+   0.52668,
+   4.64365,
+   -2.3974
+  ],
+  "rot": [
+   -0.7071068387877039,
+   0.0,
+   0.0,
+   0.7071067235853865
+  ],
+  "scale": [
+   1.5,
+   1.5,
+   1.5
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/New Material 2.mat",
+   "materials/enviro/New Material 2.mat"
+  ],
+  "active": false
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   6.9266796,
+   -7.35635,
+   -16.796874
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.87332,
+   -7.35635,
+   0.8031261999999999
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -7.35635,
+   -11.996875
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -9.073319999999999,
+   -7.35635,
+   -16.796874
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   0.52668,
+   -7.35635,
+   -16.796874
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   3.7266798000000003,
+   -7.35635,
+   12.003125
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -9.073319999999999,
+   -7.35635,
+   12.003125
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -12.27332,
+   -7.35635,
+   12.003125
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA160CornerIn.fbx",
+  "vfx": null,
+  "pos": [
+   13.326679,
+   -7.35635,
+   12.003127
+  ],
+  "rot": [
+   0.5,
+   0.5,
+   0.5,
+   -0.5
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -7.35635,
+   -8.796873999999999
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.861345,
+   -7.35635,
+   -2.3974
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA160CornerIn.fbx",
+  "vfx": null,
+  "pos": [
+   -12.27332,
+   -7.35635,
+   -16.796874
+  ],
+  "rot": [
+   0.5,
+   -0.49999997,
+   -0.5,
+   -0.5
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.87332,
+   -7.35635,
+   -8.796873999999999
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -7.35635,
+   7.203126
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.861345,
+   -7.35635,
+   -5.5973998
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA160CornerIn.fbx",
+  "vfx": null,
+  "pos": [
+   -13.873320999999999,
+   -7.35635,
+   10.403127000000001
+  ],
+  "rot": [
+   0.0,
+   0.7071068,
+   0.7071068,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.87332,
+   -7.35635,
+   7.203126
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -7.35635,
+   -5.596875300000001
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.87332,
+   -7.35635,
+   -15.196874000000001
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   10.12668,
+   -7.35635,
+   -16.796874
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   3.7266798000000003,
+   -7.35635,
+   -16.796874
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -7.35635,
+   4.0031229999999995
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   13.326680000000001,
+   -7.35635,
+   -16.796874
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.87332,
+   -7.35635,
+   0.8031261999999999
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   0.52667976158142,
+   -7.35635,
+   12.003125
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -2.6733203000000003,
+   -7.35635,
+   12.003125
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.87332,
+   -7.35635,
+   4.003125
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -5.8733200000000005,
+   -7.35635,
+   -16.796874
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA160CornerIn.fbx",
+  "vfx": null,
+  "pos": [
+   14.926681,
+   -7.35635,
+   -15.196874000000001
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071068
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -7.35635,
+   4.0031229999999995
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.87332,
+   -7.35635,
+   -11.996874000000002
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -7.35635,
+   10.403125
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   10.126679000000001,
+   -7.35635,
+   12.003125
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -2.6733203000000003,
+   -7.35635,
+   -16.796874
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -5.8733206000000004,
+   -7.35635,
+   12.003125
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -7.35635,
+   0.8025997999999999
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   6.9266796,
+   -7.35635,
+   12.003125
+  ],
+  "rot": [
+   0.0,
+   0.7072302,
+   0.7069834,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   14.926680000000001,
+   -7.35635,
+   -2.39740023841858
+  ],
+  "rot": [
+   -0.49991274,
+   -0.50008726,
+   -0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   2.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/enviro/walll painted.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.873319,
+   4.64365,
+   4.0031251
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -9.073319999999999,
+   4.64365,
+   -16.796874199999998
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Rampe electro.fbx",
+  "vfx": null,
+  "pos": [
+   -10.47332,
+   4.64365,
+   9.602599999999999
+  ],
+  "rot": [
+   -0.6532815550921748,
+   0.2705980263577176,
+   0.27059807044373557,
+   0.6532814486591085
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/New Material 2.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   10.176683800000001,
+   4.74365,
+   -3.72509727
+  ],
+  "rot": [
+   -2.0787118e-06,
+   0.7071067,
+   0.7071069,
+   2.0712612e-06
+  ],
+  "scale": [
+   1.0000004599999999,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA160CornerIn.fbx",
+  "vfx": null,
+  "pos": [
+   -13.873320999999999,
+   4.64365,
+   10.403127000000001
+  ],
+  "rot": [
+   0.0,
+   0.7071068,
+   0.7071068,
+   0.0
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   -10.6233164,
+   4.74365,
+   -1.06942643
+  ],
+  "rot": [
+   -0.7071068,
+   0.0,
+   0.0,
+   0.7071067
+  ],
+  "scale": [
+   1.0,
+   0.9999998499999999,
+   0.9999998499999999
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "ElectricArcVFX (4)",
+  "fbx": null,
+  "vfx": "ElectricArc",
+  "pos": [
+   -8.882308000000002,
+   4.64365,
+   -12.006055039999998
+  ],
+  "rot": [
+   0.0,
+   0.9988484,
+   0.0,
+   0.047978207
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [],
+  "active": false
+ },
+ {
+  "name": "Pipe02 (3)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   15.40668002,
+   5.568744963007653,
+   3.3369149199999995
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   15.40668002,
+   -6.427050663066566,
+   3.3369149199999995
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02 (2)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   15.40668002,
+   1.5715480209976445,
+   3.3369149199999995
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "Pipe02 (1)",
+  "fbx": "import/fbx/enviro/Pipe02.fbx",
+  "vfx": null,
+  "pos": [
+   15.40668002,
+   -2.4298537210565567,
+   3.3369149199999995
+  ],
+  "rot": [
+   0.270593735177776,
+   0.270593735177776,
+   -0.653283294095076,
+   -0.653283294095076
+  ],
+  "scale": [
+   2.0000002,
+   2.0000002,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/Barriere/Barrier_V3_1.fbx",
+  "vfx": null,
+  "pos": [
+   -0.7511446506482676,
+   4.743650208885413,
+   8.80274284845916
+  ],
+  "rot": [
+   0.4999979504235922,
+   0.5000022159215389,
+   0.5000023432009502,
+   -0.49999782314454816
+  ],
+  "scale": [
+   1.0000004,
+   1.0000004,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/Barrier01.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/wall/WallA320.fbx",
+  "vfx": null,
+  "pos": [
+   -13.873319,
+   4.64365,
+   -11.9968732
+  ],
+  "rot": [
+   -0.49991274,
+   0.50008726,
+   0.49991274,
+   0.50008726
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [
+   "materials/enviro/walll painted.mat",
+   "materials/shaders/Room light.mat",
+   "f5c03b7d48332454cbf96bd82bc98f12"
+  ],
+  "active": true
+ },
+ {
+  "name": "",
+  "fbx": "import/fbx/enviro/Tube01.fbx",
+  "vfx": null,
+  "pos": [
+   -6.992308993052038,
+   -2.758321486137479,
+   -16.98136126751865
+  ],
+  "rot": [
+   0.0,
+   0.0,
+   0.70710581005048,
+   0.70710778994952
+  ],
+  "scale": [
+   2.0,
+   2.0,
+   2.0
+  ],
+  "mats": [
+   "materials/enviro/pipe.mat"
+  ],
+  "active": true
+ },
+ {
+  "name": "ElectricArcVFX (3)",
+  "fbx": null,
+  "vfx": "ElectricArc",
+  "pos": [
+   10.117693,
+   -0.35634999999999994,
+   -11.806055229999998
+  ],
+  "rot": [
+   0.0,
+   0.66848177,
+   0.0,
+   0.7437285
+  ],
+  "scale": [
+   1.0,
+   1.0,
+   1.0
+  ],
+  "mats": [],
+  "active": false
+ }
+]

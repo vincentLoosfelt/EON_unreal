@@ -80,7 +80,7 @@ Légende : ❌ rien · 🟡 existe mais pas prêt pour Unreal · 🔲 placeholde
 | **Le saule pleureur** | `saule.png` | ❌ |
 | Le banc | Cube | ❌ |
 | Herbe et fleurs des serres | Rien | ❌ |
-| Cible d'entraînement | Cube | ❌ |
+| Cible d'entraînement | 🔲 Cube de 75 cm (12 px) sur un poteau, `EONTrainingDummy`, rayon de touche 7 px, centrée à la hauteur du bras (J1) | 🔲 |
 | Sols des 6 ambiances (étage 1 Coursive) | 🔲 `M_TileFloor` : tuiles 1 m tirées au hasard parmi les 3 couleurs de sol de la palette, joints en couleur `g` (J0) | 🔲 |
 | Murs (étage 1 Coursive) | 🔲 Cubes 1 × 1 × 2,5 m, `MI_Mur_Coursive` = couleur `w[1]` (J0) | 🔲 |
 | Cuve brisée, cuve à spécimen (4 spécimens ratés) | `cuve_specimen.png` | ❌ |
@@ -90,6 +90,7 @@ Légende : ❌ rien · 🟡 existe mais pas prêt pour Unreal · 🔲 placeholde
 | Asset | Placeholder | État |
 |---|---|---|
 | Gemme d'ADN | Sphère verte | ❌ |
+| Butin des ennemis (J3) : ADN, scrap, Données crédités d'office au directeur de combat ; énergie (25 %) et cœur (4 %) pas lâchés | aucun | ❌ jalon 6 |
 | Scrap, énergie, cœur | `ramassables.png` | ❌ |
 | Puce de Données | `donnee.png` | ❌ |
 | Insigne, log, peluche Lapin | `ramassables_quete.png` | ❌ |
@@ -114,7 +115,19 @@ Voir la liste dans `07_ASSETS_3D.md`, section 5. Essais existants dans `BRISCARD
 
 | Effet | État |
 |---|---|
-| (à remplir au fil des jalons) | |
+| Projectile Standard (J1) | 🔲 Sphère étirée 50 × 10 cm, matériau `M_Flat` non émissif, couleur de la greffe |
+| Flash de bouche (J1) | 🔲 Point light 0,06 s, couleur de la greffe. Le sprite du flash du proto manque. |
+| Chiffres de dégâts et « DPS » de la cible (J1) | 🔲 `DrawDebugString` : absent des builds Shipping. À remplacer par un widget. |
+| Douille éjectée et rebondissante | ❌ pas fait |
+| Réticule qui s'écarte au tir | ❌ pas fait |
+| Impact de balle (étincelles) et mort de balle au mur | ❌ pas fait |
+| Traînée de fantômes du dash, poussière de la course | ❌ pas fait |
+| Dash : vide franchi | attend le jalon 2 |
+| Ennemis (J3) : sprites | 🔲 Sprite pixel du proto en billboard (`UEONSpriteComponent`), clignotement blanc par la teinte, élites agrandies × 1,45 sans teinte |
+| Ennemis (J3) : tirs et œufs | 🔲 Sphères `M_Flat` (magenta #ff3d8b, orange #e8923a, œuf vert #d8f06a) sans halo ni lumière |
+| Ennemis (J3) : télégraphes, barres de vie, nom d'élite, marqueurs d'apparition, anneau d'explosion, chiffres | 🔲 `DrawDebug*` : absents des builds Shipping. À remplacer par des decals / widgets |
+| Ennemis (J3) : trous dans le sprite (punchHole), éclats de mort, éclosion d'œuf, poussière d'apparition | ❌ pas fait |
+| Ennemis (J3) : écran « Signal perdu », bilan | 🔲 Titre par `AEONHUD`, bilan en messages `GEngine` (pas en Shipping) |
 
 ## 8. Sons
 
@@ -135,10 +148,47 @@ Quand une valeur du proto a dû être corrigée pour la 3D. Une ligne par écart
 
 | Réglage | Valeur du proto | Multiplicateur appliqué | Pourquoi | Jalon |
 |---|---|---|---|---|
-| | | | | |
+| Vitesse de Jira (marche, course ; pas le dash) | marche 82 px/s (5,1 m/s), course ×1,7 (8,7 m/s) | SpeedMul3D = 0,55 (2,8 et 4,8 m/s) | Vincent (14/11) : en 3D Jira « speed vachement ». Le dash garde 345 px/s : sa portée (52 px) doit franchir les fossés de 2 tuiles. La course est aussi raccourcie (anims Jira_walk / Jira_run recalées sur ces vitesses) | J2 |
+| Vitesse de croisière des ennemis (J3) | ED.spd : Nuke 42, petite Nuke 48, Ikiryo 34, Onibi 68, méduse 36, Slasher 38, Brainless 30, Ubume 34 px/s ; écart de 30 px/s, recul de prise d'élan 18 px/s | × SpeedMul3D (0,55), comme Jira | Sinon ils rattrapent une Jira ralentie. Ne changent pas : dash du Slasher et charge du Brainless (235 px/s), recul des coups (95 px/s), poussée du Brainless (170 px/s), et tous les tirs ennemis (82 et 170 px/s) : leurs portées sont liées aux tuiles et aux télégraphes | J3 |
 
 ## 10. Remarques de design
 
 Ce que le Claude de Vincent a remarqué en portant, à soumettre à Sabri. Ne rien changer sans son accord.
 
+- (J1, technique) À 0 d'énergie le proto passe en mutation et le tir ne coûte plus rien. La mutation n'existe pas avant le jalon 4 : en attendant, l'énergie reste à 0 et Jira continue de tirer gratuitement, sans double dégât ni ralentissement.
+- (J1, technique) Hitstop = dilatation du temps global à 0,0001 pendant X ms de temps réel. Il fige donc tout, effets compris, alors que le proto laisse tourner ses effets à 15 % pendant l'arrêt. Aucune arme du jalon 1 ne le déclenche encore (il faut un coup à 3 dégâts ou plus).
 - (J0, technique, pas de design) Les touches clavier sont liées par caractère et non par position physique : ZQSD et WASD sont liés tous les deux. Effet de bord : sur AZERTY, A va aussi à gauche, et sur QWERTY, Q aussi. Aucune action n'utilise A ni Q, donc sans conséquence en jeu.
+
+## Jalons 4 et 5 (14/11) : écarts provisoires
+- Effets du jalon 4 (rayon Laser, arc de Lame, anneau de l'onde, frappes de l'ultime) : traits DrawDebug provisoires, à remplacer par des Niagara.
+- Le corps de Jira ne change pas avec l'armure de mutation (le proto change le sprite).
+- LOCK_G du proto : toutes les greffes sont en main dès le départ (pas de déblocage).
+- Onibi : la perte de 6 PV au leurre non porté n'est pas faite.
+- Pas de système de dialogue : les répliques (carte rouge, porte rouge, chair) passent en bannière ; le délai de l'embuscade (1,4 s) remplace la fin du dialogue.
+- Terminal du C.O.M : pas d'interface à onglets ; « Interagir » près de la sphère tire directement le levier (onglet Descente).
+- Gardien (salle ASCENSEUR) : vide jusqu'au jalon 7 ; y entrer neutralise l'étage.
+- Chair de l'infestation et carte rouge : sphères et pavé provisoires (pas encore de modèle).
+- Kibo (réveil, passerelle, C.O.M à quai), grande carte et test du générateur sur 1 000 étages : pas encore faits.
+- Zone de touche des ennemis : capsule couchée nord-sud à hauteur du bras, longue de ehh + 2·ehr, pour reproduire hitTest() du proto en vue de dessus.
+
+## Jalon 6 : ADN, niveaux, objets (14/11)
+
+Fait : ADN aspiré et barre de niveau, écran de niveau à 3 cartes (jeu en pause), 36 objets de items.json avec leurs effets, socles (Opportunité gratuits, Marchand payants, Trésor stock ou carnage), scrap, énergie, cœurs, bouclier, Renaissance.
+
+Écarts restants :
+- Les objets de catégorie GREFFE ne sortent jamais (LOCK_G du proto) : à ouvrir avec le système de greffes à débloquer.
+- Les perks propres à la Griffe n'ont pas encore d'effet visible.
+- Les « Données » (disquette Données) ne sont comptées nulle part : pas encore d'écran de méta-progression.
+- Pas d'onglet Améliorations au C.O.M.
+- Pas de piège au Trésor.
+- Les ramassables au sol ne sont pas mémorisés par salle : l'ADN est crédité en sortant, le scrap et l'énergie restants sont perdus.
+- Socles et ramassables : formes provisoires (cylindre, cube, sphères).
+- Taux de touche du pilote : 12 % environ, comme au jalon 5 (ennemis rapides qui tournent autour de Jira).
+- Commandes de test ajoutées : eon.adn N, eon.scrap N, eon.salle ROLE, eon.debut "cmd1;cmd2" (commandes lancées 2 s après le début).
+
+## Salles en Blueprint et murs du HUB (14/11)
+
+- Les salles ont les murs du HUB : WallA320 avec son matériau d'origine MI_Unity_Mur (gris texturé). Peinture rose MI_BG_walll_painted et bandeaux MI_BG_Room_light retirés à la demande de Vincent (15/11). Hauteur des murs : 220 cm au lieu de 300 pour garder la vue en plongée (réglable par salle : WallHeightCm).
+- Les salles dessinées sont des Blueprints enfants d'EONTileRoom, rangés dans /Game/EON/Salles (17 au départ, tirés du générateur du proto ; le Marchand est redessiné à la main). Le générateur d'étage prend un Blueprint qui correspond au rôle (RoomRole ou ExtraRoles) et à la forme (Shape). Sinon, il génère la salle. Weight = 0 retire une salle du tirage.
+- Le plan se dessine dans le champ Layout : # mur, . sol, _ vide, = fossé, X caisse, K cuve. Les portes sont posées automatiquement au milieu des côtés. Aperçu immédiat dans le viewport du Blueprint. Bouton « Plan Depuis Generateur » pour repartir d'une salle du proto. Le décor posé à la main dans le Blueprint (meshes) apparaît en jeu, mais il n'a pas de collision de gameplay : ce sont les tuiles qui comptent.
+- Pas encore de cadre de porte du HUB : les meshes porte et walldooreno sont importés retournés.

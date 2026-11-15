@@ -19,7 +19,7 @@ void AEONRoomBounds::OnConstruction(const FTransform& Transform)
 	Super::OnConstruction(Transform);
 	// Le pivot est le centre de la salle, au niveau du sol.
 	Box->SetBoxExtent(FVector(SizeTiles.X * EON::CmPerTile * 0.5f, SizeTiles.Y * EON::CmPerTile * 0.5f, 300.f));
-	Box->SetRelativeLocation(FVector(0.f, 0.f, 300.f));
+	if (bLiftBox) { Box->SetRelativeLocation(FVector(0.f, 0.f, 300.f)); }
 }
 
 FBox2D AEONRoomBounds::GetRect2D() const

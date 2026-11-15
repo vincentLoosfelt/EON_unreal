@@ -4,6 +4,8 @@
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "EONTypes.h"
+class UToonProfile;
+class UMaterialInstanceConstant;
 #include "EONStatics.generated.h"
 
 UCLASS()
@@ -34,4 +36,20 @@ public:
 	/** Réglages du banc en cours. */
 	UFUNCTION(BlueprintPure, Category = "EON|Réglages", meta = (WorldContext = "WorldContext"))
 	static FEONGameFeelRow GetGameFeel(const UObject* WorldContext);
+
+	/** Outil éditeur : active ou coupe la collision d'une section de static mesh (ex. dôme de la COM).
+	 *  Passe aussi le mesh en « collision complexe = simple » pour suivre la forme exacte. */
+	UFUNCTION(BlueprintCallable, Category = "EON|Outils")
+	static bool SetMeshSectionCollision(UStaticMesh* Mesh, int32 LodIndex, int32 SectionIndex, bool bEnable, bool bUseComplexAsSimple = true);
+
+	/** Outil éditeur : rampe toon à deux tons (BG.shadergraph d'Unity) dans un ToonProfile.
+	 *  Entrée de la rampe = N·L × 0,5 + 0,5 (comme Unity). Ombre = ShadowColor (par canal : teinte d'ombre Unity), éclairé = 1, transition
+	 *  de Threshold à Threshold + Smooth. Spéculaire coupé (Unity n'en a pas). */
+	UFUNCTION(BlueprintCallable, Category = "EON|Outils")
+	static bool ConfigureToonProfile(UToonProfile* Profile, float Threshold, float Smooth, FLinearColor ShadowColor,
+		float DiffuseIndirectScale = 0.35f, bool bRampIncludesShadow = true);
+
+	/** Outil éditeur : profil toon propre à une instance (ToonProfileOverride n'est pas exposé à Python). */
+	UFUNCTION(BlueprintCallable, Category = "EON|Outils")
+	static bool SetInstanceToonProfile(UMaterialInstanceConstant* Instance, UToonProfile* Profile);
 };

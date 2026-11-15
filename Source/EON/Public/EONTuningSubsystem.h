@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "Containers/Ticker.h"
 #include "EONTypes.h"
 #include "EONTuningSubsystem.generated.h"
 
@@ -18,6 +19,11 @@ class EON_API UEONTuningSubsystem : public UGameInstanceSubsystem
 
 public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
+
+	/** stop(ms) du proto : fige tout le jeu pendant Ms millisecondes de temps réel (le plus long gagne). */
+	UFUNCTION(BlueprintCallable, Category = "EON|Réglages")
+	void RequestHitstop(float Ms);
 
 	/** Réglages courants. */
 	UFUNCTION(BlueprintPure, Category = "EON|Réglages")
@@ -50,6 +56,11 @@ public:
 
 private:
 	FProperty* FindFeelProperty(const FString& Key) const;
+	bool TickHitstop(float DeltaTime);
+	void EndHitstop();
+
+	double HitstopEnd = 0.0;
+	FTSTicker::FDelegateHandle HitstopHandle;
 
 	UPROPERTY() FEONGameFeelRow Feel;
 	UPROPERTY() TObjectPtr<UDataTable> GameFeelTable;

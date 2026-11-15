@@ -30,6 +30,8 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 protected:
+	/** Boîte relevée de 300 cm (salles J1 posées à la main). Faux pour les salles générées : le pivot reste au sol. */
+	bool bLiftBox = true;
 	UPROPERTY(VisibleAnywhere, Category = "EON|Salle")
 	TObjectPtr<UBoxComponent> Box;
 };

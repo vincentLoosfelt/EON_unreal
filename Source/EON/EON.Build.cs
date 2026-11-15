@@ -8,7 +8,7 @@ public class EON : ModuleRules
 		PublicIncludePaths.Add(ModuleDirectory + "/Public");
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
-			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "Niagara", "UMG", "Slate", "SlateCore"
+			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "Niagara", "UMG", "Slate", "SlateCore", "AssetRegistry"
 		});
 	}
 }

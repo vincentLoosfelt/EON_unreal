@@ -1,0 +1,787 @@
+{
+ "fbx": {
+  "import/fbx/enviro/Grille01.fbx": {
+   "0": "materials/enviro/Grille01.mat"
+  },
+  "import/fbx/enviro/Panel01.fbx": {
+   "0": "materials/enviro/panel.mat"
+  },
+  "import/fbx/enviro/Pipe01.fbx": {
+   "0": "materials/enviro/Pipe01.mat"
+  },
+  "import/fbx/enviro/Pipe02.fbx": {
+   "0": "materials/enviro/Pipe02.mat"
+  },
+  "import/fbx/enviro/porte.fbx": {
+   "0": "materials/enviro/porte.mat"
+  }
+ },
+ "mats": {
+  "materials/chara/Captain.mat": {
+   "base": "import/textures/chara/captain_v0.1b_Material.001_AlbedoTransparency.png",
+   "color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "shader": "materials/shaders/AnimeShader.shadergraph"
+  },
+  "materials/chara/GhostMaterial.mat": {
+   "base": "import/textures/chara/captain_BC.png",
+   "color": [
+    0.5,
+    0.8,
+    1.0,
+    0.8
+   ],
+   "shader": "materials/shaders/GhostDissolve.shader"
+  },
+  "materials/chara/Minion.mat": {
+   "base": "import/textures/Meshy_AI_Minion_0106165841_texture.png",
+   "normal": "import/textures/Meshy_AI_Minion_0106165841_texture_Material.001_Normal.png",
+   "color": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "smoothness": 0.5,
+   "shader": "materials/shaders/AnimeShader.shadergraph",
+   "transparent": false
+  },
+  "materials/divers/BOUTON ORANGE.mat": {
+   "color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "emis_color": [
+    0.5,
+    0.05162804,
+    0.0,
+    1.0
+   ],
+   "metallic": 1.0,
+   "smoothness": 0.829,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7"
+  },
+  "materials/divers/BOUTON ROUGE.mat": {
+   "color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "emis_color": [
+    0.125,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "metallic": 1.0,
+   "smoothness": 0.829,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7"
+  },
+  "materials/divers/BOUTON VERT.mat": {
+   "color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "emis_color": [
+    0.0,
+    0.5,
+    0.0,
+    1.0
+   ],
+   "metallic": 1.0,
+   "smoothness": 0.829,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7"
+  },
+  "materials/divers/crate_HP.mat": {
+   "normal": "import/fbx/lootable/crate_low_DefaultMaterial_Normal.png",
+   "color": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emis_color": [
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.0,
+   "glossiness": 0.5,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7",
+   "transparent": false,
+   "parent": "materials/shaders/crate.mat"
+  },
+  "materials/divers/crate_XP.mat": {
+   "normal": "import/fbx/lootable/crate_low_DefaultMaterial_Normal.png",
+   "color": [
+    1.0,
+    0.46062565,
+    0.0,
+    1.0
+   ],
+   "emis_color": [
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.0,
+   "glossiness": 0.5,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7",
+   "transparent": false,
+   "parent": "materials/shaders/crate.mat"
+  },
+  "materials/divers/Experience.mat": {
+   "color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "emis_color": [
+    0.13914895,
+    1.4980391,
+    0.0,
+    1.0
+   ],
+   "metallic": 1.0,
+   "smoothness": 0.829,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7",
+   "parent": "materials/divers/red.mat"
+  },
+  "materials/divers/green.mat": {
+   "color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "emis_color": [
+    0.0,
+    1.0,
+    0.0,
+    1.0
+   ],
+   "metallic": 1.0,
+   "smoothness": 0.829,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7"
+  },
+  "materials/divers/orange.mat": {
+   "color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "emis_color": [
+    1.0,
+    0.10325608,
+    0.0,
+    1.0
+   ],
+   "metallic": 1.0,
+   "smoothness": 0.829,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7"
+  },
+  "materials/divers/red.mat": {
+   "color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "emis_color": [
+    0.25,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "metallic": 1.0,
+   "smoothness": 0.829,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7"
+  },
+  "materials/enemis/charger.mat": {
+   "base": "import/textures/xeno/Monster05_DefaultMaterial_AlbedoTransparency.png",
+   "normal": "import/textures/xeno/Monster05_DefaultMaterial_Normal.png",
+   "color": [
+    0.9308176,
+    0.033017103,
+    0.0,
+    1.0
+   ],
+   "shader": "materials/shaders/AnimeShader.shadergraph",
+   "parent": "materials/shaders/cellshader.mat",
+   "smoothness": 0.223
+  },
+  "materials/enemis/goule.mat": {
+   "base": "import/textures/xeno/T_Ghoul_BaseColor.png",
+   "normal": "import/textures/xeno/Monster05_DefaultMaterial_Normal.png",
+   "color": [
+    0.9308176,
+    0.033017103,
+    0.0,
+    1.0
+   ],
+   "shader": "materials/shaders/AnimeShader.shadergraph",
+   "parent": "materials/shaders/cellshader.mat",
+   "smoothness": 0.223
+  },
+  "materials/enemis/jumper.mat": {
+   "base": "import/textures/xeno/Monster05_DefaultMaterial_AlbedoTransparency.png",
+   "normal": "import/textures/xeno/Monster05_DefaultMaterial_Normal.png",
+   "color": [
+    0.0,
+    0.46540874,
+    0.09499087,
+    1.0
+   ],
+   "shader": "materials/shaders/AnimeShader.shadergraph",
+   "parent": "materials/shaders/cellshader.mat",
+   "smoothness": 0.223
+  },
+  "materials/enemis/kamikaze.mat": {
+   "base": "import/textures/xeno/Monster05_DefaultMaterial_AlbedoTransparency.png",
+   "normal": "import/textures/xeno/Monster05_DefaultMaterial_Normal.png",
+   "color": [
+    0.73474264,
+    1.0,
+    0.0,
+    1.0
+   ],
+   "shader": "materials/shaders/AnimeShader.shadergraph",
+   "parent": "materials/shaders/cellshader.mat",
+   "smoothness": 0.223
+  },
+  "materials/enemis/shooter.mat": {
+   "base": "import/textures/xeno/Monster05_DefaultMaterial_AlbedoTransparency.png",
+   "normal": "import/textures/xeno/Monster05_DefaultMaterial_Normal.png",
+   "color": [
+    0.31682298,
+    0.07232696,
+    1.0,
+    1.0
+   ],
+   "shader": "materials/shaders/AnimeShader.shadergraph",
+   "parent": "materials/enemis/kamikaze.mat",
+   "smoothness": 0.223
+  },
+  "materials/enviro/Barrier01.mat": {
+   "normal": "import/textures/Shaders/test02.png",
+   "smoothness": 0.15,
+   "shader": "materials/shaders/BG.shadergraph",
+   "parent": "materials/shaders/MasterPainted.mat",
+   "base": "import/textures/enviro/yellow_black_strips.png"
+  },
+  "materials/enviro/Glass 1.mat": {
+   "shader": "materials/shaders/Glass.shadergraph",
+   "transparent": true
+  },
+  "materials/enviro/Glass 2.mat": {
+   "shader": "materials/shaders/Glass.shadergraph",
+   "transparent": true
+  },
+  "materials/enviro/Glass.mat": {
+   "shader": "materials/shaders/Glass.shadergraph",
+   "transparent": true
+  },
+  "materials/enviro/Grille01.mat": {
+   "shader": "materials/shaders/BG.shadergraph",
+   "parent": "materials/shaders/BG_Test.mat",
+   "base": "import/textures/enviro/Grille01_Material_AlbedoTransparency.png",
+   "normal": "import/textures/enviro/Grille01_Material_Normal.png",
+   "color": [
+    0.7798742,
+    0.7798742,
+    0.7798742,
+    1.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.2
+  },
+  "materials/enviro/holo.mat": {
+   "base": "import/textures/enviro/holovincent/holovincent_BC.png",
+   "normal": "import/textures/enviro/holovincent/holovincent_Nml.png",
+   "metal": "import/textures/enviro/holovincent/holovincent_M.png",
+   "emis": "import/textures/enviro/holovincent/holovincent__Emi.png",
+   "color": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emis_color": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.5,
+   "glossiness": 0.0,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7",
+   "transparent": false
+  },
+  "materials/enviro/New Material 1.mat": {
+   "normal": "import/textures/Shaders/test02.png",
+   "smoothness": 0.4,
+   "shader": "materials/shaders/BG.shadergraph",
+   "parent": "materials/shaders/MasterPainted.mat"
+  },
+  "materials/enviro/New Material 2.mat": {
+   "normal": "import/textures/Shaders/test02.png",
+   "smoothness": 0.4,
+   "shader": "materials/shaders/BG.shadergraph",
+   "parent": "materials/shaders/MasterPainted.mat"
+  },
+  "materials/enviro/New Material 3.mat": {
+   "normal": "import/textures/Shaders/test02.png",
+   "smoothness": 0.4,
+   "shader": "materials/shaders/BG.shadergraph",
+   "parent": "materials/shaders/MasterPainted.mat"
+  },
+  "materials/enviro/New Material.mat": {
+   "normal": "import/textures/Shaders/test02.png",
+   "smoothness": 0.4,
+   "shader": "materials/shaders/BG.shadergraph",
+   "parent": "materials/shaders/MasterPainted.mat"
+  },
+  "materials/enviro/panel.mat": {
+   "normal": "import/textures/enviro/Panel_DefaultMaterial_Normal.png",
+   "smoothness": 0.4,
+   "shader": "materials/shaders/BG.shadergraph",
+   "parent": "materials/shaders/MasterPainted.mat",
+   "base": "import/textures/enviro/Panel_DefaultMaterial_AlbedoTransparency.png",
+   "color": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "metallic": 0.0
+  },
+  "materials/enviro/pipe 1.mat": {
+   "normal": "import/textures/Shaders/test02.png",
+   "smoothness": 0.15,
+   "shader": "materials/shaders/BG.shadergraph",
+   "parent": "materials/shaders/MasterPainted.mat"
+  },
+  "materials/enviro/pipe.mat": {
+   "normal": "import/textures/Shaders/test02.png",
+   "smoothness": 0.15,
+   "shader": "materials/shaders/BG.shadergraph",
+   "parent": "materials/shaders/MasterPainted.mat"
+  },
+  "materials/enviro/Pipe01.mat": {
+   "normal": "import/textures/enviro/ASSET02_DefaultMaterial_Normal.png",
+   "smoothness": 0.0,
+   "shader": "materials/shaders/BG.shadergraph",
+   "parent": "materials/shaders/MasterPainted.mat",
+   "base": "import/textures/enviro/ASSET02_DefaultMaterial_AlbedoTransparency.png",
+   "color": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "metallic": 0.0
+  },
+  "materials/enviro/Pipe02.mat": {
+   "shader": "materials/shaders/BG.shadergraph",
+   "parent": "materials/shaders/BG_Test.mat",
+   "base": "import/textures/enviro/Pipe02_DefaultMaterial_AlbedoTransparency.png",
+   "normal": "import/textures/enviro/Pipe02_DefaultMaterial_Normal.png",
+   "color": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.234
+  },
+  "materials/enviro/porte.mat": {
+   "normal": "import/textures/Shaders/test02.png",
+   "smoothness": 0.5,
+   "shader": "materials/shaders/BG.shadergraph",
+   "parent": "materials/shaders/MasterPainted.mat",
+   "base": "import/textures/Porte_BC.png"
+  },
+  "materials/enviro/walll painted.mat": {
+   "normal": "import/textures/Shaders/test02.png",
+   "smoothness": 0.4,
+   "shader": "materials/shaders/BG.shadergraph",
+   "parent": "materials/shaders/MasterPainted.mat"
+  },
+  "materials/enviro/YELLOW.mat": {
+   "normal": "import/textures/Shaders/test02.png",
+   "smoothness": 0.15,
+   "shader": "materials/shaders/BG.shadergraph",
+   "parent": "materials/shaders/MasterPainted.mat"
+  },
+  "materials/fx/AcidParticle.mat": {
+   "base": "prefab/FX/ressource/Textures/Circle01_v1.png",
+   "color": [
+    0.0,
+    1.0,
+    0.12254906,
+    0.8
+   ],
+   "emis_color": [
+    0.4,
+    2.0,
+    0.6,
+    1.0
+   ],
+   "shader": "0406db5a14f94604a8c57ccfbc9f3b46",
+   "transparent": true
+  },
+  "materials/fx/AcidPoolDecal.mat": {
+   "base": "import/textures/FX/AcidePool.png",
+   "color": [
+    0.060118377,
+    0.49056596,
+    0.0,
+    0.4745098
+   ],
+   "emis_color": [
+    0.3,
+    1.5,
+    0.2,
+    1.0
+   ],
+   "shader": "0406db5a14f94604a8c57ccfbc9f3b46",
+   "transparent": true
+  },
+  "materials/fx/arce.mat": {
+   "color": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emis_color": [
+    0.0,
+    4.9785385,
+    16.0,
+    1.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.5,
+   "glossiness": 0.0,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7",
+   "transparent": false
+  },
+  "materials/fx/BloodSplat.mat": {
+   "base": "import/FX/—Pngtree—bright blood splatter_9143098.png",
+   "shader": "9b4e681081e2b4c469111bb649e2f7ee"
+  },
+  "materials/fx/Decal.mat": {
+   "base": "import/FX/scorch02.png",
+   "shader": "materials/fx/DecalWithVertexColor.shader"
+  },
+  "materials/shaders/BG_Test.mat": {
+   "shader": "materials/shaders/BG.shadergraph"
+  },
+  "materials/shaders/black.mat": {
+   "color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "emis_color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.5,
+   "glossiness": 0.0,
+   "shader": "650dd9526735d5b46b79224bc6e94025",
+   "transparent": false
+  },
+  "materials/shaders/cellshader.mat": {
+   "base": "import/textures/xeno/Monster05_DefaultMaterial_AlbedoTransparency.png",
+   "normal": "import/textures/xeno/Monster05_DefaultMaterial_Normal.png",
+   "color": [
+    0.3773585,
+    0.32832283,
+    0.29785213,
+    1.0
+   ],
+   "shader": "materials/shaders/AnimeShader.shadergraph"
+  },
+  "materials/shaders/celluloidStencilMat.mat": {
+   "color": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emis_color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.5,
+   "glossiness": 0.0,
+   "shader": "Shaders/URPLitStencilWrite.shader",
+   "transparent": false
+  },
+  "materials/shaders/crate.mat": {
+   "normal": "import/fbx/lootable/crate_low_DefaultMaterial_Normal.png",
+   "color": [
+    1.0,
+    0.46062565,
+    0.0,
+    1.0
+   ],
+   "emis_color": [
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "metallic": 1.0,
+   "smoothness": 0.241,
+   "glossiness": 0.5,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7",
+   "transparent": false
+  },
+  "materials/shaders/Custom_URP_ToonOutline.mat": {
+   "shader": "materials/shaders/ToonOutlineAdvanced.shader"
+  },
+  "materials/shaders/GhostMaterial.mat": {
+   "color": [
+    0.5,
+    0.8,
+    1.0,
+    1.0
+   ],
+   "shader": "materials/shaders/GhostDissolve.shader"
+  },
+  "materials/shaders/MasterPainted.mat": {
+   "normal": "import/textures/Shaders/test02.png",
+   "smoothness": 0.4,
+   "shader": "materials/shaders/BG.shadergraph"
+  },
+  "materials/shaders/PaintingEffectMaterial.mat": {
+   "shader": "Shaders/PaintingEffect.shader"
+  },
+  "materials/shaders/Room light.mat": {
+   "color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "emis_color": [
+    2.0,
+    1.0935495,
+    0.53459084,
+    0.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.5,
+   "glossiness": 0.5,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7",
+   "transparent": false
+  },
+  "materials/shaders/scorch2.mat": {
+   "base": "import/UI/8.png",
+   "color": [
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "shader": "materials/shaders/scorch_decal.shadergraph"
+  },
+  "materials/shaders/Shader Graphs_top blackness.mat": {
+   "shader": "materials/shaders/top blackness.shadergraph"
+  },
+  "materials/shaders/top blackness decal.mat": {
+   "shader": "03b38429bee413d45b529d5a84a7e19d"
+  },
+  "materials/Weapon/BeamMaterial_Energy.mat": {
+   "color": [
+    0.0,
+    0.89468145,
+    1.0,
+    1.0
+   ],
+   "emis_color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.5,
+   "glossiness": 0.0,
+   "shader": "650dd9526735d5b46b79224bc6e94025",
+   "transparent": true
+  },
+  "materials/Weapon/Projectile VariantA 1.mat": {
+   "color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "emis_color": [
+    7.129739,
+    0.20555767,
+    0.0,
+    1.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.0,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7",
+   "parent": "materials/Weapon/Projectile.mat"
+  },
+  "materials/Weapon/Projectile VariantA 2.mat": {
+   "color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "emis_color": [
+    0.0,
+    0.19156638,
+    5.3403144,
+    1.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.0,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7",
+   "parent": "materials/Weapon/Projectile.mat",
+   "transparent": true
+  },
+  "materials/Weapon/Projectile VariantA 3.mat": {
+   "color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "emis_color": [
+    0.0,
+    9.51876,
+    0.3584209,
+    1.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.0,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7",
+   "parent": "materials/Weapon/Projectile.mat"
+  },
+  "materials/Weapon/Projectile VariantA 4.mat": {
+   "color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "emis_color": [
+    12.708291,
+    0.0,
+    11.080093,
+    1.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.0,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7",
+   "parent": "materials/Weapon/Projectile.mat"
+  },
+  "materials/Weapon/Projectile VariantA 5.mat": {
+   "color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "emis_color": [
+    0.0,
+    9.51876,
+    0.3584209,
+    1.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.0,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7",
+   "parent": "materials/Weapon/Projectile.mat"
+  },
+  "materials/Weapon/Projectile VariantA.mat": {
+   "color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "emis_color": [
+    1.4980392,
+    0.5864951,
+    0.0,
+    1.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.0,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7",
+   "parent": "materials/Weapon/Projectile.mat"
+  },
+  "materials/Weapon/Projectile.mat": {
+   "color": [
+    1.0,
+    0.0,
+    0.31845903,
+    1.0
+   ],
+   "emis_color": [
+    5.3403134,
+    0.0,
+    0.6073298,
+    1.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.0,
+   "shader": "933532a4fcc9baf4fa0491de14d08ed7"
+  },
+  "materials/Weapon/weapon01.mat": {
+   "normal": "import/textures/weapons/weapon01_nm.png",
+   "color": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emis_color": [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "metallic": 0.0,
+   "smoothness": 0.5,
+   "glossiness": 0.0,
+   "shader": "materials/shaders/AnimeShader.shadergraph",
+   "transparent": false
+  }
+ }
+}

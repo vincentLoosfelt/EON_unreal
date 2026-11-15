@@ -29,6 +29,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "EON|Entrées")
 	FEONOnInputDeviceChanged OnInputDeviceChanged;
 
+	/** Pose sur IA_Move les modificateurs des touches (ZQSD, WASD, flèches) : haut = +Y, gauche = -X. Renvoie le nombre corrigé. */
+	UFUNCTION(BlueprintCallable, Category = "EON|Entrées")
+	static int32 RepairMoveMappings(UInputMappingContext* IMC, UInputAction* MoveAction);
+
 	/** Appelé par l'écouteur Slate (thread jeu). */
 	void NotifyDeviceUsed(bool bGamepad);
 
@@ -70,11 +74,23 @@ private:
 	void OnAim(const FInputActionValue& V);
 	void OnAimStop(const FInputActionValue& V);
 	void OnNamedAction(const FInputActionValue& V, FString Name);
+	void OnSpellStop(const FInputActionValue& V);
+	void OnFireStart(const FInputActionValue& V);
+	void OnFireStop(const FInputActionValue& V);
+	void OnDashStart(const FInputActionValue& V);
+	void OnDashStop(const FInputActionValue& V);
 
 	void UpdateMouseAim(AEONCharacter* Jira);
+	void UpdateStickAim(AEONCharacter* Jira);
 	void DrawDebug() const;
 
 	TSharedPtr<FEONDeviceInputProcessor> DeviceProcessor;
 	bool bUsingGamepad = false;
 	FVector2D StickAim = FVector2D::ZeroVector;
+	bool bFireInput = false;
+	bool bDashInput = false;
+	/** Dernier angle « franc » du stick (poussé à plus de 55 %) et son heure. */
+	float StickAngle = 0.f;
+	float StickAngleTime = -9.f;
+	bool bHaveStickAngle = false;
 };
