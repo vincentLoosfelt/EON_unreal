@@ -1,4 +1,4 @@
-#include "EONTuningSubsystem.h"
+﻿#include "EONTuningSubsystem.h"
 #include "EON.h"
 #include "Engine/DataTable.h"
 #include "Engine/GameInstance.h"
@@ -12,7 +12,6 @@ namespace
 	const TCHAR* GameFeelPath = TEXT("/Game/EON/Data/DT_GameFeel.DT_GameFeel");
 	const TCHAR* GreffesPath = TEXT("/Game/EON/Data/DT_Greffes.DT_Greffes");
 	const TCHAR* EnemiesPath = TEXT("/Game/EON/Data/DT_Ennemis.DT_Ennemis");
-	const TCHAR* SpritesPath = TEXT("/Game/EON/Data/DT_Sprites.DT_Sprites");
 
 	UEONTuningSubsystem* FirstTuning(UWorld* World)
 	{
@@ -75,16 +74,14 @@ void UEONTuningSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	GameFeelTable = LoadObject<UDataTable>(nullptr, GameFeelPath);
 	Greffes = LoadObject<UDataTable>(nullptr, GreffesPath);
 	Enemies = LoadObject<UDataTable>(nullptr, EnemiesPath);
-	Sprites = LoadObject<UDataTable>(nullptr, SpritesPath);
 
 	if (!ApplyPreset(TEXT("studio")))
 	{
 		UE_LOG(LogEON, Warning, TEXT("DT_GameFeel introuvable : réglages par défaut du code"));
 	}
-	UE_LOG(LogEON, Display, TEXT("EON_TUNING greffes=%d ennemis=%d sprites=%d"),
+	UE_LOG(LogEON, Display, TEXT("EON_TUNING greffes=%d ennemis=%d"),
 		Greffes ? Greffes->GetRowMap().Num() : -1,
-		Enemies ? Enemies->GetRowMap().Num() : -1,
-		Sprites ? Sprites->GetRowMap().Num() : -1);
+		Enemies ? Enemies->GetRowMap().Num() : -1);
 }
 
 void UEONTuningSubsystem::Deinitialize()

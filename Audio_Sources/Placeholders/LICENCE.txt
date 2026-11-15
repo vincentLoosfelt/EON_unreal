@@ -1,0 +1,13 @@
+Sons provisoires (placeholders) d'EON.
+Source : « 63 Digital sound effects (lasers, phasers, space etc.) » par Kenney (www.kenney.nl)
+https://opengameart.org/content/63-digital-sound-effects-lasers-phasers-space-etc
+Licence : CC0 1.0 (domaine public), aucune attribution obligatoire.
+Convertis en WAV mono 44,1 kHz 16 bits, normalisés à 0,9, silences coupés.
+
+SFX_Jira_Tir_01      <- laser6.mp3
+SFX_Jira_Tir_02      <- laser7.mp3
+SFX_Jira_Tir_03      <- laser9.mp3
+SFX_Jira_Laser       <- laser5.mp3
+SFX_Jira_Ultime_Rayon <- zap2.mp3
+SFX_Ennemi_Tir_01    <- phaserDown1.mp3
+SFX_Ennemi_Tir_02    <- phaserDown2.mp3

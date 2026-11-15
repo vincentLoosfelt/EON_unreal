@@ -1,4 +1,4 @@
-// EON — génération des salles en tuiles. Portage ligne à ligne de genTiles / comTiles / buildTraining (proto v0.60.1).
+﻿// EON — génération des salles en tuiles. Portage ligne à ligne de genTiles / comTiles / buildTraining (proto v0.60.1).
 #include "EONTileGrid.h"
 
 namespace
@@ -67,6 +67,7 @@ namespace
 FIntPoint FEONTileGrid::ShapeSize(FName Shape)
 {
 	if (Shape == TEXT("large")) { return FIntPoint(40, 26); }
+	if (Shape == TEXT("carree")) { return FIntPoint(32, 32); }
 	if (Shape == TEXT("small")) { return FIntPoint(24, 16); }
 	if (Shape == TEXT("corH")) { return FIntPoint(50, 9); }
 	if (Shape == TEXT("corV")) { return FIntPoint(12, 32); }
@@ -80,6 +81,18 @@ void FEONTileGrid::DoorTiles(uint8 D, int32 W, int32 H, FIntPoint Out[2])
 	else if (D == EONDoor::S) { Out[0] = FIntPoint(Cx - 1, H - 1); Out[1] = FIntPoint(Cx, H - 1); }
 	else if (D == EONDoor::W) { Out[0] = FIntPoint(0, Cy - 1); Out[1] = FIntPoint(0, Cy); }
 	else { Out[0] = FIntPoint(W - 1, Cy - 1); Out[1] = FIntPoint(W - 1, Cy); }
+}
+
+void FEONTileGrid::GetDoorTiles(uint8 D, FIntPoint Out[2]) const
+{
+	const int32 I = DoorIndex(D);
+	if (DoorAt.IsValidIndex(I) && DoorAt[I].X >= 0)
+	{
+		Out[0] = DoorAt[I];
+		Out[1] = DoorAt[I] + ((D == EONDoor::N || D == EONDoor::S) ? FIntPoint(1, 0) : FIntPoint(0, 1));
+		return;
+	}
+	DoorTiles(D, W, H, Out);
 }
 
 FEONTileGrid FEONTileGrid::GenTiles(FName RoleIn, FName Shape, uint8 Doors, FRandomStream& Rng, int32 FloorN)

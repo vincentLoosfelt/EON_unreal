@@ -60,12 +60,8 @@ public:
 	/** Menus de test F6 (Tweak) et F7 (Triche). */
 	const FEONDevMenu& GetDevMenu() const { return DevMenu; }
 
-	/** HUB (Kibo, L_HUB) : Jira est sur le quai du C.O.M, le levier est prêt (proto : COM à quai). */
-	bool IsNearHubCom() const;
-	/** Touche Interagir : levier du C.O.M (étage ou HUB). */
+	/** Touche Interagir : terminal et levier du C.O.M (gestionnaire d'étage, hub compris). */
 	void Interact();
-	/** Descente du C.O.M depuis le HUB en cours (1,7 s puis étage 1). */
-	bool IsHubComTravelling() const { return HubComT >= 0.f; }
 
 	/** Dernière action reçue (debug). */
 	UPROPERTY(BlueprintReadOnly, Category = "EON|Debug") FString LastAction;
@@ -97,11 +93,6 @@ private:
 	void UpdateStickAim(AEONCharacter* Jira);
 	void DrawDebug() const;
 
-	/** C.O.M du HUB (acteur au mesh COMv1), trouvé une fois ; absent dans les étages. */
-	mutable TWeakObjectPtr<AActor> HubCom;
-	mutable bool bHubComSearched = false;
-	AActor* GetHubCom() const;
-	float HubComT = -1.f;
 
 	TSharedPtr<FEONDeviceInputProcessor> DeviceProcessor;
 	bool bUsingGamepad = false;

@@ -1,4 +1,4 @@
-// EON — salle en tuiles (jalon 2). Hérite de AEONRoomBounds : la caméra reste bornée à la salle.
+﻿// EON — salle en tuiles (jalon 2). Hérite de AEONRoomBounds : la caméra reste bornée à la salle.
 // Pivot = centre de la salle au niveau du sol ; tuile (0,0) = coin haut-gauche (−X, −Y).
 // Le gameplay du proto travaille en px « salle » (origine = coin haut-gauche, x = +X, y = +Y) :
 // cette classe fournit tileAt / pitAt / solidAt / collideCircle / computeFlow dans ces unités.
@@ -14,6 +14,15 @@ class UStaticMeshComponent;
 class UMaterialInterface;
 class UStaticMesh;
 
+/** Porte lue sur un composant Porte EON : direction (EONDoor), extérieure ou non, position locale (cm, repère de la salle), largeur. */
+struct FEONDoorSpec
+{
+	uint8 Dir = 0;
+	bool bExt = true;
+	FVector2D LocalCm = FVector2D::ZeroVector;
+	int32 Len = 2;
+};
+
 UCLASS(Blueprintable)
 class EON_API AEONTileRoom : public AEONRoomBounds
 {
@@ -26,7 +35,7 @@ public:
 	/** Rôle : COMBAT, TENSION, CALME, CORRIDOR, DEPART, OPPORTUNITE, ASCENSEUR, SECURITE, MARCHAND, FAILLE, EVENEMENT,
 	 *  ou TRAINING (salle de réveil du Kibo), COM (salle du C.O.M). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EON|Salle") FName RoomRole = TEXT("COMBAT");
-	/** std, large, small, corH, corV */
+	/** std (32×20), carree (32×32), large (40×26), small (24×16), corH (50×9), corV (12×32) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EON|Salle") FName Shape = TEXT("std");
 	/** Portes : N = 1, S = 2, E = 4, W = 8. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EON|Salle", meta = (Bitmask)) int32 DoorMask = 1 | 2 | 4 | 8;
@@ -58,9 +67,22 @@ public:
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "EON|Salle|Plan") void PlanDepuisGenerateur();
 	bool HasLayout() const { return Layout.Num() > 0; }
 	/** Cette salle dessinée peut-elle tenir ce rôle avec cette forme ? */
-	bool CanServe(FName InRole, FName InShape) const;
-	/** Plan -> grille, avec les portes de la case (masque EONDoor). Faux si le plan est inutilisable. */
-	static bool LayoutToGrid(const TArray<FString>& Rows, uint8 Doors, FEONTileGrid& Out, FString* Err = nullptr);
+	/** Doors : portes dont la case a besoin. Une salle qui a des portes posées (composants Porte EON) doit en avoir une de chaque côté demandé. */
+	bool CanServe(FName InRole, FName InShape, uint8 Doors = 0) const;
+	/** Plan -> grille, avec les portes de la case (masque EONDoor). Specs : portes posées à la main (sinon portes au milieu des côtés).
+	 *  Faux si le plan est inutilisable. */
+	static bool LayoutToGrid(const TArray<FString>& Rows, uint8 Doors, FEONTileGrid& Out, FString* Err = nullptr, const TArray<FEONDoorSpec>* Specs = nullptr);
+	/** Portes posées dans un Blueprint de salle (composants Porte EON de son Construction Script, parents compris). */
+	static void GetClassDoorSpecs(const UClass* Cl, TArray<FEONDoorSpec>& Out);
+	/** Portes posées sur cette salle (composants présents sur l'acteur). */
+	void GetInstanceDoorSpecs(TArray<FEONDoorSpec>& Out) const;
+	/** Masque des portes extérieures posées. */
+	static uint8 SpecMask(const TArray<FEONDoorSpec>& Specs);
+
+	// --- Portes intérieures (obstacles ouvrables)
+	/** Ouvre la porte intérieure fermée la plus proche, à moins de RangePx du point (px salle). */
+	bool TryOpenInnerDoor(const FVector2D& Px, float RangePx);
+	bool IsNearClosedInnerDoor(const FVector2D& Px, float RangePx) const;
 	static void GridToLayout(const FEONTileGrid& G, TArray<FString>& Rows);
 
 	// --- Murs du HUB (Unity) : façades WallA320 le long des murs qui donnent sur la salle.
@@ -139,6 +161,11 @@ private:
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> TankISM;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> DoorISM;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> RedDoorISM;
+	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> InnerDoorISM;
+	UPROPERTY(Transient) TObjectPtr<class UMaterialInstanceDynamic> InnerDoorMID;
+	TSet<int32> InnerAll;
+	TSet<int32> InnerClosed;
+	void RebuildInnerDoors();
 	UPROPERTY(Transient) TObjectPtr<class UMaterialInstanceDynamic> RedDoorMID;
 	uint8 RedDoor = 0;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> InfestISM;

@@ -1,4 +1,8 @@
 #include "EONTileRoom.h"
+#include "EONDoorComponent.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/BlueprintGeneratedClass.h"
 #include "EON.h"
 #include "EONTypes.h"
 #include "Components/BoxComponent.h"
@@ -58,6 +62,7 @@ AEONTileRoom::AEONTileRoom()
 	TankISM = MakeISM(this, TEXT("Cuves"), Cyl.Object, Root, true);
 	DoorISM = MakeISM(this, TEXT("Portes"), Cube.Object, Root, true);
 	RedDoorISM = MakeISM(this, TEXT("PorteRouge"), Cube.Object, Root, true);
+	InnerDoorISM = MakeISM(this, TEXT("PortesInterieures"), Cube.Object, Root, true);
 	HubWallISM = MakeISM(this, TEXT("MursHUB"), HubWall.Object, Root, false);
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> Sph(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	InfestISM = MakeISM(this, TEXT("Chair"), Sph.Object, Root, false);
@@ -119,7 +124,7 @@ void AEONTileRoom::SetRedDoor(uint8 Door)
 	const float T = EON::CmPerTile;
 	const FVector Origin(-Grid.W * T * 0.5f, -Grid.H * T * 0.5f, 0.f);
 	FIntPoint P[2];
-	FEONTileGrid::DoorTiles(Door, Grid.W, Grid.H, P);
+	Grid.GetDoorTiles(Door, P);
 	for (const FIntPoint& Q : P)
 	{
 		RedSet.Add(Q.Y * Grid.W + Q.X);
@@ -148,7 +153,10 @@ void AEONTileRoom::Generate()
 	FRandomStream Rng(Seed);
 	FEONTileGrid G;
 	FString Err;
-	if (HasLayout() && LayoutToGrid(Layout, (uint8)DoorMask, G, &Err)) { SetGrid(G); return; }
+	TArray<FEONDoorSpec> Specs;
+	GetInstanceDoorSpecs(Specs);
+	const uint8 Mask = SpecMask(Specs) ? SpecMask(Specs) : (uint8)DoorMask;
+	if (HasLayout() && LayoutToGrid(Layout, Mask, G, &Err, &Specs)) { SetGrid(G); return; }
 	if (HasLayout()) { UE_LOG(LogEON, Warning, TEXT("%s : plan inutilisable (%s), salle générée à la place"), *GetName(), *Err); }
 	if (RoomRole == TEXT("TRAINING")) { G = FEONTileGrid::BuildTraining(); }
 	else if (RoomRole == TEXT("COM")) { G = FEONTileGrid::ComTiles((uint8)DoorMask); }
@@ -160,6 +168,9 @@ void AEONTileRoom::SetGrid(const FEONTileGrid& InGrid)
 {
 	Grid = InGrid;
 	bHasGrid = true;
+	InnerAll.Reset();
+	for (const FEONInnerDoor& D : Grid.Inner) { for (const int32 I : D.Tiles) { InnerAll.Add(I); } }
+	InnerClosed = InnerAll;
 	Flow.Init(-1, Grid.W * Grid.H);
 	FlowTile = -1;
 	SizeTiles = FIntPoint(Grid.W, Grid.H);
@@ -261,6 +272,7 @@ void AEONTileRoom::RebuildVisuals()
 				break;
 			case EEONTile::Door:
 				FloorISM->AddInstance(FTransform(FRotator::ZeroRotator, C + FVector(0, 0, -Th * 0.5f), FVector(1.f, 1.f, Th / 100.f)));
+				if (InnerAll.Contains(Y * Grid.W + X)) { break; }
 				DoorISM->AddInstance(FTransform(FRotator::ZeroRotator, C + FVector(0, 0, WallHeightCm * 0.5f), FVector(1.f, 1.f, WallHeightCm / 100.f) * FVector(1.f, 1.f, 1.f) * 0.98f));
 				break;
 			case EEONTile::Tank:
@@ -298,6 +310,7 @@ void AEONTileRoom::RebuildVisuals()
 	}
 	BuildHubWalls(Origin);
 	UpdateDoorCollision();
+	RebuildInnerDoors();
 }
 
 void AEONTileRoom::BuildHubWalls(const FVector& Origin)
@@ -362,12 +375,110 @@ void AEONTileRoom::BuildHubWalls(const FVector& Origin)
 	}
 }
 
-bool AEONTileRoom::CanServe(FName InRole, FName InShape) const
+bool AEONTileRoom::CanServe(FName InRole, FName InShape, uint8 Doors) const
 {
-	return HasLayout() && Weight > 0.f && (RoomRole == InRole || ExtraRoles.Contains(InRole)) && (Shape.IsNone() || Shape == InShape);
+	if (!(HasLayout() && Weight > 0.f && (RoomRole == InRole || ExtraRoles.Contains(InRole)) && (Shape.IsNone() || Shape == InShape))) { return false; }
+	// Portes posées : il en faut une de chaque côté demandé par la case (les autres resteront murées).
+	TArray<FEONDoorSpec> Specs;
+	GetClassDoorSpecs(GetClass(), Specs);
+	const uint8 M = SpecMask(Specs);
+	return !M || (M & Doors) == Doors;
 }
 
-bool AEONTileRoom::LayoutToGrid(const TArray<FString>& Rows, uint8 Doors, FEONTileGrid& Out, FString* Err)
+void AEONTileRoom::GetClassDoorSpecs(const UClass* Cl, TArray<FEONDoorSpec>& Out)
+{
+	Out.Reset();
+	for (const UClass* C = Cl; C; C = C->GetSuperClass())
+	{
+		const UBlueprintGeneratedClass* BP = Cast<UBlueprintGeneratedClass>(C);
+		if (!BP || !BP->SimpleConstructionScript) { continue; }
+		for (const USCS_Node* N : BP->SimpleConstructionScript->GetAllNodes())
+		{
+			const UEONDoorComponent* D = N ? Cast<UEONDoorComponent>(N->ComponentTemplate) : nullptr;
+			if (!D) { continue; }
+			FEONDoorSpec S;
+			S.Dir = UEONDoorComponent::DirFromYaw(D->GetRelativeRotation().Yaw);
+			S.bExt = D->bExterieure;
+			S.LocalCm = FVector2D(D->GetRelativeLocation());
+			S.Len = D->Largeur;
+			Out.Add(S);
+		}
+	}
+}
+
+void AEONTileRoom::GetInstanceDoorSpecs(TArray<FEONDoorSpec>& Out) const
+{
+	Out.Reset();
+	TArray<UEONDoorComponent*> Ds;
+	GetComponents<UEONDoorComponent>(Ds);
+	const FTransform Xf = GetActorTransform();
+	for (const UEONDoorComponent* D : Ds)
+	{
+		FEONDoorSpec S;
+		S.Dir = UEONDoorComponent::DirFromYaw(D->GetComponentRotation().Yaw - GetActorRotation().Yaw);
+		S.bExt = D->bExterieure;
+		S.LocalCm = FVector2D(Xf.InverseTransformPosition(D->GetComponentLocation()));
+		S.Len = D->Largeur;
+		Out.Add(S);
+	}
+}
+
+uint8 AEONTileRoom::SpecMask(const TArray<FEONDoorSpec>& Specs)
+{
+	uint8 M = 0;
+	for (const FEONDoorSpec& S : Specs) { if (S.bExt) { M |= S.Dir; } }
+	return M;
+}
+
+bool AEONTileRoom::TryOpenInnerDoor(const FVector2D& Px, float RangePx)
+{
+	for (const FEONInnerDoor& D : Grid.Inner)
+	{
+		if (!D.Tiles.Num() || !InnerClosed.Contains(D.Tiles[0]) || FVector2D::Distance(Px, D.CenterPx) > RangePx) { continue; }
+		for (const int32 I : D.Tiles) { InnerClosed.Remove(I); }
+		FlowTile = -1;   // les ennemis passent désormais par là
+		RebuildInnerDoors();
+		return true;
+	}
+	return false;
+}
+
+bool AEONTileRoom::IsNearClosedInnerDoor(const FVector2D& Px, float RangePx) const
+{
+	for (const FEONInnerDoor& D : Grid.Inner)
+	{
+		if (D.Tiles.Num() && InnerClosed.Contains(D.Tiles[0]) && FVector2D::Distance(Px, D.CenterPx) <= RangePx) { return true; }
+	}
+	return false;
+}
+
+void AEONTileRoom::RebuildInnerDoors()
+{
+	if (!InnerDoorISM) { return; }
+	InnerDoorISM->ClearInstances();
+	if (!InnerClosed.Num()) { return; }
+	if (!InnerDoorMID && DoorMaterial)
+	{
+		// Porte intérieure : panneau orangé, légèrement lumineux, plus bas que les murs.
+		InnerDoorMID = UMaterialInstanceDynamic::Create(DoorMaterial, this);
+		InnerDoorMID->SetVectorParameterValue(TEXT("BC1"), FLinearColor(1.f, 0.55f, 0.12f));
+		InnerDoorMID->SetVectorParameterValue(TEXT("EmisAdd"), FLinearColor(0.6f, 0.25f, 0.02f));
+	}
+	if (InnerDoorMID) { InnerDoorISM->SetMaterial(0, InnerDoorMID); }
+	const float T = EON::CmPerTile, Hh = WallHeightCm * 0.75f;
+	const FVector Origin(-Grid.W * T * 0.5f, -Grid.H * T * 0.5f, 0.f);
+	for (const FEONInnerDoor& D : Grid.Inner)
+	{
+		for (const int32 I : D.Tiles)
+		{
+			if (!InnerClosed.Contains(I)) { continue; }
+			const FVector C = Origin + FVector((I % Grid.W + 0.5f) * T, (I / Grid.W + 0.5f) * T, Hh * 0.5f);
+			InnerDoorISM->AddInstance(FTransform(FRotator::ZeroRotator, C, D.bAcrossX ? FVector(0.35f, 1.f, Hh / 100.f) : FVector(1.f, 0.35f, Hh / 100.f)));
+		}
+	}
+}
+
+bool AEONTileRoom::LayoutToGrid(const TArray<FString>& Rows, uint8 Doors, FEONTileGrid& Out, FString* Err, const TArray<FEONDoorSpec>* Specs)
 {
 	const int32 H = Rows.Num();
 	int32 W = 0;
@@ -396,11 +507,53 @@ bool AEONTileRoom::LayoutToGrid(const TArray<FString>& Rows, uint8 Doors, FEONTi
 		}
 	}
 	if (NFloor < 12) { if (Err) { *Err = TEXT("moins de 12 tuiles de sol"); } return false; }
-	// Portes de la case : au milieu de chaque côté ; la tuile devant est dégagée si le plan y met un mur.
+	// Portes posées (composants Porte EON) : la flèche donne le côté, la position le long du bord est libre.
+	uint8 Placed = 0;
+	const float T = EON::CmPerTile;
+	auto ToTile = [&](const FVector2D& Cm) { return FVector2D((Cm.X + W * T * 0.5f) / T, (Cm.Y + H * T * 0.5f) / T); };
+	if (Specs)
+	{
+		for (const FEONDoorSpec& S : *Specs)
+		{
+			const FVector2D Tt = ToTile(S.LocalCm);
+			if (S.bExt)
+			{
+				if (Placed & S.Dir) { UE_LOG(LogEON, Warning, TEXT("Plan : deux portes extérieures %s, la seconde est ignorée"), EONDoor::Name(S.Dir)); continue; }
+				Placed |= S.Dir;
+				if (Out.DoorAt.Num() != 4) { Out.DoorAt.Init(FIntPoint(-1, -1), 4); }
+				const int32 Ax = FMath::Clamp(FMath::RoundToInt(Tt.X) - 1, 1, W - 3), Ay = FMath::Clamp(FMath::RoundToInt(Tt.Y) - 1, 1, H - 3);
+				Out.DoorAt[FEONTileGrid::DoorIndex(S.Dir)] = S.Dir == EONDoor::N ? FIntPoint(Ax, 0) : S.Dir == EONDoor::S ? FIntPoint(Ax, H - 1)
+					: S.Dir == EONDoor::W ? FIntPoint(0, Ay) : FIntPoint(W - 1, Ay);
+			}
+			else
+			{
+				// Porte intérieure : en travers du passage indiqué par la flèche, Len tuiles.
+				FEONInnerDoor In;
+				In.bAcrossX = S.Dir == EONDoor::E || S.Dir == EONDoor::W;
+				const int32 L = FMath::Clamp(S.Len, 1, 8);
+				const int32 X0 = In.bAcrossX ? FMath::Clamp(FMath::FloorToInt(Tt.X), 1, W - 2) : FMath::Clamp(FMath::RoundToInt(Tt.X - L * 0.5f), 1, W - 1 - L);
+				const int32 Y0 = In.bAcrossX ? FMath::Clamp(FMath::RoundToInt(Tt.Y - L * 0.5f), 1, H - 1 - L) : FMath::Clamp(FMath::FloorToInt(Tt.Y), 1, H - 2);
+				for (int32 K = 0; K < L; ++K)
+				{
+					const int32 X = In.bAcrossX ? X0 : X0 + K, Y = In.bAcrossX ? Y0 + K : Y0;
+					Out.Set(X, Y, EEONTile::Door);
+					In.Tiles.Add(Y * W + X);
+				}
+				In.CenterPx = In.bAcrossX ? FVector2D((X0 + 0.5f) * TS, (Y0 + L * 0.5f) * TS) : FVector2D((X0 + L * 0.5f) * TS, (Y0 + 0.5f) * TS);
+				Out.Inner.Add(In);
+			}
+		}
+	}
+	// Portes de la case : posées, sinon au milieu de chaque côté ; la tuile devant est dégagée si le plan y met un mur.
+	// Une porte posée sans voisin dans l'étage reste un mur.
 	for (const uint8 D : { EONDoor::N, EONDoor::S, EONDoor::E, EONDoor::W })
 	{
-		if (!(Doors & D)) { continue; }
-		FIntPoint Q[2]; FEONTileGrid::DoorTiles(D, W, H, Q);
+		if (!(Doors & D))
+		{
+			if (Placed & D) { FIntPoint Q[2]; Out.GetDoorTiles(D, Q); for (const FIntPoint& P : Q) { Out.Set(P.X, P.Y, EEONTile::Wall); } }
+			continue;
+		}
+		FIntPoint Q[2]; Out.GetDoorTiles(D, Q);
 		const FIntPoint In = FIntPoint::ZeroValue - EONDoor::Dir(D);
 		for (const FIntPoint& P : Q)
 		{
@@ -462,7 +615,8 @@ bool AEONTileRoom::IsTileSolid(int32 I, bool bPits) const
 {
 	if (!Grid.T.IsValidIndex(I)) { return true; }
 	const EEONTile V = (EEONTile)Grid.T[I];
-	return V == EEONTile::Wall || V == EEONTile::Crate || V == EEONTile::Tank || (InfestK > 0.35f && InfestTiles.Contains(I)) || (V == EEONTile::Door && (bLocked || RedSet.Contains(I))) || (bPits && V == EEONTile::Pit);
+	if (InnerClosed.Contains(I)) { return true; }
+	return V == EEONTile::Wall || V == EEONTile::Crate || V == EEONTile::Tank || (InfestK > 0.35f && InfestTiles.Contains(I)) || (V == EEONTile::Door && !InnerAll.Contains(I) && (bLocked || RedSet.Contains(I))) || (bPits && V == EEONTile::Pit);
 }
 
 bool AEONTileRoom::SolidAtPx(const FVector2D& P) const
@@ -528,7 +682,7 @@ void AEONTileRoom::ComputeFlow(const FVector2D& TargetPx)
 			const int32 J = Ny * W + Nx;
 			if (Flow[J] >= 0) { continue; }
 			const EEONTile V = (EEONTile)Grid.T[J];
-			if (V == EEONTile::Floor || V == EEONTile::Door) { Flow[J] = Flow[I] + 1; Q.Add(J); }
+			if ((V == EEONTile::Floor || V == EEONTile::Door) && !InnerClosed.Contains(J)) { Flow[J] = Flow[I] + 1; Q.Add(J); }
 		}
 	}
 }
@@ -549,7 +703,9 @@ void AEONTileRoom::GetWalkableTiles(TArray<FIntPoint>& Out) const
 
 FVector2D AEONTileRoom::DoorCenterPx(uint8 D) const
 {
-	const float Cx = (Grid.W >> 1) * TS, Cy = (Grid.H >> 1) * TS, RW = Grid.W * TS, RH = Grid.H * TS;
+	FIntPoint P[2];
+	Grid.GetDoorTiles(D, P);
+	const float Cx = (P[0].X + P[1].X + 1) * 0.5f * TS, Cy = (P[0].Y + P[1].Y + 1) * 0.5f * TS, RW = Grid.W * TS, RH = Grid.H * TS;
 	return D == EONDoor::N ? FVector2D(Cx, 28.f) : D == EONDoor::S ? FVector2D(Cx, RH - 24.f) : D == EONDoor::W ? FVector2D(28.f, Cy + 2.f) : FVector2D(RW - 28.f, Cy + 2.f);
 }
 

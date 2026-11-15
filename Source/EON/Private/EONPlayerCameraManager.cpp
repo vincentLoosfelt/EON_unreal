@@ -1,6 +1,7 @@
-#include "EONPlayerCameraManager.h"
+﻿#include "EONPlayerCameraManager.h"
 #include "EONCharacter.h"
 #include "EONRoomBounds.h"
+#include "EONBoss.h"
 #include "EONTuningSubsystem.h"
 #include "EONTypes.h"
 
@@ -55,6 +56,11 @@ void AEONPlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaT
 			const float A = Jira->GetAimAngle();
 			Focus += FVector2D(FMath::Cos(A) * La, FMath::Sin(A) * La * 0.7f);
 		}
+	}
+	if (const AEONBoss* Boss = AEONBoss::GetActive(this))
+	{
+		const FVector Bl = Boss->IsInIntro() ? Boss->GetTankWorld() : Boss->GetActorLocation();
+		Focus = Boss->IsInIntro() ? FVector2D(Bl.X, Bl.Y) : (FVector2D(P.X, P.Y) + FVector2D(Bl.X, Bl.Y)) * 0.5f;
 	}
 
 	// --- vue : largeur visible au centre, hauteur au ratio de l'écran du proto

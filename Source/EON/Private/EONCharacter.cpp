@@ -1,4 +1,5 @@
-#include "EONCharacter.h"
+﻿#include "EONCharacter.h"
+#include "EONSfx.h"
 #include "GameFramework/PlayerStart.h"
 #include "EONPedestal.h"
 #include "EON.h"
@@ -649,7 +650,7 @@ void AEONCharacter::SpawnBullet(const FEONGreffeRow& G, const FEONGameFeelRow& F
 		B->Setup(Dir * EON::PxToCm(SpeedPx), G.Life * RangeM * Feel.RangeMul3D, G.Dmg * DmgMult(), 1.f + Size, G.Col);
 		B->SetPierceBounce(Pierce, Bounce);
 		B->FinishSpawning(Xf);
-	}
+	}	EONSfx::Play(this, TEXT("SFX_Jira_Tir"), 0.45f, 3, 0.07f, 0.03f);
 }
 
 void AEONCharacter::OnShot(const FEONGreffeRow& G, const FEONGameFeelRow& Feel, float KickOverride)
@@ -1055,6 +1056,7 @@ void AEONCharacter::DoBeam(float A, float Ratio, const FEONGreffeRow& G, const F
 	const FVector From = GetMuzzleLocation(A);
 	const FVector To = From + FVector(D.X, D.Y, 0.f) * EON::PxToCm(Len);
 	DrawDebugLine(GetWorld(), From, To, G.Col.ToFColor(true), false, 0.14f, 0, EON::PxToCm(W));
+	EONSfx::Play(this, TEXT("SFX_Jira_Laser"), 0.5f + 0.4f * Ratio, 0, 0.04f);
 	OnShot(G, Feel, G.Kick * (0.5f + Ratio * 0.5f));
 	if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.15f * Ratio); }
 	if (Ratio > 0.95f) { if (UEONTuningSubsystem* Tun = UEONTuningSubsystem::Get(this)) { Tun->RequestHitstop(Feel.Hitstop * 0.5f); } }
@@ -1229,7 +1231,8 @@ void AEONCharacter::UpdateSpells(float Dt, const FEONGameFeelRow& Feel)
 		if (!E || E->IsDead()) { continue; }
 		const FVector At = E->GetActorLocation();
 		DrawDebugLine(GetWorld(), At + FVector(0.f, 0.f, 3000.f), At, ColCy, false, 0.25f, 0, 40.f);
-		E->HitPx(14.f, 0.f, 1.f, 2.5f);
+		EONSfx::Play(this, TEXT("SFX_Jira_Ultime_Rayon"), 0.7f, 0, 0.08f);
+		E->HitPx(E->IsBoss() ? 30.f : 14.f, 0.f, 1.f, 2.5f);
 		if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.35f); }
 	}
 }

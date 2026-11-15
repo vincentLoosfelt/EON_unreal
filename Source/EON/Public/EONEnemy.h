@@ -1,9 +1,10 @@
-// EON — un ennemi du proto (jalon 3). Portage de mkEnemy, de la boucle « ennemis » de update(),
+﻿// EON — un ennemi du proto (jalon 3). Portage de mkEnemy, de la boucle « ennemis » de update(),
 // de chaseDir, hitEnemy et des hitbox en capsule (ehh / ehr / ecy) du proto v0.60.1.
 // Le gameplay tourne en 2D, en px « salle » (AEONTileRoom), exactement comme le proto ;
 // l'acteur ne fait que suivre (RoomPxToWorld). C'est AEONCombatDirector qui appelle UpdateEnemy
 // dans l'ordre de la liste, comme le proto : l'acteur ne se met pas à jour tout seul.
-// Visuel : sprite pixel du proto en billboard (placeholder, MANQUANTS.md §2).
+// Visuel : modèle 3D (EONEnemy.cpp, table Looks) ; placeholders tirés des meshes Unity tant que les mobs du studio
+// ne sont pas exportés (MANQUANTS.md §2).
 #pragma once
 
 #include "CoreMinimal.h"
@@ -12,7 +13,10 @@
 #include "EONEnemy.generated.h"
 
 class UCapsuleComponent;
-class UEONSpriteComponent;
+class USkeletalMeshComponent;
+class UMeshComponent;
+class UMaterialInterface;
+class UMaterialInstanceDynamic;
 class AEONTileRoom;
 class AEONCombatDirector;
 
@@ -39,12 +43,14 @@ public:
 	/** hitEnemy() pour un coup venu du monde (projectile de Jira). Dir = direction du coup (au sol). */
 	void ApplyHit(float Damage, FVector Dir, float KnockMul = 1.f);
 	/** hitEnemy(e, dmg, dx, dy, kmul) en unités proto. */
-	void HitPx(float Damage, float Dx, float Dy, float KnockMul = 1.f);
+	virtual void HitPx(float Damage, float Dx, float Dy, float KnockMul = 1.f);
+	/** Le gardien (AEONBoss) : 30 dégâts par rayon de l'ultime au lieu de 14. */
+	virtual bool IsBoss() const { return false; }
 
 	/** Un pas de la boucle « ennemis » du proto. Cible = Jira (TargetPx), Jira à portée de coup si bTargetHittable. */
-	void UpdateEnemy(float Dt, const FVector2D& TargetPx);
+	virtual void UpdateEnemy(float Dt, const FVector2D& TargetPx);
 	/** Position du sprite, clignotement, télégraphes. */
-	void UpdateVisual(float Dt, const FVector2D& TargetPx);
+	virtual void UpdateVisual(float Dt, const FVector2D& TargetPx);
 
 	/** Point visé par l'aide à la visée (hauteur du bras de Jira). */
 	FVector GetAimPoint() const;
@@ -86,13 +92,24 @@ public:
 	bool bContact = false, bFly = false;
 	int32 Adn = 0;
 
-private:
+protected:
 	FVector2D ChaseDir(const FVector2D& Tg) const;
 	void ApplyCapsuleSize();
 
 	UPROPERTY(VisibleAnywhere) TObjectPtr<USceneComponent> Root;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UCapsuleComponent> Capsule;
-	UPROPERTY(VisibleAnywhere) TObjectPtr<UEONSpriteComponent> Sprite;
+	/** Pivot du modèle 3D : tourne vers la marche ou vers Jira. */
+	UPROPERTY(VisibleAnywhere) TObjectPtr<USceneComponent> ModelRoot;
+	UPROPERTY() TArray<TObjectPtr<UMeshComponent>> Meshes;
+	/** Matériaux d'origine, slot par slot, pour revenir du flash blanc. */
+	UPROPERTY() TArray<TObjectPtr<UMaterialInterface>> OrigMats;
+	UPROPERTY() TObjectPtr<UMaterialInstanceDynamic> FlashMat;
+	bool bFlashOn = false;
+	float ModelScale = 1.f;
+	float FaceYaw = 0.f;
+	float YawOff = 0.f;
+	void BuildModel();
+	void SetFlash(bool bOn);
 
 	TWeakObjectPtr<AEONCombatDirector> Director;
 	TWeakObjectPtr<AEONTileRoom> Room;
@@ -101,5 +118,4 @@ private:
 	float Sd = 1.f, Al = 0.f, Rg = 0.f;
 	// Direction verrouillée (lx, ly) : charge, dash, visée.
 	FVector2D L = FVector2D(1.f, 0.f);
-	int32 SpriteFrames = 1;
 };

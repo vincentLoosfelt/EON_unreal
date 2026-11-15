@@ -1,4 +1,5 @@
-#include "EONHUD.h"
+﻿#include "EONHUD.h"
+#include "EONBoss.h"
 #include "EONCharacter.h"
 #include "EONFloorManager.h"
 #include "EONItems.h"
@@ -177,6 +178,14 @@ void AEONHUD::DrawHUD()
 			Rect(7 * U, 36 * U, 7 * U, U, FLinearColor::White);
 			Txt(TEXT("Carte rouge"), 18 * U, 34 * U, Red, U / 4.f);
 		}
+		// Porte intérieure fermée à portée : invite.
+		if (const AEONTileRoom* Rm = FC->GetRoom(); Rm && !(FC->IsHubMode() && FC->GetCurrentRole() == TEXT("DEPART")))
+		{
+			if (const APawn* Pw = GetOwningPawn(); Pw && Rm->IsNearClosedInnerDoor(Rm->WorldToRoomPx(Pw->GetActorLocation()), 40.f))
+			{
+				Txt(TEXT("Interagir : ouvrir la porte"), SX * 0.5f, SY * 0.7f, Cyan, U / 3.f, true);
+			}
+		}
 		// Terminal du C.O.M : invite du levier.
 		if (FC->IsNearComTerminal() && !FC->IsComTravelling())
 		{
@@ -184,13 +193,27 @@ void AEONHUD::DrawHUD()
 		}
 	}
 
-	// HUB (Kibo) : C.O.M à quai, le levier est déjà prêt.
-	if (!AEONFloorManager::Get(this))
+	// --- Gardien : carton-titre (nom lettre par lettre, sous-titre, 2,6 s) et barre de vie en bas au centre, encoches aux seuils de phase.
+	if (const AEONBoss* Bs = AEONBoss::GetActive(this))
 	{
-		if (const AEONPlayerController* HPC = Cast<AEONPlayerController>(GetOwningPlayerController()))
+		if (Bs->GetTitleT() > 0.f)
 		{
-			if (HPC->IsHubComTravelling()) { Txt(TEXT("Le C.O.M descend"), SX * 0.5f, SY * 0.7f, Cyan, U / 3.f, true); }
-			else if (HPC->IsNearHubCom()) { Txt(TEXT("Interagir : tirer le levier - descendre"), SX * 0.5f, SY * 0.7f, Cyan, U / 3.f, true); }
+			const float K = 1.f - Bs->GetTitleT() / 2.6f;
+			const FString Nm = Bs->GetBossName();
+			const int32 N = FMath::Clamp(FMath::CeilToInt(K * 2.2f * Nm.Len()), 0, Nm.Len());
+			const float Al = FMath::Min(1.f, Bs->GetTitleT() / 0.4f);
+			Rect(0, SY * 0.36f, SX, 34 * U, FLinearColor(0.02f, 0.02f, 0.05f, 0.7f * Al));
+			Txt(Nm.Left(N), SX * 0.5f, SY * 0.36f + 4 * U, FLinearColor(1.f, 0.69f, 0.75f, Al), U / 1.6f, true);
+			Txt(Bs->GetBossSub(), SX * 0.5f, SY * 0.36f + 22 * U, FLinearColor(0.85f, 0.83f, 0.94f, Al), U / 3.5f, true);
+		}
+		if (!Bs->IsInIntro() || Bs->GetTitleT() > 0.f)
+		{
+			const float W = 150 * U, H = 5 * U, Bx = (SX - W) * 0.5f, By = SY - 20 * U;
+			const float R = FMath::Clamp(Bs->Hp / FMath::Max(1.f, Bs->MaxHp), 0.f, 1.f);
+			Txt(Bs->GetBossName(), SX * 0.5f, By - 9 * U, FLinearColor(1.f, 0.69f, 0.75f), U / 3.5f, true);
+			Rect(Bx - U, By - U, W + 2 * U, H + 2 * U, FLinearColor(0.f, 0.f, 0.f, 0.8f));
+			Rect(Bx, By, W * R, H, Bs->IsInvulnerableNow() ? FLinearColor(0.45f, 0.45f, 0.5f) : Red);
+			for (const float Q : { 0.66f, 0.33f }) { Rect(Bx + W * Q - U * 0.5f, By - U, U, H + 2 * U, FLinearColor(0.9f, 0.9f, 0.95f)); }
 		}
 	}
 

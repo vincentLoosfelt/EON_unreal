@@ -1,8 +1,12 @@
-#include "EONEnemy.h"
+﻿#include "EONEnemy.h"
 #include "EONCharacter.h"
 #include "EON.h"
 #include "EONCombatDirector.h"
-#include "EONSpriteComponent.h"
+#include "Animation/AnimSequence.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
+#include "Engine/StaticMesh.h"
 #include "EONStatics.h"
 #include "EONTileRoom.h"
 #include "EONTuningSubsystem.h"
@@ -27,6 +31,34 @@ namespace
 		int32 I;
 		return N.FindChar(TEXT('('), I) ? N.Left(I).TrimEnd() : N;
 	}
+
+	/** Modèle 3D de chaque mob. Placeholders (MANQUANTS.md §2) : les modèles du studio ne sont pas encore exportés,
+	 *  sauf l'Ikiryo (Shooter_mode.fbx, sans anim) ; Nuke = Ghoul d'Unity (le vrai modèle), le reste = meshes Unity approchants. */
+	struct FLook
+	{
+		const TCHAR* Type;
+		TArray<const TCHAR*> Meshes;   // le premier donne la taille ; les suivants se posent au même endroit
+		const TCHAR* Anim;             // boucle de marche, ou nullptr
+		float YawOff;                  // lacet du modèle pour qu'il regarde vers +X
+		float HeightK;                 // hauteur du modèle = HH du proto × HeightK
+		float HoverPx;                 // flotte au-dessus du sol (Méduse)
+	};
+	const TArray<FLook>& Looks()
+	{
+		static const TArray<FLook> L = {
+			{ TEXT("goule"), { TEXT("/Game/EON/Unity/import/fbx/chara/Ghoul_Anim.Ghoul_Anim") }, TEXT("/Game/EON/Unity/import/fbx/chara/Ghoul_Anim_Anim.Ghoul_Anim_Anim"), -90.f, 1.f, 0.f },
+			{ TEXT("gouleP"), { TEXT("/Game/EON/Unity/import/fbx/chara/Ghoul_Anim.Ghoul_Anim") }, TEXT("/Game/EON/Unity/import/fbx/chara/Ghoul_Anim_Anim.Ghoul_Anim_Anim"), -90.f, 1.f, 0.f },
+			{ TEXT("sniper"), { TEXT("/Game/EON/Ennemis/Ikiryo/body.body"), TEXT("/Game/EON/Ennemis/Ikiryo/shooter_arm.shooter_arm"), TEXT("/Game/EON/Ennemis/Ikiryo/jaws.jaws") }, nullptr, -90.f, 1.f, 0.f },
+			{ TEXT("brainless"), { TEXT("/Game/EON/Unity/import/fbx/chara/Brain_Crawler.Brain_Crawler") }, TEXT("/Game/EON/Unity/import/fbx/chara/Brain_CrawlerArmature_Armature_Armature_Armature_Unreal_Take_baselayer.Brain_CrawlerArmature_Armature_Armature_Armature_Unreal_Take_baselayer"), -90.f, 1.f, 0.f },
+			{ TEXT("slasher"), { TEXT("/Game/EON/Unity/import/fbx/chara/Mutant.Mutant") }, TEXT("/Game/EON/Unity/import/fbx/chara/Mutant_Anim.Mutant_Anim"), -90.f, 1.f, 0.f },
+			{ TEXT("kamikaze"), { TEXT("/Game/EON/Unity/import/fbx/chara/Minion.Minion") }, nullptr, -90.f, 1.f, 0.f },
+			{ TEXT("invocateur"), { TEXT("/Game/EON/Unity/import/fbx/xeno/Monster05.Monster05") }, nullptr, -90.f, 1.f, 0.f },
+			{ TEXT("meduse"), { TEXT("/Game/EON/Unity/import/fbx/xeno/Meshy_AI_Unyielding_Chimera_0111100029_generate.Meshy_AI_Unyielding_Chimera_0111100029_generate") }, nullptr, -90.f, 1.f, 6.f },
+			{ TEXT("dummy"), { TEXT("/Engine/BasicShapes/Cylinder.Cylinder") }, nullptr, 0.f, 1.f, 0.f },
+			{ TEXT("gen"), { TEXT("/Engine/BasicShapes/Cube.Cube") }, nullptr, 0.f, 1.f, 0.f },
+		};
+		return L;
+	}
 }
 
 AEONEnemy::AEONEnemy()
@@ -47,8 +79,8 @@ AEONEnemy::AEONEnemy()
 	Capsule->SetGenerateOverlapEvents(false);
 	Capsule->SetCanEverAffectNavigation(false);
 
-	Sprite = CreateDefaultSubobject<UEONSpriteComponent>(TEXT("Sprite"));
-	Sprite->SetupAttachment(Root);
+	ModelRoot = CreateDefaultSubobject<USceneComponent>(TEXT("Modele"));
+	ModelRoot->SetupAttachment(Root);
 }
 
 bool AEONEnemy::Init(AEONCombatDirector* InDirector, AEONTileRoom* InRoom, FName InType, FVector2D InPosPx, int32 CombatN)
@@ -81,12 +113,7 @@ bool AEONEnemy::Init(AEONCombatDirector* InDirector, AEONTileRoom* InRoom, FName
 	Falling = 0.f;
 	Sd = RandSign();
 
-	if (const UDataTable* SDT = Tun ? Tun->GetSprites() : nullptr)
-	{
-		if (const FEONSpriteRow* SR = SDT->FindRow<FEONSpriteRow>(InType, TEXT("EONEnemy"), false)) { SpriteFrames = FMath::Max(1, SR->N); }
-	}
-	Sprite->SpriteName = InType;
-	Sprite->RefreshSprite();
+	BuildModel();
 	ApplyCapsuleSize();
 	UpdateVisual(0.f, Pos);
 	return true;
@@ -99,9 +126,73 @@ void AEONEnemy::MakeElite()
 	Hp = MaxHp = FMath::RoundToFloat(MaxHp * 2.2f);
 	R = FMath::RoundToFloat(R * 1.3f);
 	MassM = 2.f;
-	Sprite->DisplayScale = 1.45f;
-	Sprite->RefreshSprite();
+	ModelRoot->SetRelativeScale3D(FVector(1.45f));
 	ApplyCapsuleSize();
+}
+
+void AEONEnemy::BuildModel()
+{
+	const FLook* Lk = Looks().FindByPredicate([this](const FLook& L) { return Type == FName(L.Type); });
+	if (!Lk) { UE_LOG(LogEON, Warning, TEXT("EON_ENEMY pas de modèle 3D pour %s"), *Type.ToString()); return; }
+	YawOff = Lk->YawOff;
+	const float TargetH = EON::PxToCm(HH > 0.f ? HH : 16.f) * Lk->HeightK;
+	FBoxSphereBounds B0(ForceInit);
+	bool bFirst = true;
+	for (const TCHAR* Path : Lk->Meshes)
+	{
+		UObject* O = LoadObject<UObject>(nullptr, Path);
+		UMeshComponent* C = nullptr;
+		FBoxSphereBounds Bd(ForceInit);
+		if (USkeletalMesh* SK = Cast<USkeletalMesh>(O))
+		{
+			USkeletalMeshComponent* K = NewObject<USkeletalMeshComponent>(this);
+			K->SetSkeletalMesh(SK);
+			if (UAnimSequence* A = Lk->Anim ? LoadObject<UAnimSequence>(nullptr, Lk->Anim) : nullptr)
+			{
+				K->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+				K->PlayAnimation(A, true);
+				K->SetPosition(FMath::FRand() * A->GetPlayLength());
+			}
+			Bd = SK->GetBounds();
+			C = K;
+		}
+		else if (UStaticMesh* SM = Cast<UStaticMesh>(O))
+		{
+			UStaticMeshComponent* M = NewObject<UStaticMeshComponent>(this);
+			M->SetStaticMesh(SM);
+			Bd = SM->GetBounds();
+			C = M;
+		}
+		if (!C) { UE_LOG(LogEON, Warning, TEXT("EON_ENEMY modèle introuvable : %s"), Path); continue; }
+		if (bFirst) { B0 = Bd; bFirst = false; }
+		C->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		C->SetupAttachment(ModelRoot);
+		C->RegisterComponent();
+		Meshes.Add(C);
+		for (int32 I = 0; I < C->GetNumMaterials(); ++I) { OrigMats.Add(C->GetMaterial(I)); }
+	}
+	if (bFirst) { return; }
+	// Taille : la hauteur du modèle vaut la hauteur de hitbox du proto ; pieds au sol, centré sur la position.
+	ModelScale = TargetH / FMath::Max(1.f, B0.BoxExtent.Z * 2.f);
+	const FVector Off(-B0.Origin.X * ModelScale, -B0.Origin.Y * ModelScale, -(B0.Origin.Z - B0.BoxExtent.Z) * ModelScale + EON::PxToCm(Lk->HoverPx));
+	for (UMeshComponent* C : Meshes) { C->SetRelativeScale3D(FVector(ModelScale)); C->SetRelativeLocation(Off); }
+	if (UMaterialInterface* Base = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/EON/Materials/BG/MI_BG_pipe.MI_BG_pipe")))
+	{
+		FlashMat = UMaterialInstanceDynamic::Create(Base, this);
+		FlashMat->SetVectorParameterValue(TEXT("BC1"), FLinearColor::White);
+		FlashMat->SetVectorParameterValue(TEXT("EmisAdd"), FLinearColor(6.f, 6.f, 6.f));
+	}
+}
+
+void AEONEnemy::SetFlash(bool bOn)
+{
+	if (bOn == bFlashOn || !FlashMat) { return; }
+	bFlashOn = bOn;
+	int32 K = 0;
+	for (UMeshComponent* C : Meshes)
+	{
+		for (int32 I = 0; I < C->GetNumMaterials(); ++I, ++K) { C->SetMaterial(I, bOn ? FlashMat.Get() : (OrigMats.IsValidIndex(K) ? OrigMats[K].Get() : nullptr)); }
+	}
 }
 
 void AEONEnemy::ApplyCapsuleSize()
@@ -485,13 +576,23 @@ void AEONEnemy::UpdateVisual(float Dt, const FVector2D& Tg)
 	SetActorLocation(Rm->RoomPxToWorld(P, EON::PxToCm(Lift) - SinkCm));
 	SetActorScale3D(FVector(Scale));
 
-	// Image : animée en mouvement (7 i/s, méduse 4 i/s), retournée si Jira est à gauche
-	const bool bMoving = Vel.Size() > 8.f || Type == TEXT("meduse");
-	Sprite->Frame = bMoving ? FMath::FloorToInt(T * (Type == TEXT("meduse") ? 4.f : 7.f)) % SpriteFrames : 0;
-	Sprite->bFlipX = Tg.X < Pos.X;
+	// Modèle : regarde où il marche, ou vers Jira à l'arrêt et pendant ses attaques (visée, charge) ; anim au rythme de la marche.
+	const bool bMoving = Vel.Size() > 8.f;
+	const bool bLocked = St == EEONEnemySt::Aim || St == EEONEnemySt::Fire || St == EEONEnemySt::Lock || St == EEONEnemySt::Wind || St == EEONEnemySt::Dash || St == EEONEnemySt::Chg;
+	const FVector2D Fd = bLocked ? L : bMoving ? Vel : Tg - Pos;
+	if (!Fd.IsNearlyZero())
+	{
+		const float Want = FMath::RadiansToDegrees(FMath::Atan2(Fd.Y, Fd.X));
+		FaceYaw = FMath::FixedTurn(FaceYaw, Want, 540.f * Dt);
+	}
+	ModelRoot->SetRelativeRotation(FRotator(0.f, FaceYaw + YawOff, 0.f));
+	for (UMeshComponent* C : Meshes)
+	{
+		if (USkeletalMeshComponent* K = Cast<USkeletalMeshComponent>(C)) { K->SetPlayRate(bMoving ? FMath::Clamp(Vel.Size() / FMath::Max(10.f, Spd), 0.6f, 2.f) : 0.25f); }
+	}
+	// Clignotement blanc : coup reçu, et l'Onibi qui s'arme.
 	const bool bWhite = Flash > 0.f || (St == EEONEnemySt::Arm && FMath::FloorToInt(T * 20.f) % 2 == 0);
-	// Clignotement blanc : la teinte du sprite (multiplicative) poussée au-delà de 1.
-	Sprite->Tint = bWhite ? FLinearColor(8.f, 8.f, 8.f) : FLinearColor::White;
+	SetFlash(bWhite);
 
 #if ENABLE_DRAW_DEBUG
 	// Télégraphes du proto (drawEnemy) : provisoires en lignes de debug, absents des builds Shipping.

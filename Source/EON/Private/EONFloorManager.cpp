@@ -1,12 +1,15 @@
-#include "EONFloorManager.h"
+﻿#include "EONFloorManager.h"
 #include "EON.h"
 #include "EONCharacter.h"
 #include "EONTileRoom.h"
 #include "EONCombatDirector.h"
+#include "EONBoss.h"
 #include "EONEnemy.h"
 #include "EONItems.h"
 #include "EONPedestal.h"
 #include "EONPickup.h"
+#include "EONSlidingDoor.h"
+#include "Engine/StaticMeshActor.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -78,6 +81,12 @@ namespace
 		{
 			AEONFloorManager* F = AEONFloorManager::Get(World);
 			if (F && Args.Num() && !F->GoToRole(FName(*Args[0].ToUpper()))) { UE_LOG(LogEON, Warning, TEXT("eon.salle : pas de salle %s sur cet étage"), *Args[0]); }
+		}));
+	FAutoConsoleCommandWithWorldAndArgs GEONCmdForme(TEXT("eon.forme"), TEXT("eon.forme FORME : va dans la première salle de cette forme (std, carree, large, small, corH, corV) ; s'il n'y en a pas, une salle Combat ou Tension prend cette forme"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			AEONFloorManager* F = AEONFloorManager::Get(World);
+			if (F && Args.Num() && !F->GoToShape(FName(*Args[0]))) { UE_LOG(LogEON, Warning, TEXT("eon.forme : pas de salle %s sur cet étage"), *Args[0]); }
 		}));
 	FAutoConsoleCommandWithWorldAndArgs GEONCmdAdn(TEXT("eon.adn"), TEXT("eon.adn N : donne N d'ADN à Jira"),
 		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
@@ -186,6 +195,7 @@ void AEONFloorManager::BeginPlay()
 	Rng.Initialize(FPlatformTime::Cycles());
 	AEONPedestal::OnTaken.AddUObject(this, &AEONFloorManager::OnPedestalTaken);
 	LoadTemplates();
+	SetupHub();
 	// Une salle unique, au pivot du gestionnaire, reconstruite à chaque entrée.
 	for (TActorIterator<AEONTileRoom> It(GetWorld()); It; ++It) { Room = *It; break; }
 	if (!Room)
@@ -309,8 +319,7 @@ void AEONFloorManager::GenFloor()
 			if (C == Start || C == Boss) { continue; }
 			for (const FIntPoint& N : Nbr(C)) { if (N == Start || N == Boss || E.Contains(Ek(C, N))) { continue; } if (Rng.GetFraction() < 0.1f) { E.Add(Ek(C, N)); } }
 		}
-		// Chemin vers l'autre entrée du gardien : au moins 3 salles, sans passer par lui.
-		if (FloorN != 4)
+		// Chemin vers l'autre entrée du gardien : au moins 3 salles, sans passer par lui (tous les étages : infestation systématique).
 		{
 			TMap<FIntPoint, FIntPoint> Prev; Prev.Add(Start, FIntPoint(-1, -1));
 			TArray<FIntPoint> Bq = { Start };
@@ -347,7 +356,9 @@ void AEONFloorManager::GenFloor()
 		C.Doors = 0;
 		for (uint8 D : DoorOrder) { const FIntPoint N = C.Pos + EONDoor::Dir(D); if (Cells.Contains(N) && E.Contains(Ek(C.Pos, N))) { C.Doors |= D; } }
 	}
-	bInfest = FloorN != 4 && FMath::CountBits(Cells[Boss].Doors) >= 2;
+	// Infestation systématique : la passerelle C.O.M -> gardien est toujours murée. Garde-fou : sans seconde entrée, pas de chair (gardien inaccessible sinon).
+	bInfest = FMath::CountBits(Cells[Boss].Doors) >= 2;
+	if (!bInfest) { UE_LOG(LogEON, Warning, TEXT("EON étage %d : pas de seconde entrée vers le gardien après 400 essais, infestation retirée"), FloorN); }
 
 	// Distances depuis le C.O.M ; culs-de-sac du plus loin au plus près.
 	TMap<FIntPoint, int32> Dist; Dist.Add(Start, 0);
@@ -491,10 +502,12 @@ void AEONFloorManager::EnterCell(FIntPoint P, uint8 FromDir, bool bFromCom)
 		{
 			const FName G = R == TEXT("TRESOR") || R == TEXT("IRRUPTION") ? FName(TEXT("CALME")) : R == TEXT("CARTO") ? FName(TEXT("EVENEMENT")) : R;
 			// Salle dessinée à la main si un Blueprint convient, sinon génération du proto.
-			C->RoomClass = PickTemplate(R, C->Shape);
-			if (!C->RoomClass) { C->RoomClass = PickTemplate(G, C->Shape); }
+			C->RoomClass = PickTemplate(R, C->Shape, C->Doors);
+			if (!C->RoomClass) { C->RoomClass = PickTemplate(G, C->Shape, C->Doors); }
 			FString Err;
-			if (!C->RoomClass || !AEONTileRoom::LayoutToGrid(C->RoomClass->GetDefaultObject<AEONTileRoom>()->Layout, C->Doors, C->Grid, &Err))
+			TArray<FEONDoorSpec> Specs;
+			if (C->RoomClass) { AEONTileRoom::GetClassDoorSpecs(C->RoomClass, Specs); }
+			if (!C->RoomClass || !AEONTileRoom::LayoutToGrid(C->RoomClass->GetDefaultObject<AEONTileRoom>()->Layout, C->Doors, C->Grid, &Err, &Specs))
 			{
 				if (C->RoomClass) { UE_LOG(LogEON, Warning, TEXT("Salle %s inutilisable (%s)"), *C->RoomClass->GetName(), *Err); }
 				C->RoomClass = nullptr;
@@ -513,7 +526,7 @@ void AEONFloorManager::EnterCell(FIntPoint P, uint8 FromDir, bool bFromCom)
 				const FEONTileGrid& G = C->Grid;
 				const int32 W = G.W, H = G.H, Cx = W >> 1, Cy = H >> 1;
 				TSet<int32> Set;
-				FIntPoint DT[2]; FEONTileGrid::DoorTiles(D, W, H, DT);
+				FIntPoint DT[2]; G.GetDoorTiles(D, DT);
 				for (const FIntPoint& Q : DT) { Set.Add(Q.Y * W + Q.X); }
 				if (bCom)
 				{
@@ -575,6 +588,16 @@ void AEONFloorManager::LoadRoom(FEONFloorCell& C, uint8 Entry, bool bFromCom)
 	if (!Room) { return; }
 	// enterCell : l'ADN encore en vol est crédité (on ne le perd pas en sortant vite), le reste disparaît.
 	AEONPickup::ClearAll(GetWorld(), true);
+	if (bHub && C.Role == TEXT("DEPART"))
+	{
+		AEONPedestal::ClearAll(GetWorld());
+		if (CardMesh) { CardMesh->SetVisibility(false); }
+		RoomWaves = 0; RoomStartT = 0.f; AmbushT = -1.f;
+		Room->SetLocked(false);
+		LoadHub(Entry, bFromCom);
+		OnRoomLoaded.Broadcast(this);
+		return;
+	}
 	// Salle dessinée : on remplace l'acteur salle par son Blueprint (décor posé à la main compris).
 	UClass* Want = C.RoomClass ? C.RoomClass.Get() : AEONTileRoom::StaticClass();
 	if (Room->GetClass() != Want)
@@ -597,7 +620,7 @@ void AEONFloorManager::LoadRoom(FEONFloorCell& C, uint8 Entry, bool bFromCom)
 		else if (R == TEXT("TENSION")) { RoomWaves = 1; RoomStartT = 0.4f; }
 		else if (R == TEXT("CORRIDOR")) { bLocked = true; RoomWaves = 3; RoomStartT = 0.9f; }
 		else if (R == TEXT("FAILLE")) { bLocked = true; RoomWaves = 1; RoomStartT = 0.7f; }   // la brèche et l'oxygène : jalon 9
-		else if (R == TEXT("ASCENSEUR")) { C.bCleared = true; bFloorDone = true; }    // gardien : jalon 7 (salle vide, le levier s'active)
+		else if (R == TEXT("ASCENSEUR")) { bLocked = true; }    // gardien : la salle se verrouille, il sort de sa cuve (AEONBoss)
 		else if (R == TEXT("EVENEMENT") || R == TEXT("CARTO") || R == TEXT("IRRUPTION")) { C.bCleared = true; }   // events : jalons 8–9
 		if (!C.bCounted && !C.bCleared) { ++CombatN; C.bCounted = true; }
 	}
@@ -655,9 +678,15 @@ void AEONFloorManager::LoadRoom(FEONFloorCell& C, uint8 Entry, bool bFromCom)
 		}
 	}
 	const bool bCor = C.Shape == TEXT("corH") || C.Shape == TEXT("corV");
-	if (R == TEXT("ASCENSEUR")) { ShowBanner(TEXT("Retourne au C.O.M"), FLinearColor(FColor(62, 242, 224))); }   // le gardien : jalon 7
+	if (R == TEXT("ASCENSEUR")) { if (C.bCleared) { ShowBanner(TEXT("Retourne au C.O.M"), FLinearColor(FColor(62, 242, 224))); } }
 	else { ShowBanner(RoleName(R) + (bCor ? TEXT(" // Couloir") : TEXT("")), FLinearColor(bLocked ? FColor(255, 61, 85) : FColor(216, 212, 240))); }
 	OnRoomLoaded.Broadcast(this);
+	// Le gardien (après le broadcast : le directeur vient de vider la salle).
+	if (R == TEXT("ASCENSEUR") && !C.bCleared && FloorN != 4)
+	{
+		if (!AEONBoss::SpawnInRoom(AEONCombatDirector::Get(GetWorld()), Room, FloorN)) { C.bCleared = true; bFloorDone = true; Room->SetLocked(false); }
+	}
+	else if (R == TEXT("ASCENSEUR") && !C.bCleared) { C.bCleared = true; bFloorDone = true; Room->SetLocked(false); }   // étage 4 : pas de gardien
 }
 
 void AEONFloorManager::StartTrans(TFunction<void()> Fn)
@@ -683,6 +712,8 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	BannerT = FMath::Max(0.f, BannerT - DeltaSeconds);
+	// Cube du terminal du hub : rotation lente, s'emballe quand le C.O.M descend.
+	if (HubCube) { HubCube->AddActorWorldRotation(FRotator(0.f, (ComTravelT >= 0.f ? 540.f : 45.f) * DeltaSeconds, 0.f)); }
 	// eon.debut : commandes de test différées (le premier étage et Jira existent alors).
 	static float DebutT = 0.f;
 	if (DebutT >= 0.f && (DebutT += DeltaSeconds) > 2.f)
@@ -727,6 +758,7 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 	AEONCharacter* J = GetJira();
 	FEONFloorCell* CM = CellAt(Cur);
 	if (!J || !CM || !Room || J->IsDead()) { return; }
+	if (bHub && Cur == Start) { TickHub(DeltaSeconds, J); return; }
 	const FVector2D P = Room->WorldToRoomPx(J->GetActorLocation());
 	// Carte rouge : ramassage à moins de 10 px, puis embuscade (la salle se verrouille, 2 vagues).
 	if (CM->Role == TEXT("SECURITE") && !CM->bCardTaken && !J->IsFallingIntoVoid() && FVector2D::Distance(P, GetCardPx()) < 10.f)
@@ -871,20 +903,62 @@ void AEONFloorManager::LoadTemplates()
 	}
 }
 
-TSubclassOf<AEONTileRoom> AEONFloorManager::PickTemplate(FName InRole, FName InShape)
+TSubclassOf<AEONTileRoom> AEONFloorManager::PickTemplate(FName InRole, FName InShape, uint8 Doors)
 {
 	float Tot = 0.f;
-	for (const TSubclassOf<AEONTileRoom>& Cl : Templates) { const AEONTileRoom* D = Cl->GetDefaultObject<AEONTileRoom>(); if (D->CanServe(InRole, InShape)) { Tot += D->Weight; } }
+	for (const TSubclassOf<AEONTileRoom>& Cl : Templates) { const AEONTileRoom* D = Cl->GetDefaultObject<AEONTileRoom>(); if (D->CanServe(InRole, InShape, Doors)) { Tot += D->Weight; } }
 	if (Tot <= 0.f) { return nullptr; }
 	float R = Rng.GetFraction() * Tot;
 	for (const TSubclassOf<AEONTileRoom>& Cl : Templates)
 	{
 		const AEONTileRoom* D = Cl->GetDefaultObject<AEONTileRoom>();
-		if (!D->CanServe(InRole, InShape)) { continue; }
+		if (!D->CanServe(InRole, InShape, Doors)) { continue; }
 		R -= D->Weight;
 		if (R <= 0.f) { return Cl; }
 	}
 	return nullptr;
+}
+
+void AEONFloorManager::OnBossDefeated(const FVector2D& BossPx)
+{
+	// Fin du gardien : la salle se libère, la chair se rétracte (Tick), 2 objets au choix sur des socles (on en prend un).
+	FEONFloorCell* C = CellAt(Cur);
+	if (!C) { return; }
+	C->bCleared = true;
+	bFloorDone = true;
+	if (Room) { Room->SetLocked(false); }
+	const AEONCharacter* J = GetJira();
+	const TArray<FName> It = EONItems::Roll(2, J, false);
+	C->PedItems.Reset(); C->PedPrice.Reset(); C->PedPx.Reset();
+	for (int32 I = 0; I < It.Num(); ++I)
+	{
+		const FVector2D Px(BossPx.X + (I ? 28.f : -28.f), BossPx.Y);
+		C->PedItems.Add(It[I]); C->PedPrice.Add(0); C->PedPx.Add(Px);
+		AEONPedestal::Spawn(GetWorld(), Room, It[I], Px, 0, I);
+	}
+	ShowBanner(TEXT("La chair se retracte, retourne au C.O.M"), FLinearColor(FColor(255, 194, 61)));
+	UE_LOG(LogEON, Display, TEXT("EON gardien vaincu : étage %d terminé, %d objets au choix"), FloorN, It.Num());
+}
+
+bool AEONFloorManager::GoToShape(FName InShape)
+{
+	for (const TPair<FIntPoint, FEONFloorCell>& KV : Cells)
+	{
+		if (KV.Value.Shape == InShape && KV.Key != Start) { EnterCell(KV.Key, 0, false); return true; }
+	}
+	// Aucune : on prend une salle Combat ou Tension pas encore construite et on lui donne cette forme (test).
+	for (TPair<FIntPoint, FEONFloorCell>& KV : Cells)
+	{
+		FEONFloorCell& C = KV.Value;
+		if (!C.bBuilt && (C.Role == TEXT("COMBAT") || C.Role == TEXT("TENSION")))
+		{
+			UE_LOG(LogEON, Display, TEXT("eon.forme : salle %s (%d,%d) passée de %s à %s"), *C.Role.ToString(), KV.Key.X, KV.Key.Y, *C.Shape.ToString(), *InShape.ToString());
+			C.Shape = InShape;
+			EnterCell(KV.Key, 0, false);
+			return true;
+		}
+	}
+	return false;
 }
 
 bool AEONFloorManager::GoToRole(FName InRole)
@@ -931,11 +1005,16 @@ bool AEONFloorManager::IsNearComTerminal() const
 	const FEONFloorCell* C = CellAt(Cur);
 	const AEONCharacter* J = GetJira();
 	if (!C || !J || !Room || C->Role != TEXT("DEPART")) { return false; }
+	if (bHub) { return HubCube && FVector2D::Distance(FVector2D(J->GetActorLocation()), FVector2D(HubCube->GetActorLocation())) < 500.f; }   // zone du terminal : 5 m de rayon
 	return FVector2D::Distance(Room->WorldToRoomPx(J->GetActorLocation()), FVector2D(C->Grid.W * 8.f, C->Grid.H * 8.f)) < 56.f;
 }
 
 bool AEONFloorManager::TryInteract()
 {
+	if (Room && !(bHub && Cur == Start))
+	{
+		if (const AEONCharacter* J = GetJira(); J && Room->TryOpenInnerDoor(Room->WorldToRoomPx(J->GetActorLocation()), 40.f)) { return true; }
+	}
 	if (!IsNearComTerminal() || ComTravelT >= 0.f || TransT > 0.f) { return false; }
 	if (bFloorDone)
 	{
@@ -948,4 +1027,192 @@ bool AEONFloorManager::TryInteract()
 	}
 	ShowBanner(FString::Printf(TEXT("Verrouille - gardien : %s du C.O.M - carte rouge %s"), *GuardDir(), bRedCard ? TEXT("OK") : TEXT("a trouver")), FLinearColor(FColor(140, 134, 180)));
 	return false;
+}
+
+// ---------------------------------------------------------------- hub 3D (L_HUB) comme salle du C.O.M
+
+void AEONFloorManager::SetupHub()
+{
+	const AActor* Com = nullptr;
+	for (TActorIterator<AStaticMeshActor> It(GetWorld()); It; ++It)
+	{
+		const UStaticMesh* M = It->GetStaticMeshComponent() ? It->GetStaticMeshComponent()->GetStaticMesh() : nullptr;
+		if (M && M->GetName().StartsWith(TEXT("COMv1"))) { Com = *It; break; }
+	}
+	if (!Com) { return; }
+	HubCentre = Com->GetActorLocation();
+	// Les 4 sas : chacun rangé selon sa direction depuis le C.O.M (nord = -Y, comme l'écran).
+	int32 Found = 0;
+	for (TActorIterator<AEONSlidingDoor> It(GetWorld()); It; ++It)
+	{
+		const FVector D = It->GetActorLocation() - HubCentre;
+		const uint8 Dir = FMath::Abs(D.X) > FMath::Abs(D.Y) ? (D.X > 0.f ? EONDoor::E : EONDoor::W) : (D.Y > 0.f ? EONDoor::S : EONDoor::N);
+		HubDoor[DoorIdx(Dir)] = It->GetActorLocation();
+		++Found;
+	}
+	if (Found < 4) { UE_LOG(LogEON, Warning, TEXT("EON hub : %d sas trouvés sur 4, le hub n'est pas branché sur l'étage"), Found); return; }
+	bHub = true;
+	// Terminal du C.O.M : un cube lumineux sur la passerelle est, juste devant le dôme (visible de la caméra).
+	UStaticMesh* Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+	UMaterialInterface* Mat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/EON/Materials/BG/MI_BG_pipe.MI_BG_pipe"));
+	FActorSpawnParameters P;
+	P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	const FVector East = HubDoor[DoorIdx(EONDoor::E)];
+	HubCube = GetWorld()->SpawnActor<AStaticMeshActor>(FVector(HubCentre.X + (East.X - HubCentre.X) * 0.66f, HubCentre.Y + 150.f, HubCentre.Z + 50.f), FRotator::ZeroRotator, P);
+	if (HubCube && Cube)
+	{
+		HubCube->SetMobility(EComponentMobility::Movable);
+		UStaticMeshComponent* SM = HubCube->GetStaticMeshComponent();
+		SM->SetStaticMesh(Cube);
+		SM->SetWorldScale3D(FVector(0.6f));
+		SM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		if (Mat)
+		{
+			UMaterialInstanceDynamic* M = UMaterialInstanceDynamic::Create(Mat, HubCube);
+			M->SetVectorParameterValue(TEXT("BC1"), FLinearColor(0.24f, 0.95f, 0.88f));
+			M->SetVectorParameterValue(TEXT("EmisAdd"), FLinearColor(0.4f, 3.f, 2.7f));
+			SM->SetMaterial(0, M);
+		}
+	}
+	UE_LOG(LogEON, Display, TEXT("EON hub : salle du C.O.M = hub 3D, terminal en %s, salles générées en %s"),
+		HubCube ? *HubCube->GetActorLocation().ToCompactString() : TEXT("?"), *GetActorLocation().ToCompactString());
+}
+
+void AEONFloorManager::LoadHub(uint8 Entry, bool bFromCom)
+{
+	AEONCharacter* J = GetJira();
+	if (!J) { return; }
+	// Terminal du C.O.M : sur une passerelle libre (jamais celle du gardien, murée par la chair), juste devant le dôme.
+	if (HubCube)
+	{
+		const FVector Sd = HubSafeDir();
+		const FVector Door = HubDoor[DoorIdx(HubSafeDoor())];
+		const float R = FVector2D::Distance(FVector2D(Door), FVector2D(HubCentre)) * 0.66f;
+		HubCube->SetActorLocation(HubCentre + Sd * R + FVector(-Sd.Y, Sd.X, 0.f) * 150.f + FVector(0.f, 0.f, 50.f));
+	}
+	// Par le C.O.M : 3 m du centre ; sinon 3,5 m en dedans du sas d'arrivée.
+	FVector Pos;
+	if (bFromCom || !Entry || !HubCube)
+	{
+		Pos = HubCentre + HubSafeDir() * 300.f;   // à 3 m du centre du C.O.M, côté passerelle libre
+	}
+	else
+	{
+		const FIntPoint Dv = EONDoor::Dir(Entry);
+		Pos = HubDoor[DoorIdx(Entry)] - FVector(Dv.X, Dv.Y, 0.f) * 350.f;
+	}
+	Pos.Z = HubCentre.Z + J->GetSimpleCollisionHalfHeight() + 2.f;
+	J->ResetForRoom(Pos);
+	if (APlayerController* PC = Cast<APlayerController>(J->GetController())) { if (PC->PlayerCameraManager) { PC->PlayerCameraManager->SetGameCameraCutThisFrame(); } }
+	BuildHubFlesh();
+	ShowBanner(bFromCom ? FString::Printf(TEXT("C.O.M - gardien : %s"), *GuardDir()) : RoleName(TEXT("DEPART")), FLinearColor(FColor(62, 242, 224)));
+	UE_LOG(LogEON, Display, TEXT("EON hub : Jira en %s (entrée %s)"), *J->GetActorLocation().ToCompactString(), Entry ? EONDoor::Name(Entry) : TEXT("C.O.M"));
+}
+
+void AEONFloorManager::BuildHubFlesh()
+{
+	for (AStaticMeshActor* A : HubFlesh) { if (A) { A->Destroy(); } }
+	HubFlesh.Reset();
+	if (!IsInfestEdge(Start, Boss)) { return; }
+	uint8 D = 0;
+	for (uint8 Dd : DoorOrder) { if (Start + EONDoor::Dir(Dd) == Boss) { D = Dd; } }
+	if (!D) { return; }
+	// setInfest du hub : la passerelle vers le gardien est murée de chair, du dôme jusqu'au sas.
+	UStaticMesh* Sph = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+	UMaterialInterface* Mat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/EON/Materials/BG/MI_BG_pipe.MI_BG_pipe"));
+	if (!Sph) { return; }
+	UMaterialInstanceDynamic* M = Mat ? UMaterialInstanceDynamic::Create(Mat, this) : nullptr;
+	if (M)
+	{
+		M->SetVectorParameterValue(TEXT("BC1"), FLinearColor(FColor(138, 42, 74)));
+		M->SetVectorParameterValue(TEXT("EmisAdd"), FLinearColor(0.25f, 0.02f, 0.08f));
+	}
+	const FVector Door = HubDoor[DoorIdx(D)];
+	const FIntPoint Dv = EONDoor::Dir(D);
+	const FVector Out(Dv.X, Dv.Y, 0.f), Side(-Dv.Y, Dv.X, 0.f);
+	FRandomStream R(FloorN * 131 + 7);
+	for (int32 I = 0; I < 6; ++I)
+	{
+		for (int32 K = -1; K <= 1; ++K)
+		{
+			const FVector At = Door - Out * (90.f + I * 90.f) + Side * (K * 70.f + R.FRandRange(-12.f, 12.f));
+			FActorSpawnParameters P;
+			P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			AStaticMeshActor* A = GetWorld()->SpawnActor<AStaticMeshActor>(FVector(At.X, At.Y, HubCentre.Z + 45.f), FRotator(0.f, R.FRandRange(0.f, 360.f), 0.f), P);
+			if (!A) { continue; }
+			A->SetMobility(EComponentMobility::Movable);
+			UStaticMeshComponent* SM = A->GetStaticMeshComponent();
+			SM->SetStaticMesh(Sph);
+			const float S = R.FRandRange(1.0f, 1.45f);
+			SM->SetWorldScale3D(FVector(S, S, S * 0.75f));
+			SM->SetCollisionProfileName(TEXT("BlockAll"));
+			if (M) { SM->SetMaterial(0, M); }
+			HubFlesh.Add(A);
+		}
+	}
+	HubFleshK = 1.f;
+}
+
+void AEONFloorManager::TickHub(float DeltaSeconds, AEONCharacter* J)
+{
+	const FEONFloorCell* C = CellAt(Cur);
+	if (!C) { return; }
+	const FVector2D P(J->GetActorLocation());
+	// Chair : se rétracte en 1,6 s quand le gardien est neutralisé ; sinon, s'en approcher = refus.
+	if (HubFlesh.Num())
+	{
+		if (bFloorDone)
+		{
+			HubFleshK = FMath::Max(0.f, HubFleshK - DeltaSeconds / 1.6f);
+			for (AStaticMeshActor* A : HubFlesh) { if (A) { A->SetActorScale3D(A->GetActorScale3D() * FMath::Max(0.05f, HubFleshK) / FMath::Max(0.05f, HubFleshK + DeltaSeconds / 1.6f)); } }
+			if (HubFleshK <= 0.f) { for (AStaticMeshActor* A : HubFlesh) { if (A) { A->Destroy(); } } HubFlesh.Reset(); }
+		}
+		else if ((InfBumpT -= DeltaSeconds) <= 0.f)
+		{
+			for (const AStaticMeshActor* A : HubFlesh)
+			{
+				if (A && FVector2D::Distance(P, FVector2D(A->GetActorLocation())) < 160.f)
+				{
+					InfBumpT = 3.f;
+					if (!bInfHint) { bInfHint = true; ShowBanner(TEXT("IA : La passerelle est envahie. Rien ne passe par la."), FLinearColor(FColor(200, 74, 122))); }
+					else { ShowBanner(TEXT("La mutation bloque le passage"), FLinearColor(FColor(255, 61, 85))); }
+					break;
+				}
+			}
+		}
+	}
+	// Sortie par un sas : Jira à moins de 1,3 m de la porte.
+	RedBumpT -= DeltaSeconds;
+	for (uint8 D : DoorOrder)
+	{
+		if (!(C->Doors & D) || FVector2D::Distance(P, FVector2D(HubDoor[DoorIdx(D)])) > 130.f) { continue; }
+		const FIntPoint N = Cur + EONDoor::Dir(D);
+		const FEONFloorCell* NC = CellAt(N);
+		if (!NC || IsInfestEdge(Cur, N)) { continue; }
+		if (NC->Role == TEXT("ASCENSEUR") && !bRedCard && FloorN != 4)
+		{
+			if (RedBumpT <= 0.f)
+			{
+				RedBumpT = 2.5f;
+				if (!bRedHint) { bRedHint = true; ShowBanner(TEXT("Verrou de securite rouge. Il me faut la carte."), FLinearColor(FColor(255, 61, 85))); }
+				else { ShowBanner(TEXT("Carte rouge requise"), FLinearColor(FColor(255, 61, 85))); }
+			}
+			continue;
+		}
+		StartTrans([this, N, D]() { EnterCell(N, D, false); });
+		return;
+	}
+}
+
+uint8 AEONFloorManager::HubSafeDoor() const
+{
+	// Est d'abord (côté caméra le plus lisible), puis sud, ouest, nord : la première passerelle qui ne mène pas au gardien.
+	for (uint8 D : { EONDoor::E, EONDoor::S, EONDoor::W, EONDoor::N }) { if (Start + EONDoor::Dir(D) != Boss) { return D; } }
+	return EONDoor::E;
+}
+
+FVector AEONFloorManager::HubSafeDir() const
+{
+	const FIntPoint Dv = EONDoor::Dir(HubSafeDoor());
+	return FVector(Dv.X, Dv.Y, 0.f);
 }

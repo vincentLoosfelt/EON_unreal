@@ -1,4 +1,5 @@
-#include "EONCombatDirector.h"
+﻿#include "EONCombatDirector.h"
+#include "EONSfx.h"
 #include "EONPickup.h"
 #include "EONCharacter.h"
 #include "EON.h"
@@ -256,7 +257,7 @@ void AEONCombatDirector::WalkableTiles(float MinD, TArray<FVector2D>& Out) const
 	{
 		if (!(G.Doors & D)) { continue; }
 		FIntPoint T2[2];
-		FEONTileGrid::DoorTiles(D, W, H, T2);
+		G.GetDoorTiles(D, T2);
 		for (const FIntPoint& P : T2) { if (G.IsValidTile(P.X, P.Y)) { const int32 I = P.Y * W + P.X; if (!Reach[I]) { Reach[I] = 1; Q.Add(I); } } }
 	}
 	if (Q.Num() == 0)
@@ -461,6 +462,8 @@ void AEONCombatDirector::FireEnemyBullet(const FVector2D& ScreenPx, const FVecto
 	{
 		B->Init(Rm, ScreenPx, VelPx, Life, bBig, HeightPx);
 		Bullets.Add(B);
+		// Une volée = un son (écart minimal 80 ms) ; le gros tir orange plus fort.
+		EONSfx::Play(this, TEXT("SFX_Ennemi_Tir"), bBig ? 0.5f : 0.32f, 2, bBig ? 0.03f : 0.08f, 0.08f);
 	}
 }
 
@@ -542,6 +545,7 @@ void AEONCombatDirector::KillAll()
 	for (int32 I = 0; I < Enemies.Num(); ++I)
 	{
 		AEONEnemy* E = Enemies[I];
+		if (E && E->IsBoss()) { E->HitPx(E->Hp + 1.f, 0.f, 1.f); continue; }   // le gardien passe par sa mort (butin, fin d'étage) ; rien pendant l'intro
 		if (E && !E->bDead && !E->IsFalling()) { KillEnemy(E, 0.f, 1.f); }
 	}
 	Spawns.Reset();

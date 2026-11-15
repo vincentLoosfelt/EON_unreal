@@ -1,4 +1,4 @@
-// EON — grille de tuiles d'une salle (jalon 2). Portage direct du proto v0.60.1 :
+﻿// EON — grille de tuiles d'une salle (jalon 2). Portage direct du proto v0.60.1 :
 // T = {F:0, W:1, P:2, D:3, X:4, K:5}, SHAPES, doorTiles(), genTiles(), comTiles(), buildTraining().
 // Tuile = 16 px = 100 cm. Repère : x vers la droite (= +X Unreal), y vers le bas de l'écran (= +Y Unreal).
 #pragma once
@@ -27,6 +27,17 @@ namespace EONDoor
 	inline FIntPoint Dir(uint8 D) { return D == N ? FIntPoint(0, -1) : D == S ? FIntPoint(0, 1) : D == E ? FIntPoint(1, 0) : FIntPoint(-1, 0); }
 }
 
+/** Porte intérieure (obstacle ouvrable) : ses tuiles, et son centre en px salle. */
+USTRUCT(BlueprintType)
+struct EON_API FEONInnerDoor
+{
+	GENERATED_BODY()
+	UPROPERTY(BlueprintReadOnly, Category = "EON|Salle") TArray<int32> Tiles;
+	UPROPERTY(BlueprintReadOnly, Category = "EON|Salle") FVector2D CenterPx = FVector2D::ZeroVector;
+	/** Vrai si la porte bloque le passage dans l'axe X (flèche est/ouest) : elle s'étend alors le long de Y. */
+	UPROPERTY(BlueprintReadOnly, Category = "EON|Salle") bool bAcrossX = true;
+};
+
 USTRUCT(BlueprintType)
 struct EON_API FEONTileGrid
 {
@@ -42,16 +53,24 @@ struct EON_API FEONTileGrid
 	UPROPERTY(BlueprintReadOnly, Category = "EON|Salle") uint8 Doors = 0;
 	/** Variante tirée (feat du proto : cross, L, donut, notch, pillars, chasm, islands…). */
 	UPROPERTY(BlueprintReadOnly, Category = "EON|Salle") FString Feat;
+	/** Portes posées à la main (composants Porte EON) : première tuile de chaque porte, rangées N, S, E, W.
+	 *  Vide, ou X < 0 pour un côté : porte au milieu du côté (doorTiles du proto). */
+	UPROPERTY(BlueprintReadOnly, Category = "EON|Salle") TArray<FIntPoint> DoorAt;
+	/** Portes intérieures (obstacles ouvrables). */
+	UPROPERTY(BlueprintReadOnly, Category = "EON|Salle") TArray<FEONInnerDoor> Inner;
 
 	bool IsValidTile(int32 X, int32 Y) const { return X >= 0 && Y >= 0 && X < W && Y < H; }
 	/** Hors grille = mur (tileAt du proto). */
 	EEONTile Get(int32 X, int32 Y) const { return IsValidTile(X, Y) ? (EEONTile)T[Y * W + X] : EEONTile::Wall; }
 	void Set(int32 X, int32 Y, EEONTile V) { if (IsValidTile(X, Y)) { T[Y * W + X] = (uint8)V; } }
 
-	/** Tailles des formes (SHAPES) : std 32×20, large 40×26, small 24×16, corH 50×9, corV 12×32. */
+	/** Tailles des formes (SHAPES) : std 32×20, carree 32×32, large 40×26, small 24×16, corH 50×9, corV 12×32. */
 	static FIntPoint ShapeSize(FName Shape);
 	/** Les deux tuiles d'une porte (doorTiles). */
 	static void DoorTiles(uint8 Door, int32 W, int32 H, FIntPoint Out[2]);
+	/** Les deux tuiles d'une porte de cette grille : posée à la main si DoorAt le dit, sinon au milieu du côté. */
+	void GetDoorTiles(uint8 Door, FIntPoint Out[2]) const;
+	static int32 DoorIndex(uint8 D) { return D == EONDoor::N ? 0 : D == EONDoor::S ? 1 : D == EONDoor::E ? 2 : 3; }
 
 	/** genTiles(role, shape, doors). Rôles : COMBAT, TENSION, CALME, CORRIDOR, DEPART, OPPORTUNITE, ASCENSEUR,
 	 *  SECURITE, MARCHAND, FAILLE, EVENEMENT. FloorN : numéro d'étage (le saule de l'étage 4 pousse la cuve). */

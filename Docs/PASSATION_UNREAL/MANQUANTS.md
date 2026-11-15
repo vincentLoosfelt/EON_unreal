@@ -20,15 +20,19 @@ Légende : ❌ rien · 🟡 existe mais pas prêt pour Unreal · 🔲 placeholde
 | Écran mural | `Fichier_blend/Asset_Ecran_Com.blend` | 🟡 |
 | Passerelle | `Fichier_blend/UV/Asset_Pont_UV.blend` | 🟡 |
 
+> **15/11/2026 : plus aucun sprite pixel.** Les ennemis sont en 3D (table `Looks` de `EONEnemy.cpp`). En attendant les exports :
+> Nuke = Ghoul d'Unity (vrai modèle, anim de marche) ; Onibi = Minion (Unity) ; Kama = Mutant (Unity, anim) ; Ikiryo = `Shooter_mode.fbx` du studio importé dans `/Game/EON/Ennemis/Ikiryo` (corps, bras, mâchoire, sans anim).
+> Le lacet de chaque modèle (`YawOff`) reste à vérifier à l'image.
+
 ## 2. Personnages et créatures à produire
 
 | Asset | Détail | Placeholder | État |
 |---|---|---|---|
 | Ikiryo : animations | Marche, marche arrière, visée, tir, mort | Modèle FBX sans anim | ❌ |
-| Ubume : rig et animations | Marche, ponte, mort | `invocateur.png` | ❌ |
-| **Méduse** | Design 2D, modèle, rig, anims (flottement, tir, mort) | `meduse.png` | ❌ |
-| **Brainless** | Design 2D, modèle, rig, anims (marche, verrouillage, charge, étourdi, mort) | `brainless.png` | ❌ |
-| **Le Tentaculaire** | Corps en 3 phases, 4 tentacules au repos, tentacules d'attaque, œil, sortie de cuve | `boss.png` | ❌ |
+| Ubume : rig et animations | Marche, ponte, mort | 🔲 Monster05 (Unity, xeno), sans anim | 🔲 |
+| **Méduse** | Design 2D, modèle, rig, anims (flottement, tir, mort) | 🔲 Chimera Meshy (Unity, xeno), flotte, sans anim | 🔲 |
+| **Brainless** | Design 2D, modèle, rig, anims (marche, verrouillage, charge, étourdi, mort) | 🔲 Brain_Crawler (Unity) avec son anim | 🔲 |
+| **Le Tentaculaire** | Corps en 3 phases, 4 tentacules au repos, tentacules d'attaque, œil, sortie de cuve | 🔲 Formes simples 3D (AEONBoss) : boule de chair, œil qui suit Jira, tentacules en chapelets de sphères, vitre de cuve en cylindre | 🔲 |
 | **Mechakuve** | 4 phases : cuve fermée, bouclier, cuve ouverte, spécimen sorti. Pinces, queue, câbles. | `mechakuve.png` | ❌ |
 | **Le Chercheur** | Forme humaine, bras mutant en 3 tailles, anims de balayage, d'écrasement, d'allonge | `chercheur.png` | ❌ |
 | Le Cobaye | Un skin de Jira (cheveux rouges, bandage, cape, bras à griffes) | Jira reteintée | ❌ |

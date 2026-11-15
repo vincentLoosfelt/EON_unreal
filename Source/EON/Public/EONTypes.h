@@ -1,4 +1,4 @@
-// EON — types partagés : échelle proto -> Unreal et lignes des DataTables.
+﻿// EON — types partagés : échelle proto -> Unreal et lignes des DataTables.
 // Les DataTables sont générées depuis Docs/PASSATION_UNREAL/DONNEES/*.json
 // par Saved/Scripts/eon_datatables.py : les JSON restent la source.
 #pragma once
@@ -154,15 +154,3 @@ struct EON_API FEONEnemyRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32 Adn = 0;
 };
 
-/** Un sprite placeholder (PLACEHOLDERS_PIXEL/_index.json). */
-USTRUCT(BlueprintType)
-struct EON_API FEONSpriteRow : public FTableRowBase
-{
-	GENERATED_BODY()
-
-	/** largeur / hauteur d'une frame, px */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32 FW = 16;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32 FH = 16;
-	/** nombre de frames côte à côte */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32 N = 1;
-};

@@ -4,6 +4,9 @@
 #include "EONFloorManager.h"
 #include "EONCombatDirector.h"
 #include "Engine/StaticMeshActor.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "EONPlayerCameraManager.h"
 #include "EONRoomBounds.h"
@@ -98,6 +101,20 @@ AEONPlayerController::AEONPlayerController()
 void AEONPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// Hub 3D (carte au C.O.M « COMv1 ») : il devient la salle centrale de l'étage ; les salles générées sont construites à 120 m à l'est.
+	if (GetWorld() && GetWorld()->IsGameWorld() && !AEONFloorManager::Get(this))
+	{
+		for (TActorIterator<AStaticMeshActor> It(GetWorld()); It; ++It)
+		{
+			const UStaticMesh* M = It->GetStaticMeshComponent() ? It->GetStaticMeshComponent()->GetStaticMesh() : nullptr;
+			if (!M || !M->GetName().StartsWith(TEXT("COMv1"))) { continue; }
+			FActorSpawnParameters P;
+			P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			GetWorld()->SpawnActor<AEONFloorManager>(AEONFloorManager::StaticClass(), It->GetActorLocation() + FVector(12000.f, 0.f, 0.f), FRotator::ZeroRotator, P);
+			break;
+		}
+	}
 
 	FInputModeGameAndUI Mode;
 	Mode.SetHideCursorDuringCapture(false);
@@ -340,11 +357,6 @@ void AEONPlayerController::PlayerTick(float DeltaTime)
 	}
 	Jira->SetFireHeld(bFire);
 
-	if (HubComT >= 0.f)
-	{
-		HubComT += DeltaTime;
-		if (HubComT > 1.7f) { HubComT = -100.f; UGameplayStatics::OpenLevel(this, FName(TEXT("L_Etage"))); }
-	}
 	if (const UEONTuningSubsystem* TS = UEONTuningSubsystem::Get(this); TS && TS->GetGameFeel().DebugText) { DrawDebug(); }
 }
 
@@ -437,43 +449,9 @@ void AEONPlayerController::DrawDebug() const
 	GEngine->AddOnScreenDebugMessage(9001, 0.f, FColor(62, 242, 224), Msg);
 }
 
-AActor* AEONPlayerController::GetHubCom() const
-{
-	if (!bHubComSearched && GetWorld())
-	{
-		bHubComSearched = true;
-		if (!AEONFloorManager::Get(this))
-		{
-			for (TActorIterator<AStaticMeshActor> It(GetWorld()); It; ++It)
-			{
-				const UStaticMesh* M = It->GetStaticMeshComponent() ? It->GetStaticMeshComponent()->GetStaticMesh() : nullptr;
-				if (M && M->GetName().StartsWith(TEXT("COMv1"))) { HubCom = *It; break; }
-			}
-		}
-	}
-	return HubCom.Get();
-}
-
-bool AEONPlayerController::IsNearHubCom() const
-{
-	const AActor* Com = GetHubCom();
-	const APawn* J = GetPawn();
-	if (!Com || !J) { return false; }
-	FVector C, E;
-	Com->GetActorBounds(true, C, E);
-	// Sur le quai : dans la moitié centrale de l'emprise du C.O.M (le dôme), comme les 56 px du proto.
-	return FVector2D::Distance(FVector2D(J->GetActorLocation()), FVector2D(C)) < FMath::Max(E.X, E.Y) * 0.5f;
-}
-
 void AEONPlayerController::Interact()
 {
 	if (AEONFloorManager* F = AEONFloorManager::Get(this)) { F->TryInteract(); }
-	else if (HubComT < 0.f && IsNearHubCom())
-	{
-		// pullCOM au quai du Kibo : la sphère s'emballe 1,7 s, puis étage 1 (L_Etage).
-		HubComT = 0.f;
-		if (AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld())) { D->Shake(0.5f); }
-	}
 }
 
 namespace

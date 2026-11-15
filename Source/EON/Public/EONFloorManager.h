@@ -1,4 +1,4 @@
-// EON — étage (jalons 2 et 5) : genFloor() du proto (grille 7×7, C.O.M au centre, gardien sur un bras, rôles, formes, portes),
+﻿// EON — étage (jalons 2 et 5) : genFloor() du proto (grille 7×7, C.O.M au centre, gardien sur un bras, rôles, formes, portes),
 // passage de salle en salle par les portes (enterCell / loadRoom / startTrans), mémoire de chaque salle.
 // Une seule salle existe à la fois, comme dans le proto : elle est reconstruite sur place à chaque passage de porte.
 #pragma once
@@ -82,6 +82,10 @@ public:
 	FIntPoint GetCurrentCell() const { return Cur; }
 	/** Test : va directement dans la première salle du rôle donné (eon.salle). */
 	bool GoToRole(FName InRole);
+	/** Va dans la première salle de cette forme (eon.forme). */
+	bool GoToShape(FName InShape);
+	/** Le gardien est mort (AEONBoss) : fin de l'étage, chair rétractée, 2 objets au choix. */
+	void OnBossDefeated(const FVector2D& BossPx);
 	FIntPoint GetBossCell() const { return Boss; }
 
 	/** Bannière centrale (showBanner, 1,8 s) : texte, couleur, temps restant. Lue par le HUD. */
@@ -109,6 +113,9 @@ public:
 	/** Direction du gardien vue du C.O.M (« nord »...). */
 	FString GuardDir() const;
 
+	/** Hub 3D (L_HUB) : la salle du C.O.M est le hub lui-même ; ses 4 sas mènent aux salles générées, construites plus loin dans la carte. */
+	bool IsHubMode() const { return bHub; }
+
 	/** Plan texte de l'étage (console eon.map). */
 	FString DescribeFloor() const;
 
@@ -131,7 +138,7 @@ private:
 	UPROPERTY(Transient) TArray<TSubclassOf<AEONTileRoom>> Templates;
 	void LoadTemplates();
 	/** Tire une salle dessinée pour ce rôle et cette forme (nullptr s'il n'y en a pas). */
-	TSubclassOf<AEONTileRoom> PickTemplate(FName Role, FName Shape);
+	TSubclassOf<AEONTileRoom> PickTemplate(FName Role, FName Shape, uint8 Doors);
 	/** Carte rouge posée sur sa plateforme (provisoire : un pavé rouge lumineux). */
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> CardMesh;
 	UPROPERTY() TObjectPtr<UMaterialInterface> CardMaterial;
@@ -144,6 +151,23 @@ private:
 	bool bComGo = false;
 	float InfBumpT = 0.f;
 	bool bInfHint = false;
+	// --- Hub 3D comme salle du C.O.M
+	bool bHub = false;
+	FVector HubCentre = FVector::ZeroVector;
+	/** Centre des 4 portes sas du hub, rangés N, S, E, W. */
+	FVector HubDoor[4];
+	UPROPERTY(Transient) TObjectPtr<class AStaticMeshActor> HubCube;
+	UPROPERTY(Transient) TArray<TObjectPtr<class AStaticMeshActor>> HubFlesh;
+	float HubFleshK = 0.f;
+	static int32 DoorIdx(uint8 D) { return D == 1 ? 0 : D == 2 ? 1 : D == 4 ? 2 : 3; }
+	void SetupHub();
+	/** Passerelle du hub qui ne mène pas au gardien (cube du terminal et arrivée de Jira). */
+	uint8 HubSafeDoor() const;
+	FVector HubSafeDir() const;
+	void LoadHub(uint8 Entry, bool bFromCom);
+	void BuildHubFlesh();
+	void TickHub(float DeltaSeconds, AEONCharacter* J);
+
 	/** La passerelle infestée entre le C.O.M et le gardien est-elle encore fermée ? */
 	bool IsInfestEdge(const FIntPoint& A, const FIntPoint& B) const;
 	void OnPedestalTaken(class AEONPedestal* P, bool bPaid);

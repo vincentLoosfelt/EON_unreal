@@ -1,4 +1,4 @@
-// EON — banc de réglages modifiable en jeu (équivalent du panneau du proto).
+﻿// EON — banc de réglages modifiable en jeu (équivalent du panneau du proto).
 // Console : eon.feel <clé> <valeur> | eon.feel.preset <studio|sec|max> | eon.feel.list
 #pragma once
 
@@ -53,7 +53,6 @@ public:
 	/** Tables de données (chargées une fois). */
 	UFUNCTION(BlueprintPure, Category = "EON|Données") UDataTable* GetGreffes() const { return Greffes; }
 	UFUNCTION(BlueprintPure, Category = "EON|Données") UDataTable* GetEnemies() const { return Enemies; }
-	UFUNCTION(BlueprintPure, Category = "EON|Données") UDataTable* GetSprites() const { return Sprites; }
 
 	static UEONTuningSubsystem* Get(const UObject* WorldContext);
 
@@ -69,5 +68,4 @@ private:
 	UPROPERTY() TObjectPtr<UDataTable> GameFeelTable;
 	UPROPERTY() TObjectPtr<UDataTable> Greffes;
 	UPROPERTY() TObjectPtr<UDataTable> Enemies;
-	UPROPERTY() TObjectPtr<UDataTable> Sprites;
 };
