@@ -120,6 +120,8 @@ public:
 	bool PullLever();
 	/** Fondu entre deux salles en cours (trans). */
 	bool IsInTransition() const { return TransT > 0.f; }
+	/** Secondes (temps réel) depuis le dernier chargement de salle ou la fin du fondu : les dialogues attendent 1 s. */
+	double SinceRoomReady() const { return FPlatformTime::Seconds() - RoomReadyAt; }
 	/** C.O.M à quai au Kibo : début de run, avant le premier levier (FloorN = 0). */
 	bool IsDockedMode() const { return bDocked; }
 	/** Salle du Kibo où se trouve Jira : 0 aucune (étage), 1 salle de réveil, 2 passerelle, 3 C.O.M à quai. */
@@ -249,6 +251,7 @@ private:
 	FRandomStream Rng;
 	/** Transition (trans du proto, 0,36 s : fondu au noir puis chargement). */
 	float TransT = 0.f;
+	double RoomReadyAt = -10.0;
 	bool bTransDone = false;
 	TFunction<void()> TransFn;
 };

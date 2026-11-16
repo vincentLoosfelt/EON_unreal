@@ -358,6 +358,7 @@ void AEONFloorManager::LoadDock()
 		MS->Save();
 		if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->Say(TEXT("dock")); }
 	}
+	RoomReadyAt = FPlatformTime::Seconds();
 	OnRoomLoaded.Broadcast(this);
 	UE_LOG(LogEON, Display, TEXT("EON Kibo : C.O.M a quai, levier pret"));
 }
@@ -398,6 +399,7 @@ void AEONFloorManager::LoadKiboGrid(const FEONTileGrid& G, uint8 Entry, const FV
 		J->ResetForRoom(Room->RoomPxToWorld(E, J->GetSimpleCollisionHalfHeight() + 2.f));
 		if (APlayerController* PC = Cast<APlayerController>(J->GetController())) { if (PC->PlayerCameraManager) { PC->PlayerCameraManager->SetGameCameraCutThisFrame(); } }
 	}
+	RoomReadyAt = FPlatformTime::Seconds();
 	OnRoomLoaded.Broadcast(this);
 }
 
@@ -997,6 +999,7 @@ void AEONFloorManager::LoadRoom(FEONFloorCell& C, uint8 Entry, bool bFromCom)
 		RoomWaves = 0; RoomStartT = 0.f; AmbushT = -1.f;
 		Room->SetLocked(false);
 		LoadHub(Entry, bFromCom);
+		RoomReadyAt = FPlatformTime::Seconds();
 		OnRoomLoaded.Broadcast(this);
 		return;
 	}
@@ -1082,6 +1085,7 @@ void AEONFloorManager::LoadRoom(FEONFloorCell& C, uint8 Entry, bool bFromCom)
 	const bool bCor = C.Shape == TEXT("corH") || C.Shape == TEXT("corV");
 	if (R == TEXT("ASCENSEUR")) { if (C.bCleared) { ShowBanner(TEXT("Retourne au C.O.M"), FLinearColor(FColor(62, 242, 224))); } }
 	else { ShowBanner(RoleName(R) + (bCor ? TEXT(" // Couloir") : TEXT("")), FLinearColor(bLocked ? FColor(255, 61, 85) : FColor(216, 212, 240))); }
+	RoomReadyAt = FPlatformTime::Seconds();
 	OnRoomLoaded.Broadcast(this);
 	// Le gardien (après le broadcast : le directeur vient de vider la salle).
 	if (R == TEXT("ASCENSEUR") && !C.bCleared && FloorN != 4)
@@ -1127,6 +1131,7 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 	if (TransT > 0.f)
 	{
 		TransT -= DeltaSeconds;
+		RoomReadyAt = FPlatformTime::Seconds();
 		if (TransT <= 0.18f && !bTransDone)
 		{
 			bTransDone = true;

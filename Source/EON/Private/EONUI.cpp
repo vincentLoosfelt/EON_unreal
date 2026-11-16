@@ -403,7 +403,8 @@ void UEONUISubsystem::TickUI(APlayerController* PC, float RealDt)
 	{
 		const AEONCharacter* J = PC ? Cast<AEONCharacter>(PC->GetPawn()) : nullptr;
 		const AEONFloorManager* F = AEONFloorManager::Get(this);
-		const bool bFree = J && !J->IsDead() && !J->IsLevelUpOpen() && !J->IsInQTE() && !UGameplayStatics::IsGamePaused(this) && !(F && F->IsInTransition());
+		const bool bFree = J && !J->IsDead() && !J->IsLevelUpOpen() && !J->IsInQTE() && !UGameplayStatics::IsGamePaused(this) && !(F && F->IsInTransition())
+			&& !(F && F->SinceRoomReady() < 1.0); // 1 s après un chargement de salle (16/11)
 		if (bFree)
 		{
 			FPending P = MoveTemp(Pending[0]);
