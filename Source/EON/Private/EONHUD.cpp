@@ -238,8 +238,21 @@ void AEONHUD::DrawHUD()
 			const uint8 Kb = F->GetKiboRoom();
 			Txt(TEXT("KIBO"), SX - 80 * U, 64 * U, FLinearColor(FColor(62, 242, 224)), U / 3.5f);
 			Txt(Kb == 1 ? TEXT("Salle de reveil") : Kb == 2 ? TEXT("Passerelle") : TEXT("A quai"), SX - 80 * U, 72 * U, Dim, U / 3.5f);
-			// Salle de réveil : la consigne du proto, sous la salle (après la cinématique).
-			if (Kb == 1 && !F->IsCinematic()) { Txt(TEXT("Teste chaque greffe sur les cibles"), SX * 0.5f - 60 * U, SY - 40 * U, Dim, U / 3.5f); }
+			// Salle de réveil : la consigne du proto et les greffes en main, avec leur touche (« 1 Standard 2 Rafale… »).
+			if (Kb == 1 && !F->IsCinematic())
+			{
+				Txt(TEXT("Teste chaque greffe sur les cibles"), SX * 0.5f - 60 * U, SY - 40 * U, Dim, U / 3.5f);
+				FString L;
+				const UEONTuningSubsystem* Tu = UEONTuningSubsystem::Get(this);
+				UDataTable* Gt = Tu ? Tu->GetGreffes() : nullptr;
+				const TArray<FName> Set = J->GetGreffeSet();
+				for (int32 I = 0; I < Set.Num(); ++I)
+				{
+					const FEONGreffeRow* Row = Gt ? Gt->FindRow<FEONGreffeRow>(Set[I], TEXT("HUD"), false) : nullptr;
+					L += FString::Printf(TEXT("%s%d %s"), I ? TEXT("  ") : TEXT(""), I + 1, Row ? *Row->DisplayName : *Set[I].ToString());
+				}
+				Txt(L, SX * 0.5f - 60 * U, SY - 33 * U, Dim, U / 3.5f);
+			}
 		}
 		else
 		{
