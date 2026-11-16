@@ -236,6 +236,8 @@ private:
 	float WalkOutT = 0.f;
 	/** Jira toujours au sol : jamais de chute, de vol ni de nage hors du vide (Vincent 16/11). */
 	void KeepOnGround();
+	/** Kill zone franchie : retour au dernier point sûr, −FallDmg PV, 1,2 s d'invulnérabilité (conséquence de la chute du proto). */
+	void VoidRespawn();
 	bool bRunning = false;
 	float HoldTimer = 0.f;
 
@@ -248,9 +250,11 @@ private:
 	int32 HP = 6;
 	int32 MaxHP = 6;
 	int32 FallCount = 0;
-	/** Chute en cours (P.falling, 0,5 s) ; position de chute et dernier point sûr. */
-	float FallTimer = 0.f;
-	FVector FallStart = FVector::ZeroVector;
+	/** Kill zone : 10 m sous le dernier sol où Jira a marché (Vincent 16/11) ; dernier sol et dernier point sûr. */
+	static constexpr float KillZoneDepth = 1000.f;
+	float LastGroundZ = 0.f;
+	FVector LastGroundPos = FVector::ZeroVector;
+	bool bHasGround = false;
 	FVector SafeLocation = FVector::ZeroVector;
 	bool bHasSafeLocation = false;
 	float HurtFlash = 0.f;

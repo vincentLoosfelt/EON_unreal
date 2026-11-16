@@ -52,11 +52,6 @@ AEONTileRoom::AEONTileRoom()
 	USceneComponent* Root = RootComponent;
 	FloorISM = MakeISM(this, TEXT("Sol"), Cube.Object, Root, true);
 	GapISM = MakeISM(this, TEXT("BordsDuVide"), Cube.Object, Root, false);
-	PitFloorISM = MakeISM(this, TEXT("SolDuVide"), Cube.Object, Root, true);
-	PitFloorISM->SetHiddenInGame(true);
-	PitFloorISM->SetVisibility(false);
-	PitFloorISM->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
-	PitFloorISM->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
 	WallISM = MakeISM(this, TEXT("Murs"), Cube.Object, Root, true);
 	CrateISM = MakeISM(this, TEXT("Decor"), Cube.Object, Root, true);
 	TankISM = MakeISM(this, TEXT("Cuves"), Cyl.Object, Root, true);
@@ -195,7 +190,7 @@ void AEONTileRoom::UpdateDoorCollision()
 
 void AEONTileRoom::RebuildVisuals()
 {
-	for (UInstancedStaticMeshComponent* C : { FloorISM.Get(), GapISM.Get(), PitFloorISM.Get(), WallISM.Get(), CrateISM.Get(), TankISM.Get(), DoorISM.Get() })
+	for (UInstancedStaticMeshComponent* C : { FloorISM.Get(), GapISM.Get(), WallISM.Get(), CrateISM.Get(), TankISM.Get(), DoorISM.Get() })
 	{
 		if (C) { C->ClearInstances(); }
 	}
@@ -237,7 +232,6 @@ void AEONTileRoom::RebuildVisuals()
 			switch (V)
 			{
 			case EEONTile::Pit:
-				PitFloorISM->AddInstance(FTransform(FRotator::ZeroRotator, C + FVector(0, 0, -Th * 0.5f), FVector(1.f, 1.f, Th / 100.f)));
 				// Fossé (gap) : bord grillagé fin pour qu'on lise le passage à dasher. Le vide lui-même n'a rien.
 				if (Grid.Gap.Contains(Y * Grid.W + X))
 				{

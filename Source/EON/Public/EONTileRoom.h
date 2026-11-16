@@ -154,8 +154,6 @@ private:
 
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> FloorISM;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> GapISM;
-	/** Sol invisible sous le vide : Jira reste en mode marche ; la chute est une règle du jeu (checkPlayerFall), pas de la physique. */
-	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> PitFloorISM;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> WallISM;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> CrateISM;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> TankISM;

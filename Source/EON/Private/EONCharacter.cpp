@@ -179,8 +179,8 @@ void AEONCharacter::ResetForRoom(FVector Location)
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	SafeLocation = Location;
 	bHasSafeLocation = true;
-	FallTimer = 0.f;
 	bFallingIntoVoid = false;
+	bHasGround = false;
 	DashRemaining = 0.f;
 	DecoyT = 0.f;
 	BurstQ = 0;
@@ -203,7 +203,7 @@ void AEONCharacter::HurtPlayer(int32 Amount, FVector SourceWorld)
 {
 	const UEONTuningSubsystem* Tuning = UEONTuningSubsystem::Get(this);
 	const FEONGameFeelRow Feel = Tuning ? Tuning->GetGameFeel() : FEONGameFeelRow();
-	if (InvTimer > 0.f || DashRemaining > 0.f || FallTimer > 0.f || Feel.God || IsDead()) { return; }
+	if (InvTimer > 0.f || DashRemaining > 0.f || bFallingIntoVoid || Feel.God || IsDead()) { return; }
 	// Bouclier (cassette Shield) : absorbe un coup, rechargé à chaque étage.
 	if (Shield > 0)
 	{
@@ -269,30 +269,13 @@ void AEONCharacter::CheckDeath()
 
 void AEONCharacter::CheckPlayerFall()
 {
-	// checkPlayerFall() : on tombe si le centre ET au moins 3 des 4 points autour des pieds sont au-dessus du vide ;
-	// sinon, si les 9 points SAFEPTS sont sur du sol, c'est le nouveau point sûr.
-	if (DashRemaining > 0.f || FallTimer > 0.f) { return; }
+	// Les trous sont de vrais trous (Jira y tombe avec la gravité, kill zone 10 m plus bas : Tick). Ici, seulement le
+	// point sûr du proto : si les 9 points SAFEPTS sont sur du sol, c'est le nouveau point sûr.
+	if (DashRemaining > 0.f || bFallingIntoVoid) { return; }
 	const AEONTileRoom* Room = AEONTileRoom::FindTileRoomAt(this, GetActorLocation());
 	if (!Room) { return; }
 	const FVector2D P = Room->WorldToRoomPx(GetActorLocation());
-	static const FVector2D FallPts[4] = { {2.5f, -1.5f}, {-2.5f, -1.5f}, {2.5f, 2.f}, {-2.5f, 2.f} };
 	static const FVector2D SafePts[9] = { {6, 0}, {-6, 0}, {0, 6}, {0, -6}, {4, 4}, {-4, 4}, {4, -4}, {-4, -4}, {0, 0} };
-	if (Room->PitAtPx(P))
-	{
-		int32 N = 0;
-		for (const FVector2D& O : FallPts) { if (Room->PitAtPx(P + O)) { ++N; } }
-		if (N >= 3)
-		{
-			FallTimer = 0.5f;
-			FallStart = GetActorLocation();
-			bFallingIntoVoid = true;
-			RecoilVel = FVector::ZeroVector;
-			SmoothMove = FVector2D::ZeroVector;
-			GetCharacterMovement()->StopMovementImmediately();
-			++FallCount;
-			return;
-		}
-	}
 	bool bSafe = true;
 	for (const FVector2D& O : SafePts) { if (Room->PitAtPx(P + O)) { bSafe = false; break; } }
 	if (bSafe) { SafeLocation = GetActorLocation(); bHasSafeLocation = true; }
@@ -329,7 +312,13 @@ void AEONCharacter::KeepOnGround()
 	// en marche. Sans sol à portée (vrai vide), la gravité la tire vers le bas. Figée (MOVE_None : C.O.M, réveil) : rien.
 	UCharacterMovementComponent* M = GetCharacterMovement();
 	const EMovementMode Mo = M->MovementMode;
+	if (Mo == MOVE_Walking && M->CurrentFloor.IsWalkableFloor())
+	{
+		LastGroundZ = GetActorLocation().Z; LastGroundPos = GetActorLocation(); bHasGround = true;
+		bFallingIntoVoid = false;
+	}
 	if (Mo != MOVE_Falling && Mo != MOVE_Flying && Mo != MOVE_Swimming) { return; }
+	if (bFallingIntoVoid) { if (Mo != MOVE_Falling) { M->SetMovementMode(MOVE_Falling); } return; }
 	const float HalfH = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 	const FVector P = GetActorLocation();
 	FHitResult Hit;
@@ -340,7 +329,35 @@ void AEONCharacter::KeepOnGround()
 		M->Velocity.Z = 0.f;
 		M->SetMovementMode(MOVE_Walking);
 	}
-	else if (Mo != MOVE_Falling) { M->SetMovementMode(MOVE_Falling); }
+	else
+	{
+		// Vrai trou : Jira tombe (gravité) jusqu'à la kill zone.
+		if (Mo != MOVE_Falling) { M->SetMovementMode(MOVE_Falling); }
+		bFallingIntoVoid = true;
+		RecoilVel = FVector::ZeroVector;
+		SmoothMove = FVector2D::ZeroVector;
+		++FallCount;
+	}
+}
+
+void AEONCharacter::VoidRespawn()
+{
+	const FEONGameFeelRow Feel = UEONStatics::GetGameFeel(this);
+	bFallingIntoVoid = false;
+	SetActorLocation(bHasSafeLocation ? SafeLocation : LastGroundPos, false, nullptr, ETeleportType::TeleportPhysics);
+	GetCharacterMovement()->StopMovementImmediately();
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	InvTimer = 1.2f;
+	// Retour au bord : 14 éclats cyan (50 px/s), 0,4 s.
+	EONFx::Gerbe(this, JiraFeetUp(this, 3.f), 14, EONFx::Hex(TEXT("3ef2e0")), 50.f, 0.4f);
+	UE_LOG(LogEON, Display, TEXT("EON kill zone : Jira revient en %s (chute %d)"), *GetActorLocation().ToCompactString(), FallCount);
+	if (!Feel.God && Feel.FallDmg > 0.f)
+	{
+		HP -= FMath::RoundToInt(Feel.FallDmg);
+		HurtFlash = 0.25f;
+		if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.4f); }
+		CheckDeath();
+	}
 }
 
 void AEONCharacter::Tick(float DeltaSeconds)
@@ -450,33 +467,10 @@ void AEONCharacter::Tick(float DeltaSeconds)
 		return;
 	}
 
-	// --- Chute dans le vide (0,5 s) : Jira s'enfonce et rétrécit, puis revient au dernier point sûr, −FallDmg PV, 1,2 s d'invulnérabilité.
-	if (FallTimer > 0.f)
+	// --- Chute dans un trou : la gravité la tire vers le bas ; sous la kill zone (10 m sous son dernier sol), retour au point sûr.
+	if (bFallingIntoVoid)
 	{
-		FallTimer -= Dt;
-		const float K = FMath::Clamp(1.f - FallTimer / 0.5f, 0.f, 1.f);
-		GetMesh()->SetRelativeLocation(MeshBaseLocation - FVector(0.f, 0.f, K * K * 420.f));
-		GetMesh()->SetRelativeScale3D(MeshBaseScale * (1.f - 0.55f * K));
-		GetCharacterMovement()->StopMovementImmediately();
-		if (FallTimer <= 0.f)
-		{
-			FallTimer = 0.f;
-			bFallingIntoVoid = false;
-			GetMesh()->SetRelativeLocation(MeshBaseLocation);
-			GetMesh()->SetRelativeScale3D(MeshBaseScale);
-			SetActorLocation(bHasSafeLocation ? SafeLocation : FallStart, false, nullptr, ETeleportType::TeleportPhysics);
-			GetCharacterMovement()->SetMovementMode(MOVE_Walking);
-			InvTimer = 1.2f;
-			// Retour au bord : 14 éclats cyan (50 px/s), 0,4 s.
-			EONFx::Gerbe(this, JiraFeetUp(this, 3.f), 14, EONFx::Hex(TEXT("3ef2e0")), 50.f, 0.4f);
-			if (!Feel.God && Feel.FallDmg > 0.f)
-			{
-				HP -= FMath::RoundToInt(Feel.FallDmg);
-				HurtFlash = 0.25f;
-				if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.4f); }
-				CheckDeath();
-			}
-		}
+		if (bHasGround && GetActorLocation().Z < LastGroundZ - KillZoneDepth) { VoidRespawn(); }
 		return;
 	}
 	CooldownTimer -= Dt;
