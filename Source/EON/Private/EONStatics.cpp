@@ -259,7 +259,6 @@ void UEONStatics::FillAnimPropsImpl(AActor* Actor, const UScriptStruct* Struct, 
 	FVector GroundLoc = C->GetActorLocation() - FVector(0.f, 0.f, C->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
 	FVector GroundN = FVector::UpVector;
 	if (M && M->CurrentFloor.IsWalkableFloor()) { GroundLoc = M->CurrentFloor.HitResult.ImpactPoint; GroundN = M->CurrentFloor.HitResult.ImpactNormal; }
-	const bool bAir = M && M->IsFalling();
 	const TCHAR* Gait = bRun ? TEXT("Sprint") : (Speed2D > 300.f ? TEXT("Run") : TEXT("Walk"));
 
 	for (TFieldIterator<FProperty> It(Struct); It; ++It)
@@ -277,7 +276,7 @@ void UEONStatics::FillAnimPropsImpl(AActor* Actor, const UScriptStruct* Struct, 
 		else if (N == TEXT("GroundNormal")) SetStruct(P, A, GroundN);
 		else if (N == TEXT("InputAcceleration")) SetStruct(P, A, M ? M->GetCurrentAcceleration() : FVector::ZeroVector);
 		else if (N == TEXT("JustLanded")) SetBool(P, A, false);
-		else if (N == TEXT("MovementMode")) SetEnumByName(P, A, bAir ? TEXT("InAir") : TEXT("OnGround"));
+		else if (N == TEXT("MovementMode")) SetEnumByName(P, A, TEXT("OnGround"));   // Jira toujours au sol (Vincent 16/11)
 		else if (N == TEXT("OrientationIntent")) SetStruct(P, A, Facing);
 		else if (N == TEXT("RotationMode")) SetEnumByName(P, A, bFire ? TEXT("Strafe") : TEXT("OrientToMovement"));
 		else if (N == TEXT("Stance")) SetEnumByName(P, A, TEXT("Stand"));

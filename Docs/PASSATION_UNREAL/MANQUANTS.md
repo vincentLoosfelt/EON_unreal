@@ -200,6 +200,7 @@ Fait : ADN aspiré et barre de niveau, écran de niveau à 3 cartes (jeu en paus
 - 16/11, écart au proto voulu par Vincent : les salles de combat générées n'ont plus de piliers 2×2 au milieu (variantes « pillars » et piliers de « mix » retirées de `EONTileGrid.cpp`). Les salles en Blueprint gardent leur plan tel quel.
 - 16/11, écart au proto voulu par Vincent : à l'arrivée du C.O.M sur un nouvel étage, Jira garde la place qu'elle avait sur le C.O.M au départ du voyage (le proto la repose au centre + 40 px). `LoadHub`, `ComJiraOff` dans `EONFloorManager`.
 - 16/11, écart au proto voulu par Vincent : Maj n'est plus une touche de dash. Maintenue en se déplaçant, elle fait courir Jira tout de suite (pas d'attente de 0,2 s). Le dash reste sur Espace et la manette. Maj est retirée de `IA_Dash` dans `IMC_EON` (`Saved/Scripts/eon_maj_course.py`) et lue en C++ (`SetSprintHeld`).
+- 16/11, voulu par Vincent : Jira est toujours au sol. Plus de contrainte de plan, la gravité agit (les trous des salles ont un sol invisible au même niveau). Si elle passe en chute, en vol ou en nage, `KeepOnGround` la repose sur le sol sous ses pieds (jusqu'à 2 m plus bas), et l'animation reçoit toujours « au sol ». Au réveil, elle ne flotte plus dans la cuve et n'en saute plus : elle est debout au sol et en sort à pied (`WalkOut`, 1,4 s vers le nord). Écart au proto. Vérifié : 73 relevés `eon.diagsol`, toujours en marche sur un sol marchable (`Docs/J10_sortie_cuve_au_sol.jpg`).
 
 ## Menus de test F6 (Tweak) et F7 (Triche) — 15/11
 

@@ -428,7 +428,6 @@ void AEONFloorManager::ClearKiboActors()
 	ClearRoomActors();
 	JiraPod = nullptr;
 	WakeT = -1.f;
-	WakeLift = 0.f;
 }
 
 void AEONFloorManager::LoadKiboGrid(const FEONTileGrid& G, uint8 Entry, const FVector2D* At)
@@ -496,12 +495,10 @@ void AEONFloorManager::EnterTraining(bool bCine)
 	{
 		if (JiraPod) { JiraPod->StartWake(); }
 		WakeT = 0.f;
-		// Jira flotte dans le tube (fond du verre à 130 cm), figée jusqu'à l'ouverture.
+		// Jira debout au sol dans le tube, figée jusqu'à l'ouverture : plus de flottement (Vincent 16/11).
 		if (AEONCharacter* J = GetJira())
 		{
 			WakeGroundZ = J->GetActorLocation().Z;
-			WakeLift = 130.f;
-			J->AddActorWorldOffset(FVector(0.f, 0.f, WakeLift));
 			SetJiraFrozen(true);
 		}
 	}
@@ -562,33 +559,18 @@ void AEONFloorManager::TickKibo(float DeltaSeconds, AEONCharacter* J)
 		WakeT += DeltaSeconds;
 		AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld());
 		if (T0 < 1.7f && WakeT >= 1.7f && D) { D->Shake(0.3f); }
-		// Le tube est descendu (2,15 s) : Jira est relâchée et saute hors de la cuve, vers le nord (-Y, ~4 m, au-delà de
-		// l'ombre du tube vu par la caméra) :
-		// vers la caméra (+Y), elle atterrissait derrière le muret sud, à 2,5 m de la cuve, hors de vue (16/11).
+		// Le tube est descendu (2,15 s) : Jira est relâchée et sort de la cuve à pied vers le nord (-Y, ~4 m, au-delà de
+		// l'ombre du tube vu par la caméra), toujours au sol : plus de saut (Vincent 16/11).
 		if (T0 < 2.2f && WakeT >= 2.2f)
 		{
 			SetJiraFrozen(false);
-			if (J)
-			{
-				// La contrainte de plan (sol plat des salles) annule la vitesse verticale : Jira restait à 130 cm, « flottante ».
-				// Elle n'était active qu'une partie sur deux, selon l'ordre de BeginPlay (Vincent 16/11).
-				bWakePlaneWas = J->GetCharacterMovement()->bConstrainToPlane;
-				bWakePlaneOff = true;
-				J->GetCharacterMovement()->SetPlaneConstraintEnabled(false);
-				J->LaunchCharacter(FVector(0.f, -520.f, 220.f), true, true);
-			}
+			if (J) { J->WalkOut(FVector2D(0.f, 1.f), 1.4f); }
 		}
-		if (WakeLift > 0.f && WakeT >= 2.2f) { if (J) { WakeLift = FMath::Max(0.f, J->GetActorLocation().Z - WakeGroundZ); } }
-		// Le dialogue wake met le jeu en pause : il attend que Jira ait atterri, sinon elle restait figée en l'air
-		// (« Jira flotte au démarrage », Vincent 16/11). Au plus 1,5 s d'attente.
-		const bool bInAir = J && J->GetCharacterMovement()->IsFalling();
-		if (WakeT >= 2.6f && (!bInAir || WakeT >= 4.1f))
+		// Le dialogue wake met le jeu en pause : il attend la fin de la sortie à pied.
+		if (WakeT >= 3.7f)
 		{
-			if (bWakePlaneOff && J) { J->GetCharacterMovement()->SetPlaneConstraintEnabled(bWakePlaneWas); }
-			bWakePlaneOff = false;
-			UE_LOG(LogEON, Display, TEXT("EON_WAKE dialogue : Jira à %.0f cm du sol, en l'air=%d, Jira %s, cuve %s"), J ? J->GetActorLocation().Z - WakeGroundZ : -1.f, bInAir ? 1 : 0, J ? *J->GetActorLocation().ToCompactString() : TEXT("-"), JiraPod ? *JiraPod->GetActorLocation().ToCompactString() : TEXT("-"));
+			UE_LOG(LogEON, Display, TEXT("EON_WAKE dialogue : Jira à %.0f cm du sol, mode %d, Jira %s, cuve %s"), J ? J->GetActorLocation().Z - WakeGroundZ : -1.f, J ? (int32)J->GetCharacterMovement()->MovementMode.GetValue() : -1, J ? *J->GetActorLocation().ToCompactString() : TEXT("-"), JiraPod ? *JiraPod->GetActorLocation().ToCompactString() : TEXT("-"));
 			WakeT = -1.f;
-			WakeLift = 0.f;
 			if (D) { D->Shake(0.25f); }
 			if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->Say(TEXT("wake")); }
 		}

@@ -50,6 +50,8 @@ public:
 	void SetDashHeld(bool bHeld) { bDashHeld = bHeld; }
 	/** Maj (accélération) : course tout de suite, sans dash (Vincent, 16/11). */
 	void SetSprintHeld(bool bHeld) { bSprintHeld = bHeld; }
+	/** Marche scriptée (sortie de cuve) : direction écran, durée en s. */
+	void WalkOut(FVector2D ScreenDir, float Duration) { WalkOutDir = ScreenDir; WalkOutT = Duration; }
 
 	/** Appui sur le bouton de dash. */
 	UFUNCTION(BlueprintCallable, Category = "EON|Jira")
@@ -230,6 +232,10 @@ private:
 	TSubclassOf<UAnimInstance> LocoAnimClass;
 	bool bDashHeld = false;
 	bool bSprintHeld = false;
+	FVector2D WalkOutDir = FVector2D::ZeroVector;
+	float WalkOutT = 0.f;
+	/** Jira toujours au sol : jamais de chute, de vol ni de nage hors du vide (Vincent 16/11). */
+	void KeepOnGround();
 	bool bRunning = false;
 	float HoldTimer = 0.f;
 

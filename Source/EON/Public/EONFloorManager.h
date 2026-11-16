@@ -183,7 +183,7 @@ public:
 	uint8 GetKiboRoom() const { return bDocked ? Kibo : 0; }
 	/** Cinématique de réveil en cours (2,6 s) : Jira ne répond pas. */
 	/** Pendant la descente du C.O.M, la caméra reste à hauteur des passerelles : on voit le C.O.M bouger (Jira bouge avec lui). */
-	float GetCamDz() const { return WakeLift > 0.f ? WakeLift : (ComTravelT >= 0.f || ComArrT >= 0.f) ? ComDz : 0.f; }
+	float GetCamDz() const { return (ComTravelT >= 0.f || ComArrT >= 0.f) ? ComDz : 0.f; }
 	/** Vue de développement (eon.vue) : caméra fixe posée par rapport au centre du C.O.M, pour filmer une séquence. */
 	bool bDevView = false;
 	FVector DevViewLoc = FVector::ZeroVector;
@@ -285,12 +285,8 @@ private:
 	void ClearKiboActors();
 	uint8 Kibo = 0;
 	float WakeT = -1.f;
-	// Réveil : hauteur de Jira au-dessus du sol (dans le tube, puis pendant sa chute) ; la caméra reste au sol.
-	float WakeLift = 0.f;
+	// Réveil : hauteur du sol sous Jira (journal EON_WAKE). Jira reste au sol dans la cuve et en sort à pied (Vincent 16/11).
 	float WakeGroundZ = 0.f;
-	// Contrainte de plan de Jira coupée pendant sa sortie de cuve (sinon elle ne retombe pas des 130 cm), remise au sol.
-	bool bWakePlaneOff = false;
-	bool bWakePlaneWas = false;
 	FEONTileGrid KiboGrid;
 	UPROPERTY(Transient) TArray<TObjectPtr<AActor>> KiboActors;
 	UPROPERTY(Transient) TObjectPtr<class AEONWakePod> JiraPod;

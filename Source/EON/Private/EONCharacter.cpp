@@ -64,8 +64,7 @@ AEONCharacter::AEONCharacter(const FObjectInitializer& ObjectInitializer)
 	Move->MaxAcceleration = 100000.f;
 	Move->BrakingDecelerationWalking = 100000.f;
 	Move->GroundFriction = 8.f;
-	Move->bConstrainToPlane = true;
-	Move->SetPlaneConstraintNormal(FVector::UpVector);
+	// Pas de contrainte de plan : la gravité tient Jira au sol (les trous des salles ont un sol invisible au même niveau).
 
 	// Jira en 3D riggée sur le squelette du mannequin UEFN (Saved/Scripts/blender_jira_uefn.py) : locomotion =
 	// Animation Blueprint du Game Animation Sample 5.8 (SandboxCharacter_CMC_ABP), alimenté par BP_Jira
@@ -94,9 +93,7 @@ AEONCharacter::AEONCharacter(const FObjectInitializer& ObjectInitializer)
 void AEONCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	// Pose au sol : la contrainte de plan interdit toute vitesse verticale, un départ en l'air restait en chute
-	// sans jamais atterrir (Jira bloquée dans le HUB, 15/11). Hors étage en tuiles (HUB : sol à marches),
-	// pas de contrainte : Jira suit le sol.
+	// Pose au sol au départ : Jira ne commence jamais en l'air.
 	{
 		FHitResult Hit;
 		FCollisionQueryParams Q(SCENE_QUERY_STAT(EONSpawnGround), true, this);
@@ -106,7 +103,6 @@ void AEONCharacter::BeginPlay()
 			SetActorLocation(Hit.ImpactPoint + FVector(0.f, 0.f, GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 2.f), false, nullptr, ETeleportType::TeleportPhysics);
 			UE_LOG(LogEON, Display, TEXT("EON_SPAWN sol sur %s à Z=%.0f (départ %s)"), *GetNameSafe(Hit.GetActor()), Hit.ImpactPoint.Z, *P.ToCompactString());
 		}
-		if (!AEONFloorManager::Get(this)) { GetCharacterMovement()->SetPlaneConstraintEnabled(false); }
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	}
 	// BP_Jira a pu garder l'ancien maillage / AnimBP dans ses propriétés sauvegardées.
@@ -327,9 +323,30 @@ void AEONCharacter::SetGreffe(FName NewGreffeId)
 
 // ---------------------------------------------------------------- Tick
 
+void AEONCharacter::KeepOnGround()
+{
+	// Jira toujours en contact avec le sol : chute, vol ou nage -> reposée sur le sol sous ses pieds (jusqu'à 2 m plus bas),
+	// en marche. Sans sol à portée (vrai vide), la gravité la tire vers le bas. Figée (MOVE_None : C.O.M, réveil) : rien.
+	UCharacterMovementComponent* M = GetCharacterMovement();
+	const EMovementMode Mo = M->MovementMode;
+	if (Mo != MOVE_Falling && Mo != MOVE_Flying && Mo != MOVE_Swimming) { return; }
+	const float HalfH = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	const FVector P = GetActorLocation();
+	FHitResult Hit;
+	FCollisionQueryParams Q(SCENE_QUERY_STAT(EONKeepOnGround), false, this);
+	if (GetWorld()->LineTraceSingleByChannel(Hit, P, P - FVector(0.f, 0.f, HalfH + 200.f), ECC_WorldStatic, Q) && Hit.ImpactNormal.Z > 0.7f)
+	{
+		SetActorLocation(FVector(P.X, P.Y, Hit.ImpactPoint.Z + HalfH + 2.f), false, nullptr, ETeleportType::TeleportPhysics);
+		M->Velocity.Z = 0.f;
+		M->SetMovementMode(MOVE_Walking);
+	}
+	else if (Mo != MOVE_Falling) { M->SetMovementMode(MOVE_Falling); }
+}
+
 void AEONCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	KeepOnGround();
 
 	const UEONTuningSubsystem* Tuning = UEONTuningSubsystem::Get(this);
 	const FEONGameFeelRow Feel = Tuning ? Tuning->GetGameFeel() : FEONGameFeelRow();
@@ -376,7 +393,6 @@ void AEONCharacter::Tick(float DeltaSeconds)
 				UE_LOG(LogEON, Display, TEXT("EON_DEMO sol trouvé sur %s à Z=%.0f"), *GetNameSafe(Hit.GetActor()), Z);
 			}
 			SetActorLocation(FVector(C.X, C.Y, Z + GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 2.f), false, nullptr, ETeleportType::TeleportPhysics);
-			GetCharacterMovement()->SetPlaneConstraintEnabled(false);   // démo : Jira suit les marches de la COM
 			GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 		}
 		DemoTime += Dt;
@@ -464,6 +480,9 @@ void AEONCharacter::Tick(float DeltaSeconds)
 		return;
 	}
 	CooldownTimer -= Dt;
+
+	// --- Sortie de cuve : marche scriptée, l'entrée du joueur est ignorée.
+	if (WalkOutT > 0.f) { WalkOutT -= Dt; RawMove = WalkOutT > 0.f ? WalkOutDir : FVector2D::ZeroVector; }
 
 	// --- Course (façon Hades) : maintenir le bouton du dash plus de 0,2 s en se déplaçant.
 	HoldTimer = (bDashHeld && DashRemaining <= 0.f && !bFallingIntoVoid) ? HoldTimer + Dt : 0.f;
