@@ -344,13 +344,34 @@ void AEONCharacter::VoidRespawn()
 {
 	const FEONGameFeelRow Feel = UEONStatics::GetGameFeel(this);
 	bFallingIntoVoid = false;
-	SetActorLocation(bHasSafeLocation ? SafeLocation : LastGroundPos, false, nullptr, ETeleportType::TeleportPhysics);
+	// Retour sur le sol le plus proche de l'endroit de la chute (Vincent 16/11) : centre de tuile dont les 9 points
+	// SAFEPTS sont sur du sol, le plus proche de Jira. Hors salle en tuiles : dernier point sûr.
+	FVector Dest = bHasSafeLocation ? SafeLocation : LastGroundPos;
+	if (const AEONTileRoom* Room = AEONTileRoom::FindTileRoomAt(this, LastGroundPos))
+	{
+		static const FVector2D SafePts[9] = { {6, 0}, {-6, 0}, {0, 6}, {0, -6}, {4, 4}, {-4, 4}, {4, -4}, {-4, -4}, {0, 0} };
+		const FVector2D F = Room->WorldToRoomPx(GetActorLocation());
+		const FEONTileGrid& G = Room->GetGrid();
+		float Best = TNumericLimits<float>::Max();
+		FVector2D BestPx;
+		for (int32 Y = 0; Y < G.H; ++Y) for (int32 X = 0; X < G.W; ++X)
+		{
+			const FVector2D C((X + 0.5f) * 16.f, (Y + 0.5f) * 16.f);
+			const float D = FVector2D::DistSquared(C, F);
+			if (D >= Best) { continue; }
+			bool bOk = true;
+			for (const FVector2D& O : SafePts) { if (Room->PitAtPx(C + O) || Room->SolidAtPx(C + O)) { bOk = false; break; } }
+			if (bOk) { Best = D; BestPx = C; }
+		}
+		if (Best < TNumericLimits<float>::Max()) { Dest = Room->RoomPxToWorld(BestPx, GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 2.f); }
+	}
+	SetActorLocation(Dest, false, nullptr, ETeleportType::TeleportPhysics);
 	GetCharacterMovement()->StopMovementImmediately();
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	InvTimer = 1.2f;
 	// Retour au bord : 14 éclats cyan (50 px/s), 0,4 s.
 	EONFx::Gerbe(this, JiraFeetUp(this, 3.f), 14, EONFx::Hex(TEXT("3ef2e0")), 50.f, 0.4f);
-	UE_LOG(LogEON, Display, TEXT("EON kill zone : Jira revient en %s (chute %d)"), *GetActorLocation().ToCompactString(), FallCount);
+	// Chaque chute hors du sol coûte 1 PV (FallDmg du proto, 1 par défaut).
 	if (!Feel.God && Feel.FallDmg > 0.f)
 	{
 		HP -= FMath::RoundToInt(Feel.FallDmg);
@@ -358,6 +379,7 @@ void AEONCharacter::VoidRespawn()
 		if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.4f); }
 		CheckDeath();
 	}
+	UE_LOG(LogEON, Display, TEXT("EON kill zone : Jira revient en %s (chute %d, PV %d/%d)"), *GetActorLocation().ToCompactString(), FallCount, HP, MaxHP);
 }
 
 void AEONCharacter::Tick(float DeltaSeconds)

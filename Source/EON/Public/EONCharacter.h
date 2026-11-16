@@ -236,7 +236,7 @@ private:
 	float WalkOutT = 0.f;
 	/** Jira toujours au sol : jamais de chute, de vol ni de nage hors du vide (Vincent 16/11). */
 	void KeepOnGround();
-	/** Kill zone franchie : retour au dernier point sûr, −FallDmg PV, 1,2 s d'invulnérabilité (conséquence de la chute du proto). */
+	/** Kill zone franchie : retour sur le sol le plus proche, −FallDmg PV, 1,2 s d'invulnérabilité (conséquence de la chute du proto). */
 	void VoidRespawn();
 	bool bRunning = false;
 	float HoldTimer = 0.f;
