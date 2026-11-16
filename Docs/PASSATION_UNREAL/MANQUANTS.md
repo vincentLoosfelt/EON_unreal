@@ -196,6 +196,8 @@ Fait : ADN aspiré et barre de niveau, écran de niveau à 3 cartes (jeu en paus
 - Les salles dessinées sont des Blueprints enfants d'EONTileRoom, rangés dans /Game/EON/Salles (17 au départ, tirés du générateur du proto ; le Marchand est redessiné à la main). Le générateur d'étage prend un Blueprint qui correspond au rôle (RoomRole ou ExtraRoles) et à la forme (Shape). Sinon, il génère la salle. Weight = 0 retire une salle du tirage.
 - Le plan se dessine dans le champ Layout : # mur, . sol, _ vide, = fossé, X caisse, K cuve. Les portes sont posées automatiquement au milieu des côtés. Aperçu immédiat dans le viewport du Blueprint. Bouton « Plan Depuis Generateur » pour repartir d'une salle du proto. Le décor posé à la main dans le Blueprint (meshes) apparaît en jeu, mais il n'a pas de collision de gameplay : ce sont les tuiles qui comptent.
 - Pas encore de cadre de porte du HUB : les meshes porte et walldooreno sont importés retournés.
+- 16/11, vu par Vincent : les façades WallA320 des salles étaient retournées (face travaillée vers l'extérieur). Corrigé dans `AEONTileRoom::BuildHubWalls`.
+- 16/11, écart au proto voulu par Vincent : les salles de combat générées n'ont plus de piliers 2×2 au milieu (variantes « pillars » et piliers de « mix » retirées de `EONTileGrid.cpp`). Les salles en Blueprint gardent leur plan tel quel.
 
 ## Menus de test F6 (Tweak) et F7 (Triche) — 15/11
 

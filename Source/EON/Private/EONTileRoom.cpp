@@ -326,7 +326,8 @@ void AEONTileRoom::BuildHubWalls(const FVector& Origin)
 		UMaterialInterface* M = Slots[I].MaterialSlotName == FName(TEXT("light")) ? HubWallLightMaterial.Get() : HubWallMaterial.Get();
 		HubWallISM->SetMaterial(I, M ? M : HubWallMesh->GetMaterial(I));
 	}
-	// Module du HUB : largeur en X, épaisseur en Y, face peinte vers -Y local (vérifié en jeu).
+	// Module du HUB : largeur en X, épaisseur en Y, face travaillée (piliers, panneaux, lignes lumineuses) vers +Y local.
+	// Elle doit regarder la salle (avant le 16/11 elle regardait dehors : murs retournés, vu par Vincent).
 	const FBox Bx = HubWallMesh->GetBoundingBox();
 	const FVector Sz = Bx.GetSize();
 	if (Sz.X < 1.f || Sz.Y < 1.f || Sz.Z < 1.f) { return; }
@@ -335,7 +336,7 @@ void AEONTileRoom::BuildHubWalls(const FVector& Origin)
 	auto Open = [&](int32 X, int32 Y) { const EEONTile V = Grid.Get(X, Y); return Grid.IsValidTile(X, Y) && V != EEONTile::Wall && V != EEONTile::Door; };
 	struct FFace { FIntPoint F; FIntPoint A; float Yaw; };
 	// F : vers la salle ; A : sens de la rangée de murs ; Yaw : +Y local tourné vers F.
-	const FFace Faces[4] = { { FIntPoint(0, 1), FIntPoint(1, 0), 180.f }, { FIntPoint(0, -1), FIntPoint(1, 0), 0.f }, { FIntPoint(1, 0), FIntPoint(0, 1), 90.f }, { FIntPoint(-1, 0), FIntPoint(0, 1), -90.f } };
+	const FFace Faces[4] = { { FIntPoint(0, 1), FIntPoint(1, 0), 0.f }, { FIntPoint(0, -1), FIntPoint(1, 0), 180.f }, { FIntPoint(1, 0), FIntPoint(0, 1), -90.f }, { FIntPoint(-1, 0), FIntPoint(0, 1), 90.f } };
 	const float Sy = T / Sz.Y;
 	for (const FFace& Fc : Faces)
 	{
@@ -364,7 +365,8 @@ void AEONTileRoom::BuildHubWalls(const FVector& Origin)
 				const FVector Fv(Fc.F.X, Fc.F.Y, 0.f), Av(Fc.A.X, Fc.A.Y, 0.f);
 				const FVector Edge0 = Tile0 + Fv * (T * 0.5f - Recess) - Av * (T * 0.5f) + Av * (S0 * T);
 				const FRotator Rot(0.f, Fc.Yaw, 0.f);
-				const FVector Anchor((Bx.Min.X + Bx.Max.X) * 0.5f * Sx, Bx.Min.Y * Sy, Bx.Min.Z * Sz2);
+				// Face travaillée (+Y local, Max.Y) au bord de la tuile ; l'épaisseur part dans la tuile de mur.
+				const FVector Anchor((Bx.Min.X + Bx.Max.X) * 0.5f * Sx, Bx.Max.Y * Sy, Bx.Min.Z * Sz2);
 				for (int32 I = 0; I < N; ++I)
 				{
 					const FVector Tg = Edge0 + Av * ((I + 0.5f) * Wm);

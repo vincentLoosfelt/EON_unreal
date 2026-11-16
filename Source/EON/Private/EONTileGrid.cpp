@@ -1,4 +1,4 @@
-﻿// EON — génération des salles en tuiles. Portage ligne à ligne de genTiles / comTiles / buildTraining (proto v0.60.1).
+// EON — génération des salles en tuiles. Portage ligne à ligne de genTiles / comTiles / buildTraining (proto v0.60.1).
 #include "EONTileGrid.h"
 
 namespace
@@ -203,12 +203,9 @@ FEONTileGrid FEONTileGrid::GenTiles(FName RoleIn, FName Shape, uint8 Doors, FRan
 		}
 		else if (Role == TEXT("COMBAT"))
 		{
-			const FString O = Pick<const TCHAR*>(Rng, { TEXT("pillars"), TEXT("holes"), TEXT("centre"), TEXT("crates"), TEXT("mix") });
+			// Écart au proto (Vincent, 16/11) : plus de piliers 2×2 (« pillars », et ceux de « mix ») au milieu des salles de combat.
+			const FString O = Pick<const TCHAR*>(Rng, { TEXT("holes"), TEXT("centre"), TEXT("crates"), TEXT("mix") });
 			AddFeat(O);
-			if (O == TEXT("pillars") || O == TEXT("mix"))
-			{
-				for (int32 K = O == TEXT("mix") ? 2 : R(Rng, 2, 4) + (Shape == TEXT("large") ? 2 : 0); K > 0; --K) { B.Rect(R(Rng, 3, W - 5), R(Rng, 3, H - 5), 2, 2, ET::Wall); }
-			}
 			if (O == TEXT("holes") || O == TEXT("mix"))
 			{
 				for (int32 K = O == TEXT("mix") ? 2 : R(Rng, 2, 4); K > 0; --K) { B.Rect(R(Rng, 3, W - 5), R(Rng, 3, H - 5), R(Rng, 1, 3), R(Rng, 1, 2), ET::Pit); }
