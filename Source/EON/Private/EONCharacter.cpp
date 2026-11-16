@@ -467,7 +467,7 @@ void AEONCharacter::Tick(float DeltaSeconds)
 
 	// --- Course (façon Hades) : maintenir le bouton du dash plus de 0,2 s en se déplaçant.
 	HoldTimer = (bDashHeld && DashRemaining <= 0.f && !bFallingIntoVoid) ? HoldTimer + Dt : 0.f;
-	bRunning = HoldTimer > RunHoldTime && DashRemaining <= 0.f && RawMove.Size() > 0.2f;
+	bRunning = (HoldTimer > RunHoldTime || (bSprintHeld && !bFallingIntoVoid)) && DashRemaining <= 0.f && RawMove.Size() > 0.2f;
 	// Poussière de course : un grain toutes les 0,07 s derrière les pieds (0,35 s, sans frein).
 	RunFxT -= Dt;
 	if (bRunning && RunFxT <= 0.f)

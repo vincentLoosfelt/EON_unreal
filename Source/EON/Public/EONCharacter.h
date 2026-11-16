@@ -48,6 +48,8 @@ public:
 	/** Bouton de dash maintenu : au-delà de 0,2 s en mouvement, Jira court. */
 	UFUNCTION(BlueprintCallable, Category = "EON|Jira")
 	void SetDashHeld(bool bHeld) { bDashHeld = bHeld; }
+	/** Maj (accélération) : course tout de suite, sans dash (Vincent, 16/11). */
+	void SetSprintHeld(bool bHeld) { bSprintHeld = bHeld; }
 
 	/** Appui sur le bouton de dash. */
 	UFUNCTION(BlueprintCallable, Category = "EON|Jira")
@@ -227,6 +229,7 @@ private:
 	UPROPERTY(Transient)
 	TSubclassOf<UAnimInstance> LocoAnimClass;
 	bool bDashHeld = false;
+	bool bSprintHeld = false;
 	bool bRunning = false;
 	float HoldTimer = 0.f;
 
