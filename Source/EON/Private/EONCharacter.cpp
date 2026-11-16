@@ -1,5 +1,6 @@
-﻿#include "EONCharacter.h"
+#include "EONCharacter.h"
 #include "EONSfx.h"
+#include "EONFx.h"
 #include "GameFramework/PlayerStart.h"
 #include "EONPedestal.h"
 #include "EON.h"
@@ -29,6 +30,12 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "HAL/IConsoleManager.h"
+
+/** Point au-dessus des pieds de Jira (px du proto : « P.y - n »). */
+static FVector JiraFeetUp(const AEONCharacter* C, float Px)
+{
+	return C->GetActorLocation() - FVector(0.f, 0.f, C->GetSimpleCollisionHalfHeight() - EON::PxToCm(Px));
+}
 
 // Démo de locomotion pour les captures vidéo : Jira posée au centre de la COM, parcours automatique
 // (idle, cercle en marchant, cercle en courant, allers-retours) en boucle de 16 s. 0 = jeu normal.
@@ -214,6 +221,8 @@ void AEONCharacter::HurtPlayer(int32 Amount, FVector SourceWorld)
 		}
 		if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.25f); }
 		if (AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld())) { D->AddNum(GetActorLocation() + FVector(0.f, 0.f, 120.f), TEXT("Bouclier"), FColor(62, 242, 224), 0.8f, -30.f); }
+		// Bouclier qui encaisse : 20 éclats cyan (90 px/s), 0,35 s.
+		EONFx::Gerbe(this, JiraFeetUp(this, 4.f), 20, EONFx::Hex(TEXT("3ef2e0")), 90.f, 0.35f);
 		return;
 	}
 	// Armure de mutation : armBlock (20 %) × niveau de chances de bloquer.
@@ -222,6 +231,8 @@ void AEONCharacter::HurtPlayer(int32 Amount, FVector SourceWorld)
 		InvTimer = 0.5f;
 		if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.15f); }
 		if (AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld())) { D->AddNum(GetActorLocation() + FVector(0.f, 0.f, 120.f), TEXT("Bloque"), FColor(224, 90, 138), 0.8f, -30.f); }
+		// Armure qui bloque : 12 éclats rose et blanc (80 px/s), 0,3 s.
+		EONFx::Gerbe2(this, JiraFeetUp(this, 10.f), 12, 2, EONFx::Hex(TEXT("e05a8a")), FLinearColor::White, 80.f, 0.3f);
 		return;
 	}
 	// Mutation (stade 1 ou plus) : les coups reçus font double dégât.
@@ -440,6 +451,8 @@ void AEONCharacter::Tick(float DeltaSeconds)
 			SetActorLocation(bHasSafeLocation ? SafeLocation : FallStart, false, nullptr, ETeleportType::TeleportPhysics);
 			GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 			InvTimer = 1.2f;
+			// Retour au bord : 14 éclats cyan (50 px/s), 0,4 s.
+			EONFx::Gerbe(this, JiraFeetUp(this, 3.f), 14, EONFx::Hex(TEXT("3ef2e0")), 50.f, 0.4f);
 			if (!Feel.God && Feel.FallDmg > 0.f)
 			{
 				HP -= FMath::RoundToInt(Feel.FallDmg);
@@ -455,6 +468,14 @@ void AEONCharacter::Tick(float DeltaSeconds)
 	// --- Course (façon Hades) : maintenir le bouton du dash plus de 0,2 s en se déplaçant.
 	HoldTimer = (bDashHeld && DashRemaining <= 0.f && !bFallingIntoVoid) ? HoldTimer + Dt : 0.f;
 	bRunning = HoldTimer > RunHoldTime && DashRemaining <= 0.f && RawMove.Size() > 0.2f;
+	// Poussière de course : un grain toutes les 0,07 s derrière les pieds (0,35 s, sans frein).
+	RunFxT -= Dt;
+	if (bRunning && RunFxT <= 0.f)
+	{
+		RunFxT = 0.07f;
+		const FVector V = GetVelocity().GetSafeNormal2D();
+		EONFx::Gerbe(this, JiraFeetUp(this, 0.f) - V * 15.f, 1, EONFx::Hex(TEXT("8a84b8")), 20.f, 0.35f, 1.f, 0.f);
+	}
 
 	// --- Visée : en course, Jira regarde où elle court ; sinon aide à la visée.
 	float A = RawAimAngle;
@@ -570,7 +591,8 @@ void AEONCharacter::PressDash()
 	HoldTimer = 0.f;
 
 	if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.06f); }
-	// Traînée de fantômes et poussière : pas encore (MANQUANTS.md §7).
+	// Poussière du dash : 8 grains gris-violet vers l'arrière (-d × 60 px/s ± 20), 0,3 s. Traînée de fantômes : pas encore (MANQUANTS.md §7).
+	EONFx::GerbeDir(this, JiraFeetUp(this, 1.f), -DashDir, 8, EONFx::Hex(TEXT("8a84b8")), 80.f, 0.3f);
 }
 
 // ---------------------------------------------------------------- Visée
@@ -1005,6 +1027,9 @@ void AEONCharacter::UpdateMutation(float Dt, const FEONGameFeelRow& Feel)
 	{
 		const bool bUp = Lv > ShownArmor;
 		ShownArmor = Lv;
+		// Montée : 34 éclats prune et rose (40 à 130 px/s, 2 px) ; descente : 16 grains sombres (20 à 60 px/s). 0,5 s.
+		if (bUp) { EONFx::Gerbe2(this, JiraFeetUp(this, 10.f), 34, 3, EONFx::Hex(TEXT("a03a64")), EONFx::Hex(TEXT("e05a8a")), 130.f, 0.5f, 2.f, 4.f, 6.f); }
+		else { EONFx::Gerbe(this, JiraFeetUp(this, 10.f), 16, EONFx::Hex(TEXT("3a3850")), 60.f, 0.5f, 1.f, 4.f, 6.f); }
 		if (bUp)
 		{
 			if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.3f); }
@@ -1107,6 +1132,8 @@ void AEONCharacter::DoBeam(float A, float Ratio, const FEONGreffeRow& G, const F
 	const FVector From = GetMuzzleLocation(A);
 	const FVector To = From + FVector(D.X, D.Y, 0.f) * EON::PxToCm(Len);
 	DrawDebugLine(GetWorld(), From, To, G.Col.ToFColor(true), false, 0.14f, 0, EON::PxToCm(W));
+	// Au bout du rayon : 10 éclats couleur de la greffe (±60 px/s), 0,3 s.
+	EONFx::Gerbe(this, To, 10, G.Col, 85.f, 0.3f);
 	EONSfx::Play(this, TEXT("SFX_Jira_Laser"), 0.5f + 0.4f * Ratio, 0, 0.04f);
 	OnShot(G, Feel, G.Kick * (0.5f + Ratio * 0.5f));
 	if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.15f * Ratio); }
@@ -1177,6 +1204,8 @@ void AEONCharacter::DoLash(float A, const FEONGreffeRow& G, const FEONGameFeelRo
 	}
 	const FVector From = GetMuzzleLocation(A);
 	DrawDebugLine(GetWorld(), From, From + FVector(D.X, D.Y, 0.f) * EON::PxToCm(Len), G.Col.ToFColor(true), false, 0.18f, 0, 8.f);
+	// Au bout du fouet : 6 éclats, couleur de la greffe et lilas (±45 px/s), 0,25 s.
+	EONFx::Gerbe2(this, From + FVector(D.X, D.Y, 0.f) * EON::PxToCm(Len), 6, 2, G.Col, EONFx::Hex(TEXT("d8d4f0")), 64.f, 0.25f);
 	OnShot(G, Feel);
 	Spend(G.Cost * Feel.EnergyCost);
 	if (Hits) { if (UEONTuningSubsystem* Tun = UEONTuningSubsystem::Get(this)) { Tun->RequestHitstop(Feel.Hitstop * 0.35f); } }
@@ -1200,11 +1229,11 @@ void AEONCharacter::Shockwave(float RPx, float Dmg, float Kn, bool bBig)
 			Dir->ClearBullets([C, RPx](const FVector2D& B) { return FVector2D::Distance(B, C) < RPx; });
 		}
 	}
-	// Anneau (placeholder : cercle de débogage)
-	const FVector C3 = GetActorLocation() - FVector(0.f, 0.f, GetSimpleCollisionHalfHeight() - 20.f);
-	DrawDebugCircle(GetWorld(), C3, EON::PxToCm(RPx), 48, ColMg, false, bBig ? 0.3f : 0.18f, 0, bBig ? 10.f : 5.f, FVector(1, 0, 0), FVector(0, 1, 0), false);
+	// Anneau magenta du rayon de l'onde (0,3 s pour la grande, 0,18 s sinon) ; la grande projette 24 éclats en couronne (180 px/s, 0,25 s, frein 6).
+	EONFx::Anneau(this, JiraFeetUp(this, 0.f), RPx, bBig ? 0.3f : 0.18f, EONFx::Hex(TEXT("ff3d8b")));
 	if (bBig)
 	{
+		EONFx::Gerbe2(this, JiraFeetUp(this, 8.f), 24, 2, EONFx::Hex(TEXT("ff3d8b")), FLinearColor::White, 180.f, 0.25f, 1.f, 6.f, 8.f);
 		const FEONGameFeelRow F = UEONStatics::GetGameFeel(this);
 		if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.25f); }
 		if (UEONTuningSubsystem* Tun = UEONTuningSubsystem::Get(this)) { Tun->RequestHitstop(F.Hitstop * 0.5f); }
@@ -1219,6 +1248,8 @@ void AEONCharacter::CastHolo()
 	DecoyT = 5.f;
 	DecoyHp = 8.f;
 	Spend(28.f);
+	// Apparition de l'hologramme : 16 éclats cyan (±30 px/s), 0,4 s, frein 3.
+	EONFx::Gerbe(this, JiraFeetUp(this, 10.f), 16, EONFx::Hex(TEXT("3ef2e0")), 42.f, 0.4f, 1.f, 3.f);
 	HoloCd = 7.f * CdM;
 }
 
@@ -1264,7 +1295,12 @@ void AEONCharacter::UpdateSpells(float Dt, const FEONGameFeelRow& Feel)
 	if (DecoyT > 0.f)
 	{
 		DecoyT -= Dt;
-		if (DecoyT <= 0.f || DecoyHp <= 0.f) { DecoyT = 0.f; }
+		if (DecoyT <= 0.f || DecoyHp <= 0.f)
+		{
+			DecoyT = 0.f;
+			// Fin de l'hologramme : 22 éclats cyan et blanc (±45 px/s), 0,4 s, frein 3.
+			EONFx::Gerbe2(this, DecoyLoc, 22, 2, EONFx::Hex(TEXT("3ef2e0")), FLinearColor::White, 64.f, 0.4f, 1.f, 3.f);
+		}
 		else if (FMath::Fmod(WorldTime * 20.f, 2.f) < 1.4f)
 		{
 			DrawDebugCapsule(GetWorld(), DecoyLoc, GetSimpleCollisionHalfHeight(), EON::PxToCm(6.f), FQuat::Identity, ColCy, false, -1.f, 0, 3.f);
@@ -1282,6 +1318,8 @@ void AEONCharacter::UpdateSpells(float Dt, const FEONGameFeelRow& Feel)
 		if (!E || E->IsDead()) { continue; }
 		const FVector At = E->GetActorLocation();
 		DrawDebugLine(GetWorld(), At + FVector(0.f, 0.f, 3000.f), At, ColCy, false, 0.25f, 0, 40.f);
+		// Impact du rayon : 26 éclats cyan et blanc (40 à 190 px/s, 0,5 s, 1 sur 4 de 2 px).
+		EONFx::Gerbe2(this, At + FVector(0.f, 0.f, EON::PxToCm(E->Ehh() * 0.5f)), 26, 3, EONFx::Hex(TEXT("3ef2e0")), FLinearColor::White, 190.f, 0.5f, 1.25f, 4.f);
 		EONSfx::Play(this, TEXT("SFX_Jira_Ultime_Rayon"), 0.7f, 0, 0.08f);
 		E->HitPx(E->IsBoss() ? 30.f : 14.f, 0.f, 1.f, 2.5f);
 		if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.35f); }
@@ -1398,6 +1436,8 @@ void AEONCharacter::TakeItem(FName Id)
 	// k_* (Griffe) : greffe du Cobaye, perso non jouable pour l'instant (jalon 8).
 	Items.Add(Id);
 	Banner(It->Name, EONItems::Color(It->Rar).ToFColor(true));
+	// Objet pris : 30 éclats couleur de la rareté (±80 px/s, 2 px), 0,6 s.
+	EONFx::Gerbe(this, JiraFeetUp(this, 4.f), 30, EONItems::Color(It->Rar), 113.f, 0.6f, 2.f);
 	UE_LOG(LogEON, Display, TEXT("EON objet pris : %s (%s)"), *It->Name, *Id.ToString());
 }
 

@@ -1,5 +1,6 @@
 ﻿#include "EONFloorManager.h"
 #include "EON.h"
+#include "EONFx.h"
 #include "EONCharacter.h"
 #include "EONTileRoom.h"
 #include "EONCombatDirector.h"
@@ -1420,6 +1421,8 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 	{
 		CM->bCardTaken = true;
 		bRedCard = true;
+		// Carte prise : 30 éclats rouges et blancs (120 px/s, 2 px), 0,5 s.
+		EONFx::Gerbe2(this, Room->RoomPxToWorld(P, EON::PxToCm(4.f)), 30, 2, EONFx::Hex(TEXT("ff3d55")), FLinearColor::White, 120.f, 0.5f, 2.f);
 		Room->SetRedDoor(0);
 		if (CardMesh) { CardMesh->SetVisibility(false); }
 	if (ConfMesh) { ConfMesh->SetVisibility(false); }
@@ -1675,6 +1678,12 @@ void AEONFloorManager::OnPedestalTaken(AEONPedestal* P, bool bPaid)
 {
 	FEONFloorCell* C = CellAt(Cur);
 	if (!C || !P) { return; }
+	if (Room)
+	{
+		// Achat : 10 éclats ambre sur le socle ; prise d'un objet gratuit : 10 éclats gris-violet sur chaque socle (±40 px/s, 0,4 s).
+		if (bPaid) { EONFx::Gerbe(this, Room->RoomPxToWorld(P->Px, EON::PxToCm(4.f)), 10, EONFx::Hex(TEXT("ffc23d")), 57.f, 0.4f); }
+		else { for (const FVector2D& Q : C->PedPx) { EONFx::Gerbe(this, Room->RoomPxToWorld(Q, EON::PxToCm(4.f)), 10, EONFx::Hex(TEXT("8f8abd")), 57.f, 0.4f); } }
+	}
 	if (!bPaid) { C->PedItems.Reset(); C->PedPrice.Reset(); C->PedPx.Reset(); return; }
 	// Chez le marchand : seul le socle acheté disparaît (repéré par sa position).
 	for (int32 I = 0; I < C->PedPx.Num(); ++I)
@@ -2001,6 +2010,8 @@ void AEONFloorManager::RiftOpen(FEONFloorCell& C, int32 N)
 	Room->SetInfest(C.Infest, C.InfestK);
 	if (AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld())) { D->Shake(0.6f); }
 	EONSfx::Play(this, TEXT("SFX_Proto_explode"), 0.9f);
+	// Brèche : 40 éclats cyan et blancs répartis sur ±30 px autour de la paroi (120 px/s), 0,5 s.
+	EONFx::Gerbe2(this, Room->RoomPxToWorld(C.RiftPx, EON::PxToCm(4.f)), 40, 3, EONFx::Hex(TEXT("3ef2e0")), FLinearColor::White, 120.f, 0.5f, 1.25f, 4.f, 30.f);
 }
 
 void AEONFloorManager::TickRift(float Dt, AEONCharacter* J, const FVector2D& P, FEONFloorCell& C)
@@ -2076,6 +2087,8 @@ void AEONFloorManager::TickRift(float Dt, AEONCharacter* J, const FVector2D& P, 
 		bConfOn = false;
 		if (ConfMesh) { ConfMesh->SetVisibility(false); }
 		EONSfx::Play(this, TEXT("SFX_Proto_door"), 0.8f);
+		// Paroi confinée : 30 éclats cyan sur le confineur (100 px/s), 0,5 s.
+		EONFx::Gerbe(this, Room->RoomPxToWorld(C.ConfPx, 50.f), 30, EONFx::Hex(TEXT("3ef2e0")), 100.f, 0.5f);
 		if (Dir) { Dir->Shake(0.3f); }
 		ShowBanner(TEXT("Paroi confinee"), FLinearColor(FColor(138, 240, 122)));
 	}
@@ -2498,6 +2511,8 @@ void AEONFloorManager::TickEvent(float Dt, AEONCharacter* J, const FVector2D& P,
 					Room->SetLocked(true);
 					EONSfx::Play(this, TEXT("SFX_Proto_roar"), 0.9f);
 					Dd->Shake(0.6f);
+					// Mutation : 30 éclats rose pâle et brun (40 à 180 px/s, 2 px), 0,5 s.
+					EONFx::Gerbe2(this, Room->RoomPxToWorld(EvtNpcPx(*Cc), EON::PxToCm(6.f)), 30, 2, EONFx::Hex(TEXT("ffb0c0")), EONFx::Hex(TEXT("7a3a30")), 180.f, 0.5f, 2.f);
 					if (AEONNpc* Np = EvtNpc.Get()) { Np->Destroy(); EvtNpc = nullptr; }
 					if (AEONEnemy* E = Dd->SpawnEnemyAt(TEXT("brainless"), EvtNpcPx(*Cc) + FVector2D(0.f, 10.f), true))
 					{

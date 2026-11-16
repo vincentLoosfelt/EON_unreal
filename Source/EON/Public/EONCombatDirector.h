@@ -1,4 +1,4 @@
-﻿// EON — directeur de combat (jalon 3). Tient ce que le proto garde en global pour la salle courante :
+// EON — directeur de combat (jalon 3). Tient ce que le proto garde en global pour la salle courante :
 // enemies, spawns, ebullets, eggs, nums, et l'état de vague de la salle (waves, wave, startT, cleared).
 // Portage de spawnWave, walkableTiles, la section « vagues » de update(), killEnemy, aoe, et la relance de drawDead.
 //
@@ -57,7 +57,7 @@ public:
 	/** Ajoute un ennemi déjà créé à la salle courante (le gardien). */
 	void AddEnemy(AEONEnemy* E) { if (E) { Enemies.Add(E); } }
 	/** aoe(x, y, R, dmg, hurtsPlayer) du proto, en px salle. */
-	void Aoe(const FVector2D& At, float RPx, float Dmg, bool bHurtsPlayer);
+	void Aoe(const FVector2D& At, float RPx, float Dmg, bool bHurtsPlayer, const FLinearColor& Col);
 	/** ebullets.push : ScreenPx = position du proto (y déjà remontée de HeightPx). */
 	void FireEnemyBullet(const FVector2D& ScreenPx, const FVector2D& VelPx, float Life, bool bBig, float HeightPx);
 	void LayEgg(const FVector2D& FromScreenPx, const FVector2D& ToPx);
@@ -172,7 +172,4 @@ private:
 	double DeadSince = -1.0;
 	int32 Falls0 = 0;
 	float Time = 0.f;
-	float AoeRingT = 0.f;
-	FVector AoeRingLoc = FVector::ZeroVector;
-	float AoeRingR = 0.f;
 };

@@ -1,4 +1,5 @@
 #include "EONProjectile.h"
+#include "EONFx.h"
 #include "EONTrainingDummy.h"
 #include "EONEnemy.h"
 #include "EONTypes.h"
@@ -104,18 +105,27 @@ void AEONProjectile::OnBounce(const FHitResult& Hit, const FVector& ImpactVeloci
 	{
 		// Ricochet : la vitesse réfléchie est gardée, à plat et à vitesse constante.
 		--BounceLeft;
+		// Ricochet : un point blanc immobile (0,15 s).
+		EONFx::Gerbe(this, GetActorLocation(), 1, FLinearColor::White, 0.f, 0.15f, 1.f, 0.f);
 		FVector V = Movement->Velocity; V.Z = 0.f;
 		ShotDir = V.GetSafeNormal2D();
 		Movement->Velocity = ShotDir * SpeedCm;
 		return;
 	}
 	++StatWalls;
+	WallSparks();
 	if (StatWalls <= 40)
 	{
 		UE_LOG(LogTemp, Display, TEXT("EON balle arretee par %s / %s en %s (z %.0f, n %s)"), A ? *A->GetName() : TEXT("-"),
 			Hit.GetComponent() ? *Hit.GetComponent()->GetName() : TEXT("-"), *Hit.ImpactPoint.ToCompactString(), GetActorLocation().Z, *Hit.ImpactNormal.ToCompactString());
 	}
 	Destroy();
+}
+
+void AEONProjectile::WallSparks()
+{
+	// Mort au mur : 4 éclats couleur du tir, renvoyés vers l'arrière (-v × 0,2 ± 35 px/s), 0,2 s.
+	EONFx::GerbeDir(this, GetActorLocation(), -ShotDir, 4, Color, EON::CmToPx(SpeedCm) * 0.2f + 35.f, 0.2f);
 }
 
 void AEONProjectile::OnStop(const FHitResult& Hit)
@@ -134,6 +144,7 @@ void AEONProjectile::OnStop(const FHitResult& Hit)
 	else
 	{
 		++StatWalls;
+		WallSparks();
 		if (StatWalls <= 25)
 		{
 			UE_LOG(LogTemp, Display, TEXT("EON balle arretee par %s / %s en %s (z depart %.0f)"), Hit.GetActor() ? *Hit.GetActor()->GetName() : TEXT("-"),

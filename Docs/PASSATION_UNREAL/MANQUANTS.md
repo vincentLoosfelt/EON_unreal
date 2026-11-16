@@ -1,4 +1,4 @@
-﻿# Manquants — liste vivante
+# Manquants — liste vivante
 
 **Ce fichier est tenu à jour par le Claude de Vincent.** Chaque placeholder posé dans Unreal y gagne une ligne. Chaque asset livré passe à ✅. C'est la liste que Sabri et les artistes suivent pour savoir quoi produire.
 
@@ -124,13 +124,13 @@ Voir la liste dans `07_ASSETS_3D.md`, section 5. Essais existants dans `BRISCARD
 | Chiffres de dégâts et « DPS » de la cible (J1) | 🔲 `DrawDebugString` : absent des builds Shipping. À remplacer par un widget. |
 | Douille éjectée et rebondissante | ❌ pas fait |
 | Réticule qui s'écarte au tir | ❌ pas fait |
-| Impact de balle (étincelles) et mort de balle au mur | ❌ pas fait |
-| Traînée de fantômes du dash, poussière de la course | ❌ pas fait |
+| Impact de balle (étincelles) et mort de balle au mur | ✅ Niagara (J10) : étincelles à l'impact, 4 éclats au mur, point blanc au ricochet |
+| Traînée de fantômes du dash, poussière de la course | 🔲 Poussière du dash et de la course en Niagara (J10) ; la traînée de fantômes n'est pas faite |
 | Dash : vide franchi | attend le jalon 2 |
 | Ennemis (J3) : sprites | 🔲 Sprite pixel du proto en billboard (`UEONSpriteComponent`), clignotement blanc par la teinte, élites agrandies × 1,45 sans teinte |
 | Ennemis (J3) : tirs et œufs | 🔲 Sphères `M_Flat` (magenta #ff3d8b, orange #e8923a, œuf vert #d8f06a) sans halo ni lumière |
-| Ennemis (J3) : télégraphes, barres de vie, nom d'élite, marqueurs d'apparition, anneau d'explosion, chiffres | 🔲 `DrawDebug*` : absents des builds Shipping. À remplacer par des decals / widgets |
-| Ennemis (J3) : trous dans le sprite (punchHole), éclats de mort, éclosion d'œuf, poussière d'apparition | ❌ pas fait |
+| Ennemis (J3) : télégraphes, barres de vie, nom d'élite, marqueurs d'apparition, chiffres | 🔲 `DrawDebug*` : absents des builds Shipping. À remplacer par des decals / widgets. L'anneau d'explosion est en Niagara (J10) |
+| Ennemis (J3) : trous dans le sprite (punchHole), éclats de mort, éclosion d'œuf, poussière d'apparition | 🔲 Éclats de mort, éclosion d'œuf, éclaboussure du punchHole en Niagara (J10). Les trous dans le sprite et la poussière d'apparition ne sont pas faits |
 | Ennemis (J3) : écran « Signal perdu », bilan | 🔲 Titre par `AEONHUD`, bilan en messages `GEngine` (pas en Shipping) |
 
 ## 8. Sons
@@ -164,7 +164,7 @@ Ce que le Claude de Vincent a remarqué en portant, à soumettre à Sabri. Ne ri
 - (J0, technique, pas de design) Les touches clavier sont liées par caractère et non par position physique : ZQSD et WASD sont liés tous les deux. Effet de bord : sur AZERTY, A va aussi à gauche, et sur QWERTY, Q aussi. Aucune action n'utilise A ni Q, donc sans conséquence en jeu.
 
 ## Jalons 4 et 5 (14/11) : écarts provisoires
-- Effets du jalon 4 (rayon Laser, arc de Lame, anneau de l'onde, frappes de l'ultime) : traits DrawDebug provisoires, à remplacer par des Niagara.
+- Effets du jalon 4 (rayon Laser, arc de Lame, anneau de l'onde, frappes de l'ultime) : l'anneau de l'onde et les éclats (bout du rayon, bout du fouet, impact de l'ultime) sont en Niagara depuis le jalon 10 ; le rayon, l'arc et le trait de l'ultime restent des traits DrawDebug provisoires.
 - Le corps de Jira ne change pas avec l'armure de mutation (le proto change le sprite).
 - LOCK_G du proto : toutes les greffes sont en main dès le départ (pas de déblocage).
 - Onibi : la perte de 6 PV au leurre non porté n'est pas faite.
@@ -284,7 +284,7 @@ Provisoire ou manquant :
   - Captures : `Docs/J9_faille_combat.png`, `J9_faille_breche.png`, `J9_faille_confinee.png` ; vidéo `Docs/J9_faille.mp4`.
 - **Faille, provisoire** :
   - console de confinement : un bloc de 0,9 × 0,9 × 1 m (éteint gris-bleu, puis cyan). Le proto a un sprite `console_faille` à 3 frames ; modèle 3D à produire ;
-  - la brèche est un trou noir dans le mur. Le proto ajoute une bande de danger rouge clignotante le long du mur, un courant d'air (particules aspirées) et une gerbe de 40 éclats à chaque ouverture : à faire avec Niagara (jalon 10).
+  - la brèche est un trou noir dans le mur. Le proto ajoute une bande de danger rouge clignotante le long du mur, un courant d'air (particules aspirées) et une gerbe de 40 éclats à chaque ouverture. La gerbe est faite (Niagara, jalon 10) ; la bande de danger et le courant d'air ne le sont pas.
 - **L'Irruption** (`eventsUpdate`, `stalkUpdate`) : fait.
   - La salle est une salle Calme avec 2 à 4 cuves (`placeVats` porté : 2 × 3 tuiles le long des murs nord et sud, sans couper de passage) ; la première est brisée et vide, les autres scellées. Ce sont les cuves de la salle de réveil (`AEONWakePod`).
   - La salle se verrouille. Les lampes vacillent, puis à 1,8 s « Les lumieres lachent » : il ne reste que la lampe de Jira (58 px). La chose (Kama élite, 1 PV, « La chose ») apparaît sur la tuile de sol la plus loin de Jira, à moins de 260 px.
@@ -297,7 +297,7 @@ Provisoire ou manquant :
   - le noir passe par la compensation d'exposition de la caméra (−5 EV), la lampe de Jira et les yeux de la chose par deux lumières ponctuelles ; à régler à l'œil par Vincent (intensités dans le constructeur de `AEONFloorManager`) ;
   - le vacillement avant la coupure est global (−1,5 EV par à-coups), le proto éteint des lampes une par une ;
   - la chose utilise le modèle du Kama élite ; le proto n'a pas de sprite à part non plus ;
-  - les traînées de particules de la charge : Niagara (jalon 10).
+  - la traînée de particules de la charge est faite (Niagara, jalon 10).
 - **Trésor piégé** (`eventsUpdate`) : fait. 4 stocks sur 10 sont piégés : prendre la disquette verrouille la salle et réveille le « Dormeur des pieces » (Brainless élite, 18 PV × (1 + 0,3 × (étage − 1)), rayon 7, masse ×2), bannière « Quelque chose dormait sous les pieces ». Mort, la salle se déverrouille. Le stock pose aussi ses 2 Données (oubliées jusqu'ici). Test : `eon.tresor 1` (stocks piégés) ou `2` (carnages), puis `eon.salle TRESOR`. Capture `Docs/J9_tresor_dormeur.png`.
 - **Trésor, provisoire** : le tas de pièces (stock, avec deux yeux rouges qui clignotent quand il est piégé) et les corps du carnage (`drawTresor`) ne sont pas dessinés ; il n'y a que le butin au sol. Modèles à produire.
 - **Le Cartographe** (`eventsUpdate`, `cartoStart` / `cartoWin` / `cartoLost`) : fait.
@@ -321,6 +321,14 @@ Provisoire ou manquant :
 - Captures : `Docs/J9_gamine_log.png` (la gamine, la peluche en poche, un log), `J9_ulysse_kibo.png` ; vidéos `J9_gamine_calme.mp4`, `J9_ulysse_kibo.mp4`. Ulysse sauvé et la gamine mutée ont été vérifiés dans les journaux (bannières, dialogues), pas filmés.
 - **Gamine, Ulysse, équipage, provisoire** :
   - la gamine et Ulysse sont des `AEONNpc` (cylindre et sphère) : le proto a les sprites `gamine` (2 frames : tremble, calmée avec la peluche), `gamine_mutee` (Brainless teinté rose) et `ulysse` ; modèles à produire. La gamine mutée a le modèle du Brainless ;
-  - la grille d'aération derrière la gamine et la gerbe de 30 particules à la mutation (Niagara, jalon 10) ne sont pas faites ;
+  - la gerbe de 30 particules à la mutation est faite (Niagara, jalon 10) ; la grille d'aération derrière la gamine ne l'est pas ;
   - log, peluche et insigne sont des sphères (cyan, rose, ambre) : le proto a la feuille `ramassables_quete` (3 frames) ;
   - les couleurs d'Ulysse (veste brune) sont approximatives.
+
+## Jalon 10 : effets Niagara (16/11)
+- **Outil** : `UEONVfxLib` (C++, appelable en Python) règle par réflexion les émetteurs Lightweight de Niagara 5.8, que Python ne voit pas. `Saved/Scripts/eon_vfx_build.py` (commandlet) fabrique tout dans `/Game/EON/VFX` : matériaux `M_EON_Particule` et `M_EON_Anneau`, systèmes `NS_EON_Gerbe` (toutes directions), `NS_EON_GerbeDir` (cône ±63°) et `NS_EON_Anneau` (cercle à plat qui grandit en s'effaçant). Paramètres `User.*` : Count, Color, Life, Size, Speed, Drag, Radius, Dir. Le dossier est cuit d'office (`DefaultGame.ini`).
+- **Code** : `EONFx.h` reprend `part()` et `{ring:true}` du proto avec ses chiffres (px, px/s, s). Commande de test : `eon.fx anneau|gerbe|dir` sur Jira.
+- **Porté** : mort et impacts des ennemis, explosion du kamikaze (gerbe + anneau), bouclier des ennemis, éclosion d'œuf, traînées (slasher, brainless, stalk), bosse du brainless ; boss (coups, chaîne de mort, mortier, cuve brisée) ; Jira (poussière du dash et de la course, retour au bord, bouclier, armure, bout du rayon et du fouet, anneau de l'onde, hologramme, impact de l'ultime, objet pris) ; balles (mur, ricochet) ; events (carte rouge, socles, brèche, confineur, mutation de la gamine).
+- **Approximations** : en 3D les éclats partent en demi-sphère vers le haut ; la vitesse est tirée entre 25 et 100 % du maximum ; les gerbes à deux couleurs sont deux systèmes lancés ensemble.
+- **Vérifié en jeu** : éclats de mort, anneau du kamikaze, gerbes à deux couleurs (`Docs/J10_eclats_mort.png`, `Docs/J10_anneau_kamikaze.jpg`). Pas encore vu à l'écran : les effets de Jira et ceux des events.
+- **Pas porté** : éclats des balles déviées par la lame et l'onde, ambiance des bouches d'aération et des lampes, traînée de fantômes du dash, marqueurs d'apparition, particules d'infestation, vapeur des cuves du C.O.M (encore des sphères), `swapChara`, effets du Mechakuve et du Chercheur.

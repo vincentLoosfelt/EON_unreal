@@ -1,4 +1,4 @@
-﻿#include "EONEnemy.h"
+#include "EONEnemy.h"
 #include "EONCharacter.h"
 #include "EON.h"
 #include "EONCombatDirector.h"
@@ -11,6 +11,7 @@
 #include "EONTileRoom.h"
 #include "EONTuningSubsystem.h"
 #include "EONSfx.h"
+#include "EONFx.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/CapsuleComponent.h"
 #include "DrawDebugHelpers.h"
@@ -238,8 +239,19 @@ void AEONEnemy::HitPx(float Dmg, float Dx, float Dy, float KMul)
 	const float M = Mass * MassM;
 	Knock.X += Dx * 95.f * F.Knock * KMul / M;
 	Knock.Y += Dy * 95.f * F.Knock * KMul / M;
-	// punchHole (trous dans le sprite) : pas porté, le placeholder 3D n'a pas de masque.
+	// punchHole (trous dans le sprite) : pas porté, le placeholder 3D n'a pas de masque. Son éclaboussure de chair l'est :
+	// 4 éclats vers le tireur (-d × 70 px/s ± 35), 0,3 s, couleur du mob (le premier blanc), frein 5.
 	AEONCombatDirector* Dir = Director.Get();
+	if (const AEONTileRoom* Rf = Room.Get())
+	{
+		const TCHAR* Hx = Type == TEXT("goule") ? TEXT("e8a24a") : Type == TEXT("gouleP") ? TEXT("6fbf4a") : Type == TEXT("kamikaze") ? TEXT("ff7a1a")
+			: Type == TEXT("meduse") ? TEXT("8f7be0") : Type == TEXT("sniper") ? TEXT("e8923a") : Type == TEXT("slasher") ? TEXT("e0405a")
+			: Type == TEXT("brainless") ? TEXT("c86a6a") : Type == TEXT("invocateur") ? TEXT("8a6aaa") : TEXT("c84a7a");
+		const FVector Body = Rf->RoomPxToWorld(Pos, EON::PxToCm(Ehh() * 0.5f));
+		EONFx::GerbeDir2(this, Body, FVector(-Dx, -Dy, 0.f), 4, 4, EONFx::Hex(Hx), FLinearColor::White, 105.f, 0.3f, 1.f, 5.f);
+		// hitEnemy : 4 éclats blancs dans le sens du coup (d × 60 px/s ± 40), 0,25 s.
+		EONFx::GerbeDir(this, Rf->RoomPxToWorld(Pos, EON::PxToCm(4.f)), FVector(Dx, Dy, 0.f), 4, FLinearColor::White, 100.f, 0.25f);
+	}
 	if (AEONCharacter* J = Dir ? Dir->GetJira() : nullptr) { J->AddUlt(Dmg); }   // P.ult += dmg × 0,8
 	AEONTileRoom* Rm = Room.Get();
 	if (Dir && Rm && F.DmgNums)
@@ -394,7 +406,7 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 			{
 				// Explose : mort sans crédit, AOE 28 px, 3 dégâts, blesse Jira
 				MarkDead();
-				Dir->Aoe(Pos, 28.f, 3.f, true);
+				Dir->Aoe(Pos, 28.f, 3.f, true, FLinearColor(FColor::FromHex(TEXT("ff7a1a"))));
 				return;
 			}
 		}
@@ -435,6 +447,8 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 		{
 			StT -= Dt;
 			Tvx = L.X * 235.f; Tvy = L.Y * 235.f;
+			// Traînée du dash : points rouges immobiles de 2 px (0,2 s), 8 images sur 10 du proto (48 par seconde).
+			if (FRand01() < 48.f * Dt) { EONFx::Gerbe(this, Rm->RoomPxToWorld(Pos, EON::PxToCm(2.f)), 1, EONFx::Hex(TEXT("e0405a")), 0.f, 0.2f, 2.f, 0.f); }
 			if (StT <= 0.f) { St = EEONEnemySt::Rec; StT = 0.6f; }
 		}
 		else
@@ -501,6 +515,8 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 		{
 			StT -= Dt;
 			Tvx = L.X * 235.f; Tvy = L.Y * 235.f;
+			// Poussière de la charge : grains beiges (±25 px/s, 0,25 s), 6 images sur 10 du proto (36 par seconde).
+			if (FRand01() < 36.f * Dt) { EONFx::Gerbe(this, Rm->RoomPxToWorld(Pos, EON::PxToCm(2.f)), 1, EONFx::Hex(TEXT("b0a488")), 35.f, 0.25f); }
 			if (D < R + PlayerR + 3.f)
 			{
 				Dir->HurtJira(1, Pos, L * 170.f);
@@ -550,7 +566,12 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 	// Le vide est un mur pour eux, sauf quand on les pousse (recul, dash, charge) : c'est ainsi qu'ils tombent.
 	const bool bBump = Rm->CollideCircle(Pos, R, !bFly && !bPushed);
 	if (bBump && St == EEONEnemySt::Dash) { St = EEONEnemySt::Rec; StT = 0.7f; Dir->Shake(0.12f); }
-	if (bBump && St == EEONEnemySt::Chg) { St = EEONEnemySt::Stun; StT = 1.6f; Vel = FVector2D::ZeroVector; Dir->Shake(0.3f); }
+	if (bBump && St == EEONEnemySt::Chg)
+	{
+		St = EEONEnemySt::Stun; StT = 1.6f; Vel = FVector2D::ZeroVector; Dir->Shake(0.3f);
+		// Choc contre le mur : 12 éclats crème et blanc (110 px/s), 0,35 s.
+		EONFx::Gerbe2(this, Rm->RoomPxToWorld(Pos, EON::PxToCm(6.f)), 12, 2, EONFx::Hex(TEXT("e8e0c8")), FLinearColor::White, 110.f, 0.35f);
+	}
 	if (!bFly && Rm->PitAtPx(Pos))
 	{
 		Falling = 0.45f; St = EEONEnemySt::Move;
@@ -690,6 +711,8 @@ void AEONEnemy::StalkUpdate(float Dt, const FVector2D& P)
 	else
 	{
 		Pos += StalkV * Dt;
+		// Traînée de la charge : points lie-de-vin immobiles de 2 px (0,25 s), 6 images sur 10 du proto (36 par seconde).
+		if (FRand01() < 36.f * Dt) { EONFx::Gerbe(this, Rm->RoomPxToWorld(Pos, EON::PxToCm(2.f)), 1, EONFx::Hex(TEXT("3a1020")), 0.f, 0.25f, 2.f, 0.f); }
 		if (Rm->CollideCircle(Pos, R, true) || StalkT <= 0.f)
 		{
 			StalkSt = 0;

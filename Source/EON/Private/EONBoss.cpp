@@ -1,4 +1,4 @@
-﻿#include "EONBoss.h"
+#include "EONBoss.h"
 #include "EON.h"
 #include "EONCharacter.h"
 #include "EONCombatDirector.h"
@@ -8,6 +8,7 @@
 #include "EONStatics.h"
 #include "EONTileRoom.h"
 #include "EONTypes.h"
+#include "EONFx.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
@@ -193,9 +194,18 @@ void AEONBoss::StartPhase(int32 N)
 void AEONBoss::HitPx(float Dmg, float Dx, float Dy, float KMul)
 {
 	// hitEnemy, branche du boss : les dégâts passent, jamais le recul ; rien pendant l'intro, les changements de phase et la mort.
-	if (bDead || bDying || bInv) { return; }
+	if (bDead || bDying) { return; }
+	AEONTileRoom* Rf = Room.Get();
+	if (bInv)
+	{
+		// Invulnérable : 3 éclats gris-violet (±45 px/s, 0,2 s) au point d'impact.
+		if (Rf) { EONFx::Gerbe(this, Rf->RoomPxToWorld(FVector2D(Pos.X - Dx * 12.f, Pos.Y - Dy * 12.f), Cm(20.f)), 3, EONFx::Hex(TEXT("8f8abd")), 64.f, 0.2f); }
+		return;
+	}
 	const FEONGameFeelRow F = UEONStatics::GetGameFeel(this);
 	Hp -= Dmg;
+	// 3 éclats vers le tireur (-d × 40 px/s ± 45), 0,3 s, rose-chair (le premier blanc).
+	if (Rf) { EONFx::GerbeDir2(this, Rf->RoomPxToWorld(FVector2D(Pos.X - Dx * 12.f, Pos.Y - Dy * 10.f), Cm(20.f)), FVector(-Dx, -Dy, 0.f), 3, 3, EONFx::Hex(TEXT("c84a7a")), FLinearColor::White, 85.f, 0.3f); }
 	Flash = F.HitFlash ? 0.07f : 0.f;
 	AEONCombatDirector* Dir = Director.Get();
 	if (AEONCharacter* J = Dir ? Dir->GetJira() : nullptr) { J->AddUlt(Dmg); }
@@ -227,6 +237,15 @@ void AEONBoss::FinishDeath()
 	AEONTileRoom* Rm = Room.Get();
 	UWorld* W = GetWorld();
 	if (D) { D->Shake(1.f); D->Hitstop(220.f); ++D->Kills; D->Scrap += 12; D->AdnGained += 25; }
+	// Mort : 90 éclats (40 à 280 px/s, 0,6 à 1,2 s ; 2/3 rose-chair, puis jaune et blanc), anneau blanc de 70 px (0,4 s).
+	if (Rm)
+	{
+		const FVector At = Rm->RoomPxToWorld(Pos, Cm(6.f));
+		EONFx::Gerbe(this, At, 60, EONFx::Hex(TEXT("c84a7a")), 280.f, 0.9f, 1.25f, 3.f);
+		EONFx::Gerbe(this, At, 15, EONFx::Hex(TEXT("ffc23d")), 280.f, 0.9f, 1.25f, 3.f);
+		EONFx::Gerbe(this, At, 15, FLinearColor::White, 280.f, 0.9f, 1.25f, 3.f);
+		EONFx::Anneau(this, Rm->RoomPxToWorld(Pos, 0.f), 70.f, 0.4f, FLinearColor::White);
+	}
 	// Butin : 12 Données (4 × 3, méta : jalon 8, créditées), 12 scrap, 25 ADN, 2 cœurs.
 	if (W && Rm)
 	{
@@ -258,7 +277,16 @@ void AEONBoss::UpdateEnemy(float Dt, const FVector2D& Tg)
 	if (bDying)
 	{
 		DeathT -= Dt; DeathNext -= Dt;
-		if (DeathNext <= 0.f && DeathT > 0.2f) { Dir->Shake(0.35f); Flash = 0.06f; DeathNext = 0.13f; }
+		if (DeathNext <= 0.f && DeathT > 0.2f)
+		{
+			Dir->Shake(0.35f); Flash = 0.06f; DeathNext = 0.13f;
+			// Explosion en chaîne : 16 éclats à ±20 × ±17 px du centre (30 à 150 px/s, 0,4 s, 1 sur 2 blanc, frein 5).
+			if (const AEONTileRoom* Rf = Room.Get())
+			{
+				const FVector2D At(Pos.X + (Rand01() - 0.5f) * 40.f, Pos.Y + (Rand01() - 0.5f) * 34.f);
+				EONFx::Gerbe2(this, Rf->RoomPxToWorld(At, Cm(10.f)), 16, 2, EONFx::Hex(TEXT("c84a7a")), FLinearColor::White, 150.f, 0.4f, 1.3f, 5.f);
+			}
+		}
 		if (DeathT <= 0.f) { FinishDeath(); }
 		return;
 	}
@@ -272,6 +300,8 @@ void AEONBoss::UpdateEnemy(float Dt, const FVector2D& Tg)
 		{
 			bTankBroken = true;
 			Dir->Shake(1.f); Dir->Hitstop(140.f);
+			// La cuve éclate : 60 éclats vert d'eau et blancs (50 à 250 px/s, 0,5 à 1 s, 1 sur 4 de 2 px, frein 3).
+			if (const AEONTileRoom* Rf = Room.Get()) { EONFx::Gerbe2(this, Rf->RoomPxToWorld(TankC, Cm(14.f)), 60, 3, EONFx::Hex(TEXT("7affd0")), FLinearColor::White, 250.f, 0.75f, 1.25f, 3.f, 10.f); }
 			TitleT = 2.6f;
 		}
 		if (bTankBroken) { Pop = FMath::Min(1.f, Pop + Dt * 3.f); }
@@ -363,6 +393,12 @@ void AEONBoss::UpdateFx(float Dt)
 		{
 			Dir->Shake(0.3f);
 			if (FVector2D::Distance(J, M.P) < M.R && Dir->JiraHittable()) { Dir->HurtJira(1, M.P); }
+			// Impact : 26 éclats orange (30 à 150 px/s, 0,35 à 0,65 s, 1 sur 3 blanc, frein 5) et l'anneau du cercle.
+			if (const AEONTileRoom* Rf = Room.Get())
+			{
+				EONFx::Gerbe2(this, Rf->RoomPxToWorld(M.P, Cm(3.f)), 26, 3, EONFx::Hex(TEXT("ff9a3d")), FLinearColor::White, 150.f, 0.5f, 1.25f, 5.f);
+				EONFx::Anneau(this, Rf->RoomPxToWorld(M.P, 0.f), M.R, 0.25f, EONFx::Hex(TEXT("ff9a3d")));
+			}
 			Mortars.RemoveAt(I);
 		}
 	}

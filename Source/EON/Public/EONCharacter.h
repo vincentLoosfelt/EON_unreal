@@ -1,4 +1,4 @@
-﻿// EON — Jira. Jalon 1 : déplacement lissé, dash (2 charges), course, énergie,
+// EON — Jira. Jalon 1 : déplacement lissé, dash (2 charges), course, énergie,
 // greffe Standard (projectiles, cadence, dispersion), aide à la visée, game feel du tir.
 // Les règles viennent de 02_JOUEUR_ET_COMBAT.md et de update() du proto (v0.60.1).
 // Jalon 2 : PV, coups reçus (hurtPlayer), chute dans le vide (checkPlayerFall : 3 points sur 4, retour au dernier point sûr).
@@ -318,6 +318,7 @@ private:
 	bool bSpHold = false, bSpMaint = false;
 	float SpT = 0.f, SpPulse = 0.f;
 	float DecoyT = 0.f, DecoyHp = 0.f;
+	float RunFxT = 0.f;
 	FVector DecoyLoc = FVector::ZeroVector;
 	bool bQTE = false;
 	TArray<uint8> QTESeq;

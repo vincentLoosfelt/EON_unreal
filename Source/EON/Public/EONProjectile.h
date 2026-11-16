@@ -54,6 +54,8 @@ private:
 
 	FVector ShotDir = FVector::ForwardVector;
 	FLinearColor Color = FLinearColor::White;
+	/** Étincelles à l'arrêt contre un mur. */
+	void WallSparks();
 	float LifeSeconds = 1.f;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> Mid;
 };

@@ -1,5 +1,6 @@
-﻿#include "EONCombatDirector.h"
+#include "EONCombatDirector.h"
 #include "EONSfx.h"
+#include "EONFx.h"
 #include "EONPickup.h"
 #include "EONMeta.h"
 #include "EONProjectile.h"
@@ -159,7 +160,6 @@ void AEONCombatDirector::ClearRoomContents()
 	Eggs.Reset();
 	Spawns.Reset();
 	Nums.Reset();
-	AoeRingT = 0.f;
 }
 
 void AEONCombatDirector::OnFloorRoomLoaded(AEONFloorManager* F)
@@ -414,8 +414,15 @@ void AEONCombatDirector::KillEnemy(AEONEnemy* E, float Dx, float Dy)
 	const FEONGameFeelRow F = UEONStatics::GetGameFeel(this);
 	Hitstop(F.Hitstop);
 	Shake(0.18f);
-	// Particules de mort (18 éclats à la couleur du mob) : jalon 10 (Niagara).
-	if (E->Type == TEXT("kamikaze")) { Aoe(E->Pos, 26.f, 2.f, false); }
+	// Gerbe de mort (killEnemy) : 18 éclats dans le sens du coup (±63°), 40 à 170 px/s, 0,4 à 0,8 s, 1 sur 3 blanc, frein 5.
+	if (const AEONTileRoom* Rm0 = CurRoom.Get())
+	{
+		const TCHAR* Hx = E->Type == TEXT("gen") ? TEXT("9acd32") : E->Type == TEXT("goule") ? TEXT("e8a24a") : E->Type == TEXT("gouleP") ? TEXT("6fbf4a")
+			: E->Type == TEXT("kamikaze") ? TEXT("ff7a1a") : E->Type == TEXT("meduse") ? TEXT("8f7be0") : E->Type == TEXT("sniper") ? TEXT("e8923a")
+			: E->Type == TEXT("slasher") ? TEXT("e0405a") : TEXT("ffffff");
+		EONFx::GerbeDir2(this, Rm0->RoomPxToWorld(E->Pos, EON::PxToCm(4.f)), FVector(Dx, Dy, 0.f), 18, 3, EONFx::Hex(Hx), FLinearColor::White, 170.f, 0.6f, 1.3f, 5.f);
+	}
+	if (E->Type == TEXT("kamikaze")) { Aoe(E->Pos, 26.f, 2.f, false, EONFx::Hex(TEXT("ff9a3d"))); }
 	// ADN (= XP) à chaque mort ; scrap rare, proportionnel à la valeur du mob. Ramassables : jalon 6, crédités d'office.
 	const int32 Av = E->Adn;
 	AEONTileRoom* Rm = CurRoom.Get();
@@ -432,7 +439,7 @@ void AEONCombatDirector::KillEnemy(AEONEnemy* E, float Dx, float Dy)
 	(void)Dx; (void)Dy;
 }
 
-void AEONCombatDirector::Aoe(const FVector2D& At, float RPx, float Dmg, bool bHurtsPlayer)
+void AEONCombatDirector::Aoe(const FVector2D& At, float RPx, float Dmg, bool bHurtsPlayer, const FLinearColor& Col)
 {
 	for (int32 I = 0; I < Enemies.Num(); ++I)
 	{
@@ -446,11 +453,12 @@ void AEONCombatDirector::Aoe(const FVector2D& At, float RPx, float Dmg, bool bHu
 		}
 	}
 	if (bHurtsPlayer && FVector2D::Distance(JiraPx, At) < RPx * 0.8f) { HurtJira(1, At); }
+	// 34 éclats (40 à 180 px/s, 0,35 à 0,65 s, 1 sur 3 blanc, 1 sur 4 de 2 px, frein 5) et l'anneau du rayon (0,25 s).
 	if (const AEONTileRoom* Rm = CurRoom.Get())
 	{
-		AoeRingT = 0.25f;
-		AoeRingLoc = Rm->RoomPxToWorld(At, EON::PxToCm(1.f));
-		AoeRingR = EON::PxToCm(RPx);
+		const FVector W = Rm->RoomPxToWorld(At, EON::PxToCm(4.f));
+		EONFx::Gerbe2(this, W, 34, 3, Col, FLinearColor::White, 180.f, 0.5f, 1.25f, 5.f);
+		EONFx::Anneau(this, Rm->RoomPxToWorld(At, 0.f), RPx, 0.25f, Col);
 	}
 	Shake(0.45f);
 	Hitstop(UEONStatics::GetGameFeel(this).Hitstop * 0.6f);
@@ -643,6 +651,11 @@ void AEONCombatDirector::UpdateEggs(float Dt)
 		bool bHatch = false;
 		if (Q->Step(Dt, bHatch))
 		{
+			if (bHatch)
+			{
+				// Éclosion : 16 éclats vert-jaune / vert (50 à 160 px/s, 0,35 s).
+				EONFx::Gerbe2(this, CurRoom->RoomPxToWorld(Q->To, EON::PxToCm(2.f)), 16, 2, EONFx::Hex(TEXT("8aa82a")), EONFx::Hex(TEXT("d8f06a")), 160.f, 0.35f);
+			}
 			if (bHatch && !CurRoom->PitAtPx(Q->To))
 			{
 				FSpawn S;
@@ -685,11 +698,6 @@ void AEONCombatDirector::UpdateNums(float Dt)
 				DrawDebugBox(W, Rm->RoomPxToWorld(S.Pos, 2.f), FVector(R, R, 1.f), ColMg, false, -1.f, 0, 2.f);
 			}
 		}
-	}
-	if (AoeRingT > 0.f)
-	{
-		AoeRingT -= Dt;
-		DrawDebugCircle(W, AoeRingLoc, AoeRingR, 32, FColor(255, 154, 61), false, -1.f, 0, 4.f, FVector(1, 0, 0), FVector(0, 1, 0), false);
 	}
 #endif
 }
@@ -827,9 +835,7 @@ void AEONCombatDirector::ShieldBurst(bool bMirror)
 			const float D = FVector2D::Distance(E->Pos, P);
 			if (D < 80.f) { const float Dd = D > 0.f ? D : 1.f; E->HitPx(E->IsBoss() ? 8.f : 5.f, (E->Pos.X - P.X) / Dd, (E->Pos.Y - P.Y) / Dd, 2.f); }
 		}
-		AoeRingT = 0.35f;
-		AoeRingLoc = Rm->RoomPxToWorld(P, EON::PxToCm(1.f));
-		AoeRingR = EON::PxToCm(80.f);
+		EONFx::Anneau(this, Rm->RoomPxToWorld(P, 0.f), 80.f, 0.35f, EONFx::Hex(TEXT("3ef2e0")));
 		Shake(0.4f);
 		return;
 	}
@@ -852,9 +858,7 @@ void AEONCombatDirector::ShieldBurst(bool bMirror)
 		Bullets.RemoveAt(I);
 		++N;
 	}
-	AoeRingT = 0.25f;
-	AoeRingLoc = Rm->RoomPxToWorld(P, EON::PxToCm(1.f));
-	AoeRingR = EON::PxToCm(46.f);
+	EONFx::Anneau(this, Rm->RoomPxToWorld(P, 0.f), 46.f, 0.25f, EONFx::Hex(TEXT("e8f6ff")));
 	if (N) { Banner(FString::Printf(TEXT("Miroir : %d tirs renvoyes"), N), FColor(62, 242, 224)); }
 }
 
