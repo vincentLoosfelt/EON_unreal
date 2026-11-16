@@ -15,6 +15,7 @@
 #include "EONTrainingDummy.h"
 #include "EONWakePod.h"
 #include "EONNpc.h"
+#include "EONItems.h"
 #include "EONChampForce.h"
 #include "EONElectricArc.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -70,6 +71,11 @@ namespace
 		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>&, UWorld* World)
 		{
 			if (AEONFloorManager* F = AEONFloorManager::Get(World)) { F->StartFloor(); }
+		}));
+	FAutoConsoleCommandWithWorldAndArgs GEONCmdQuete(TEXT("eon.quete"), TEXT("eon.quete ulysse 0|1 | gamine 0|1 | peluche | poche N | log : quêtes du jalon 9 (tests ; modifie la sauvegarde)"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			if (AEONFloorManager* F = AEONFloorManager::Get(World)) { F->TestQuete(Args); }
 		}));
 	FAutoConsoleCommandWithWorldAndArgs GEONCmdKibo(TEXT("eon.kibo"), TEXT("eon.kibo reveil|passerelle|quai : va dans cette salle du Kibo (nouvelle run si besoin)"),
 		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
@@ -360,6 +366,8 @@ void AEONFloorManager::NewRun()
 	bIntroDone = false;
 	bRedHint = bInfHint = false;
 	Greeted.Reset();
+	bHasDoudou = false;
+	MetUlysse = 0;
 	if (UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this)) { MS->OnRunStart(); }
 	if (AEONCharacter* J = GetJira()) { J->ResetRun(); }
 	// newRun : la run commence au Kibo, C.O.M à quai (floor absent jusqu'au levier). Sans hub 3D : directement l'étage 1.
@@ -496,6 +504,17 @@ void AEONFloorManager::EnterTraining(bool bCine)
 			SetJiraFrozen(true);
 		}
 	}
+	// Ulysse, une fois sauvé, se réfugie au Kibo (8 × 16, 16 × 16 + 8) : on lui rend les insignes.
+	bUlysseKiboTalked = false;
+	if (const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this); MS && MS->M() && MS->M()->bUlysse)
+	{
+		if (AEONNpc* N = GetWorld()->SpawnActor<AEONNpc>(AEONNpc::StaticClass(), Room->RoomPxToWorld(FVector2D(128.f, 264.f), 0.f), FRotator::ZeroRotator, P))
+		{
+			N->Setup(22.f, 8.f, FLinearColor(FColor(106, 90, 74)), FLinearColor(FColor(224, 196, 172)));
+			KiboActors.Add(N);
+			UlysseKibo = N;
+		}
+	}
 	ShowBanner(TEXT("Kibo - Salle de reveil"), FLinearColor(FColor(62, 242, 224)));
 	UE_LOG(LogEON, Display, TEXT("EON Kibo : salle de reveil%s"), bCine ? TEXT(" (cinematique)") : TEXT(""));
 }
@@ -527,6 +546,13 @@ void AEONFloorManager::GoKibo(uint8 Which)
 
 void AEONFloorManager::TickKibo(float DeltaSeconds, AEONCharacter* J)
 {
+	// Ulysse au Kibo : à 26 px, il prend les insignes en poche (une fois par passage).
+	if (AEONNpc* U = UlysseKibo.Get(); U && J && Room && WakeT < 0.f && !bUlysseKiboTalked)
+	{
+		const UEONUISubsystem* UI = UEONUISubsystem::Get(this);
+		const FVector2D Jp = Room->WorldToRoomPx(J->GetActorLocation());
+		if (UI && !UI->IsBlocking() && !UI->HasPendingDialog() && FVector2D::Distance(Jp, FVector2D(128.f, 264.f)) < 26.f) { bUlysseKiboTalked = true; SayUlysseHub(); }
+	}
 	// Cinématique de réveil (2,6 s) : la cuve se vidange (0,6 s), s'ouvre (1,7 s), Jira sort, puis le dialogue wake.
 	// La cuve (AEONWakePod) joue elle-même la vidange, l'ouverture, la vapeur et les sons.
 	if (WakeT >= 0.f)
@@ -918,6 +944,7 @@ void AEONFloorManager::GenFloor()
 		else if (Ro == TEXT("CALME")) { C.Shape = Pick(Rng, TArray<FName>{ TEXT("small"), TEXT("std") }); }
 		else { C.Shape = TEXT("std"); }
 	}
+	MarkFloorPickups();
 	Cur = Start;
 	UE_LOG(LogEON, Display, TEXT("EON étage %d : %d salles, gardien en (%d,%d), infestation %d\n%s"), FloorN, Cells.Num(), Boss.X, Boss.Y, bInfest ? 1 : 0, *DescribeFloor());
 }
@@ -1096,6 +1123,41 @@ void AEONFloorManager::LoadRoom(FEONFloorCell& C, uint8 Entry, bool bFromCom)
 		}
 		KidHurtT = 0.f;
 	}
+	// Salle Événement : la gamine (étage 2, tant qu'elle n'a pas été rencontrée), sinon Ulysse, sinon un membre d'équipage muté.
+	if (C.Role == TEXT("EVENEMENT") && C.EvtKind == 0)
+	{
+		const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+		const UEONSaveGame* M = MS ? MS->M() : nullptr;
+		if (FloorN == 2 && !(M && M->bNewtDone)) { C.EvtKind = 1; }
+		else if (!(M && M->bUlysse)) { C.EvtKind = 2; }
+		else
+		{
+			TArray<FString> Miss = CrewMissing();
+			Miss.Remove(TEXT("Ex-quartier-maitre"));
+			if (Miss.Num()) { C.EvtKind = 3; C.CrewName = Miss[FMath::RandHelper(Miss.Num())]; } else { C.EvtKind = 4; }
+		}
+	}
+	EvtNpc = nullptr;
+	if ((C.EvtKind == 1 && C.EvtSt < 3) || C.EvtKind == 2)
+	{
+		FActorSpawnParameters Sp;
+		Sp.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		if (AEONNpc* N = GetWorld()->SpawnActor<AEONNpc>(AEONNpc::StaticClass(), Room->RoomPxToWorld(EvtNpcPx(C), 0.f), FRotator::ZeroRotator, Sp))
+		{
+			// La gamine (drawNewt) : recroquevillée, cheveux châtains, pull bleu-gris, 10 × 14 px. Ulysse : sprite 12 × 22.
+			if (C.EvtKind == 1) { N->Setup(13.f, 8.f, FLinearColor(FColor(90, 106, 138)), FLinearColor(FColor(240, 212, 196))); N->ShakePx = C.EvtSt == 2 ? 0.f : 0.6f; }
+			else { N->Setup(22.f, 8.f, FLinearColor(FColor(106, 90, 74)), FLinearColor(FColor(224, 196, 172))); N->ShakePx = C.EvtSt < 2 ? 0.5f : 0.f; }
+			RoomActors.Add(N);
+			EvtNpc = N;
+		}
+	}
+	// Ramassables de quête : le log de l'étage (à gauche du centre), la peluche (à droite), tant qu'ils ne sont pas pris.
+	if (C.bLog && !C.bLogTaken) { AEONPickup::Spawn(GetWorld(), Room, EEONPickup::Log, FreeSpot(C.Grid, -3), FVector2D::ZeroVector, 1.f, 0.f); }
+	if (C.bDoudou && !C.bDoudouTaken)
+	{
+		const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+		if (!(MS && MS->M() && MS->M()->bNewtDone)) { AEONPickup::Spawn(GetWorld(), Room, EEONPickup::Doudou, FreeSpot(C.Grid, 3), FVector2D::ZeroVector, 1.f, 0.f); }
+	}
 	for (int32 I = 0; I < C.Pods.Num(); ++I)
 	{
 		FActorSpawnParameters Sp;
@@ -1116,7 +1178,12 @@ void AEONFloorManager::LoadRoom(FEONFloorCell& C, uint8 Entry, bool bFromCom)
 		else if (R == TEXT("ASCENSEUR")) { bLocked = true; }    // gardien : la salle se verrouille, il sort de sa cuve (AEONBoss)
 		else if (R == TEXT("IRRUPTION")) { bLocked = true; C.IrrSt = 0; IrrT = 0.f; FlickT = 0.f; }
 		else if (R == TEXT("CARTO")) { if (C.KidSt == 1) { C.KidSt = 0; } bLocked = C.KidSt == 2; }   // ouvert tant que le gamin n'a pas parlé
-		else if (R == TEXT("EVENEMENT")) { C.bCleared = true; }   // Ulysse, l'équipage, la gamine : jalon 9, à suivre
+		else if (R == TEXT("EVENEMENT"))
+		{
+			// La gamine : salle libre tant qu'elle n'a pas muté. Ulysse et l'équipage : verrouillée, un mutant élite (posé au premier Tick).
+			if (C.EvtKind == 1) { if (C.EvtSt != 3) { C.bCleared = true; } else { bLocked = true; } }
+			else { bLocked = true; C.EvtSt = 0; }
+		}
 		if (!C.bCounted && !C.bCleared) { ++CombatN; C.bCounted = true; }
 	}
 	Room->SetLocked(bLocked);
@@ -1211,6 +1278,7 @@ void AEONFloorManager::ShowBanner(const FString& Text, FLinearColor Color)
 	BannerText = Text;
 	BannerColor = Color;
 	BannerT = 1.8f;
+	UE_LOG(LogEON, Display, TEXT("EON banniere : %s"), *Text);
 }
 
 void AEONFloorManager::Tick(float DeltaSeconds)
@@ -1319,6 +1387,7 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 	if (CM->Role == TEXT("FAILLE") && RiftT >= 0.f && !CM->bRiftDone) { TickRift(DeltaSeconds, J, P, *CM); }
 	if (CM->Role == TEXT("IRRUPTION") && !CM->bCleared) { TickIrruption(DeltaSeconds, J, P, *CM); }
 	if (CM->Role == TEXT("CARTO")) { TickCarto(DeltaSeconds, J, P, *CM); }
+	if (CM->Role == TEXT("EVENEMENT")) { TickEvent(DeltaSeconds, J, P, *CM); }
 	// Trésor piégé : la disquette prise, le Dormeur des pièces (Brainless élite) se réveille et la salle se verrouille.
 	if (CM->Role == TEXT("TRESOR") && CM->bTrap)
 	{
@@ -2297,7 +2366,322 @@ bool AEONFloorManager::GetKidHud(FVector& OutWorld, uint8& OutSt, int32& OutHp) 
 bool AEONFloorManager::GetAutoNpcPx(FVector2D& OutPx) const
 {
 	const FEONFloorCell* C = Cells.Find(Cur);
-	if (!C || C->Role != TEXT("CARTO") || C->KidSt != 0) { return false; }
-	OutPx = KidPxOf(*C) + FVector2D(0.f, 20.f);
+	if (!C) { return false; }
+	if (C->Role == TEXT("CARTO") && C->KidSt == 0) { OutPx = KidPxOf(*C) + FVector2D(0.f, 20.f); return true; }
+	// La gamine qui attend, Ulysse sauf qui n'a pas encore parlé.
+	if (C->Role == TEXT("EVENEMENT") && ((C->EvtKind == 1 && C->EvtSt == 0) || (C->EvtKind == 2 && C->EvtSt == 2))) { OutPx = EvtNpcPx(*C) + FVector2D(0.f, 18.f); return true; }
+	return false;
+}
+
+// ---------------------------------------------------------------- la gamine, Ulysse, l'équipage, les logs (eventsUpdate, markFloorPickups, readLog)
+
+namespace
+{
+	const TCHAR* GEvtCrew[] = { TEXT("Ex-quartier-maitre"), TEXT("Ex-mecanicienne"), TEXT("Ex-pilote"), TEXT("Ex-cuisinier"), TEXT("Ex-medecin"), TEXT("Ex-operateur radio") };
+	const FLinearColor EvtAm(FColor(255, 194, 61));
+	bool AnyAlive(const AEONCombatDirector* Dir)
+	{
+		if (!Dir) { return false; }
+		for (const AEONEnemy* E : Dir->GetEnemies()) { if (E && !E->bDead) { return true; } }
+		return false;
+	}
+}
+
+TArray<FString> AEONFloorManager::CrewMissing() const
+{
+	TArray<FString> R;
+	const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+	for (const TCHAR* N : GEvtCrew) { if (!(MS && MS->M() && MS->M()->Crew.Contains(N))) { R.Add(N); } }
+	return R;
+}
+
+void AEONFloorManager::MarkFloorPickups()
+{
+	// Un log par étage ; à l'étage 1, tant que la gamine n'a pas été rencontrée, sa peluche est cachée quelque part.
+	TArray<FIntPoint> Ce;
+	for (auto& KV : Cells)
+	{
+		const FName R = KV.Value.Role;
+		if (R == TEXT("CALME") || R == TEXT("OPPORTUNITE") || R == TEXT("COMBAT") || R == TEXT("TENSION")) { Ce.Add(KV.Key); }
+	}
+	if (!Ce.Num()) { return; }
+	Cells[Pick(Rng, Ce)].bLog = true;
+	const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+	if (FloorN == 1 && !(MS && MS->M() && MS->M()->bNewtDone) && !bHasDoudou)
+	{
+		TArray<FIntPoint> C2, C3;
+		for (const FIntPoint& K : Ce) { if (!Cells[K].bLog) { C3.Add(K); if (Cells[K].Role != TEXT("COMBAT")) { C2.Add(K); } } }
+		const TArray<FIntPoint>& Pool = C2.Num() ? C2 : C3;
+		if (Pool.Num()) { Cells[Pick(Rng, Pool)].bDoudou = true; }
+	}
+}
+
+FVector2D AEONFloorManager::FreeSpot(const FEONTileGrid& G, int32 Dx)
+{
+	// freeSpot : la tuile de sol la plus proche du centre (décalé de Dx), entourée de sol.
+	const int32 Cx = (G.W >> 1) + Dx, Cy = G.H >> 1;
+	auto Fl = [&G](int32 X, int32 Y) { return G.Get(X, Y) == EEONTile::Floor; };
+	for (int32 Rad = 0; Rad < 12; ++Rad)
+	{
+		for (int32 Y = Cy - Rad; Y <= Cy + Rad; ++Y)
+		{
+			for (int32 X = Cx - Rad; X <= Cx + Rad; ++X)
+			{
+				if (X < 2 || Y < 2 || X > G.W - 3 || Y > G.H - 3) { continue; }
+				if (!Fl(X, Y) || !Fl(X + 1, Y) || !Fl(X - 1, Y) || !Fl(X, Y + 1) || !Fl(X, Y - 1)) { continue; }
+				return FVector2D((X + 0.5f) * 16.f, (Y + 0.5f) * 16.f);
+			}
+		}
+	}
+	return FVector2D((G.W >> 1) * 16.f, (G.H >> 1) * 16.f);
+}
+
+void AEONFloorManager::PlaceEvtPed(FEONFloorCell& C, const FVector2D& Px, bool bEpic)
+{
+	AEONCharacter* J = GetJira();
+	const TArray<FName> R3 = EONItems::Roll(3, J, false);
+	FName It = NAME_None;
+	if (bEpic) { for (const FName& Id : R3) { if (EONItems::Find(Id)->Rar == TEXT('E')) { It = Id; break; } } }
+	if (It.IsNone()) { for (const FName& Id : R3) { if (EONItems::Find(Id)->Rar != TEXT('C')) { It = Id; break; } } }
+	if (It.IsNone()) { const TArray<FName> One = EONItems::Roll(1, J, false); if (One.Num()) { It = One[0]; } }
+	if (It.IsNone()) { return; }
+	C.PedItems.Add(It); C.PedPrice.Add(0); C.PedPx.Add(Px);
+	AEONPedestal::Spawn(GetWorld(), Room, It, Px, 0, C.PedItems.Num() - 1);
+}
+
+void AEONFloorManager::TickEvent(float Dt, AEONCharacter* J, const FVector2D& P, FEONFloorCell& C)
+{
+	UEONUISubsystem* UI = UEONUISubsystem::Get(this);
+	AEONCombatDirector* Dir = AEONCombatDirector::Get(GetWorld());
+	UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+	UEONSaveGame* M = MS ? MS->M() : nullptr;
+	const FVector2D N = EvtNpcPx(C);
+	const float D = FVector2D::Distance(P, N);
+	const bool bFree = UI && !UI->IsBlocking() && !UI->HasPendingDialog() && !J->IsFallingIntoVoid();
+	const FIntPoint Cell = Cur;
+	// Le PNJ est solide (8 px).
+	if (EvtNpc.IsValid() && D < 8.f && !J->IsFallingIntoVoid())
+	{
+		const FVector2D To = N + (P - N) / FMath::Max(D, 0.01f) * 8.f;
+		const FVector W0 = Room->RoomPxToWorld(P), W1 = Room->RoomPxToWorld(To);
+		J->AddActorWorldOffset(FVector(W1.X - W0.X, W1.Y - W0.Y, 0.f), true);
+	}
+	if (C.EvtKind == 1)
+	{
+		// La gamine (« Newt ») : avec sa peluche elle se calme et donne un objet ; sans elle, elle mute et attaque.
+		if (C.EvtSt == 0 && D < 34.f && bFree)
+		{
+			C.EvtSt = 1;
+			if (bHasDoudou)
+			{
+				UI->Say(TEXT("newtGood"), [this, Cell]()
+				{
+					FEONFloorCell* Cc = CellAt(Cell);
+					if (!Cc || Cur != Cell) { return; }
+					Cc->EvtSt = 2;
+					bHasDoudou = false;
+					if (UEONMetaSubsystem* Ms = UEONMetaSubsystem::Get(this); Ms && Ms->M()) { Ms->M()->bNewtDone = true; Ms->M()->NewtEnd = TEXT("calme"); Ms->Save(); }
+					if (AEONNpc* Np = EvtNpc.Get()) { Np->ShakePx = 0.f; }
+					EONSfx::Play(this, TEXT("SFX_Proto_item"), 0.8f);
+					PlaceEvtPed(*Cc, EvtNpcPx(*Cc) + FVector2D(30.f, 26.f), false);
+				});
+			}
+			else
+			{
+				UI->Say(TEXT("newtBad"), [this, Cell]()
+				{
+					FEONFloorCell* Cc = CellAt(Cell);
+					AEONCombatDirector* Dd = AEONCombatDirector::Get(GetWorld());
+					if (!Cc || Cur != Cell || !Dd) { return; }
+					Cc->EvtSt = 3;
+					Cc->bCleared = false;
+					Room->SetLocked(true);
+					EONSfx::Play(this, TEXT("SFX_Proto_roar"), 0.9f);
+					Dd->Shake(0.6f);
+					if (AEONNpc* Np = EvtNpc.Get()) { Np->Destroy(); EvtNpc = nullptr; }
+					if (AEONEnemy* E = Dd->SpawnEnemyAt(TEXT("brainless"), EvtNpcPx(*Cc) + FVector2D(0.f, 10.f), true))
+					{
+						E->DisplayName = TEXT("La gamine");
+						E->Hp = E->MaxHp = FMath::RoundToFloat(22.f * (1.f + 0.3f * (FloorN - 1)));
+						E->R = 7.f;
+						E->MassM = 2.f;
+					}
+					ShowBanner(TEXT("La gamine mute"), FLinearColor(FColor(255, 61, 85)));
+				});
+			}
+		}
+		if (C.EvtSt == 3 && Room->IsLocked() && !AnyAlive(Dir))
+		{
+			C.EvtSt = 4;
+			MarkCurrentRoomCleared();
+			if (M) { M->bNewtDone = true; M->NewtEnd = TEXT("perdue"); MS->Save(); }
+			EONSfx::Play(this, TEXT("SFX_Proto_door"), 0.8f);
+			ShowBanner(TEXT("Elle ne souffre plus"), FLinearColor(FColor(138, 132, 184)));
+			PlaceEvtPed(C, N + FVector2D(P.X < N.X ? 34.f : -34.f, 30.f), true);
+		}
+		return;
+	}
+	// Ulysse, l'équipage, le survivant : un mutant élite garde la salle.
+	if (C.EvtSt == 0 && Dir)
+	{
+		C.EvtSt = 1;
+		const FName Ty = C.EvtKind == 3 ? (FMath::RandBool() ? FName(TEXT("slasher")) : FName(TEXT("brainless"))) : FName(TEXT("slasher"));
+		const FVector2D Sp = C.EvtKind == 2 ? N + FVector2D(20.f, 34.f) : FVector2D((C.Grid.W >> 1) * 16.f, (C.Grid.H >> 1) * 16.f - 10.f);
+		if (AEONEnemy* E = Dir->SpawnEnemyAt(Ty, Sp, true))
+		{
+			E->DisplayName = C.EvtKind == 3 ? C.CrewName : C.EvtKind == 2 ? FString(TEXT("Ex-quartier-maitre")) : FString(TEXT("Survivant mute"));
+			E->Hp = E->MaxHp = FMath::RoundToFloat(20.f * (1.f + 0.3f * (FloorN - 1)));
+			E->R = 6.f;
+			E->MassM = 2.2f;
+		}
+	}
+	else if (C.EvtSt == 1 && !AnyAlive(Dir))
+	{
+		C.EvtSt = 2;
+		MarkCurrentRoomCleared();
+		EONSfx::Play(this, TEXT("SFX_Proto_door"), 0.8f);
+		if (AEONNpc* Np = EvtNpc.Get()) { Np->ShakePx = 0.f; }
+		if (C.EvtKind == 2) { ShowBanner(TEXT("Ulysse est sauf"), EvtAm); }
+		else if (C.EvtKind == 3 && !(M && M->Crew.Contains(C.CrewName)))
+		{
+			const FVector2D Ctr((C.Grid.W >> 1) * 16.f, (C.Grid.H >> 1) * 16.f);
+			if (AEONPickup* Pk = AEONPickup::Spawn(GetWorld(), Room, EEONPickup::Insigne, Ctr, FVector2D(0.f, -30.f), 1.f, 0.f)) { Pk->Name = C.CrewName; }
+			ShowBanner(C.CrewName + TEXT(" : son insigne"), EvtAm);
+		}
+		else { ShowBanner(TEXT("Salle nettoyee"), FLinearColor(FColor(62, 242, 224))); }
+	}
+	// Ulysse sauf : à 28 px, il parle (ulysse1, ou ulysse2 s'il a déjà été croisé dans la run) et donne l'insigne du quartier-maître.
+	if (C.EvtKind == 2 && C.EvtSt == 2 && D < 28.f && bFree)
+	{
+		C.EvtSt = 3;
+		UI->Say(MetUlysse ? TEXT("ulysse2") : TEXT("ulysse1"), [this, Cell]()
+		{
+			FEONFloorCell* Cc = CellAt(Cell);
+			UEONMetaSubsystem* Ms = UEONMetaSubsystem::Get(this);
+			if (Ms && Ms->M())
+			{
+				Ms->M()->bUlysse = true;
+				if (!Ms->M()->Crew.Contains(GEvtCrew[0])) { Ms->M()->Crew.Add(GEvtCrew[0], TEXT("poche")); }
+				Ms->Save();
+			}
+			++MetUlysse;
+			EONSfx::Play(this, TEXT("SFX_Proto_item"), 0.8f);
+			ShowBanner(TEXT("Insigne du quartier-maitre - Ulysse t'attend au Kibo"), EvtAm);
+			if (Cc && Cur == Cell) { PlaceEvtPed(*Cc, EvtNpcPx(*Cc) + FVector2D(26.f, 22.f), false); }
+		});
+	}
+}
+
+void AEONFloorManager::SayUlysseHub()
+{
+	// ulysseHubLines : les insignes en poche sont rendus. +10 scrap chacun ; tous les 3 rendus, +1 PV max permanent (2 au plus).
+	UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+	UEONUISubsystem* UI = UEONUISubsystem::Get(this);
+	if (!MS || !MS->M() || !UI) { return; }
+	UEONSaveGame* M = MS->M();
+	const int32 Tot = UE_ARRAY_COUNT(GEvtCrew);
+	int32 Pend = 0, Rendus = 0;
+	for (const auto& KV : M->Crew) { if (KV.Value == TEXT("poche")) { ++Pend; } else if (KV.Value == TEXT("rendu")) { ++Rendus; } }
+	auto L = [](const TCHAR* Ex, const FString& T) { FEONDlgLine D; D.Who = TEXT("ulysse"); D.Ex = Ex; D.T = T; return D; };
+	TArray<FEONDlgLine> Lines;
+	if (!Pend)
+	{
+		const int32 Left = Tot - Rendus;
+		Lines.Add(L(Left ? TEXT("triste") : TEXT("sourire"), Left ? FString::Printf(TEXT("Il en manque encore %d. Ils sont quelque part dans les étages."), Left) : FString(TEXT("L'équipage repose. Grâce à toi."))));
+		UI->SayLines(Lines);
+		return;
+	}
+	const int32 After = FMath::Min(Tot, Rendus + Pend);
+	const int32 Gain = FMath::Min(2, After / 3) - FMath::Min(2, Rendus / 3);
+	Lines.Add(L(TEXT("triste"), Pend > 1 ? FString::Printf(TEXT("%d insignes... Ils sont revenus à la maison."), Pend) : FString(TEXT("Un insigne... Il est revenu à la maison."))));
+	Lines.Add(L(TEXT("sourire"), TEXT("Prends ça. Ce n'est pas grand-chose, mais c'est tout ce que j'ai.")));
+	if (Gain > 0) { Lines.Add(L(TEXT("neutre"), TEXT("Et retiens ceci : ta cuve te reconstruira un peu plus solide, désormais."))); }
+	if (After >= Tot) { Lines.Add(L(TEXT("triste"), TEXT("Tout l'équipage est là. Je peux enfin leur dire adieu. Merci, soldat."))); }
+	else { Lines.Add(L(TEXT("neutre"), FString::Printf(TEXT("Il en reste %d. Continue de descendre."), Tot - After))); }
+	UI->SayLines(Lines, [this, Pend]()
+	{
+		UEONMetaSubsystem* Ms = UEONMetaSubsystem::Get(this);
+		if (!Ms || !Ms->M()) { return; }
+		const int32 Hb0 = Ms->M()->HpBonus;
+		for (auto& KV : Ms->M()->Crew) { if (KV.Value == TEXT("poche")) { KV.Value = TEXT("rendu"); } }
+		Ms->Save();   // recalcule les PV bonus (crewSync)
+		const int32 Gn = Ms->M()->HpBonus - Hb0;
+		AEONCharacter* Jr = GetJira();
+		if (Jr && Gn > 0) { Jr->AddMaxHP(Gn); ShowBanner(FString::Printf(TEXT("+%d PV max (permanent)"), Gn), EvtAm); }
+		if (Jr)
+		{
+			Jr->AddScrap(10 * Pend);
+			if (AEONCombatDirector* Dd = AEONCombatDirector::Get(GetWorld())) { Dd->AddNum(Jr->GetActorLocation() + FVector(0.f, 0.f, 160.f), FString::Printf(TEXT("+%d scrap"), 10 * Pend), FColor(255, 194, 61), 1.f, -30.f); }
+		}
+		EONSfx::Play(this, TEXT("SFX_Proto_item"), 0.8f);
+	});
+}
+
+void AEONFloorManager::OnQuestPickup(EEONPickup Type, const FString& Name)
+{
+	UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+	FEONFloorCell* C = CellAt(Cur);
+	if (Type == EEONPickup::Log)
+	{
+		// readLog : lu sans pause, en surimpression ; on reprend là où on s'était arrêté.
+		const int32 Nl = FMath::Max(1, UEONUISubsystem::NumLogs());
+		const int32 I = MS && MS->M() ? MS->M()->LogN % Nl : 0;
+		LogTxt = UEONUISubsystem::Log(I);
+		LogShownN = I + 1;
+		LogT0 = FPlatformTime::Seconds();
+		if (MS && MS->M()) { ++MS->M()->LogN; MS->Save(); }
+		if (C) { C->bLogTaken = true; }
+		EONSfx::Play(this, TEXT("SFX_Proto_card"), 0.8f);
+	}
+	else if (Type == EEONPickup::Doudou)
+	{
+		bHasDoudou = true;
+		if (C) { C->bDoudouTaken = true; }
+		EONSfx::Play(this, TEXT("SFX_Proto_item"), 0.8f);
+		ShowBanner(TEXT("Une peluche usee... un lapin"), EvtAm);
+	}
+	else if (Type == EEONPickup::Insigne)
+	{
+		if (MS && MS->M()) { MS->M()->Crew.Add(Name, TEXT("poche")); MS->Save(); }
+		EONSfx::Play(this, TEXT("SFX_Proto_item"), 0.8f);
+		ShowBanner(FString::Printf(TEXT("Insigne : %s - a rendre a Ulysse"), *Name), EvtAm);
+	}
+}
+
+bool AEONFloorManager::GetLogMsg(FString& OutTxt, int32& OutN, float& OutEl) const
+{
+	if (LogT0 < 0.0) { return false; }
+	OutEl = float(FPlatformTime::Seconds() - LogT0);
+	if (OutEl > LogTxt.Len() / 40.f + 5.f) { return false; }
+	OutTxt = LogTxt;
+	OutN = LogShownN;
 	return true;
+}
+
+bool AEONFloorManager::GetEvtHud(FVector& OutWorld, FString& OutTxt, FLinearColor& OutCol) const
+{
+	const FEONFloorCell* C = Cells.Find(Cur);
+	if (!C || C->Role != TEXT("EVENEMENT") || !Room || !EvtNpc.IsValid()) { return false; }
+	if (C->EvtKind == 1 && C->EvtSt == 0) { OutTxt = TEXT("?"); OutCol = FLinearColor(FColor(255, 176, 192)); }
+	else if (C->EvtKind == 2 && C->EvtSt < 2) { OutTxt = TEXT("?!"); OutCol = FLinearColor(FColor(255, 61, 85)); }
+	else if (C->EvtKind == 2 && C->EvtSt == 2) { OutTxt = TEXT("!"); OutCol = EvtAm; }
+	else { return false; }
+	OutWorld = Room->RoomPxToWorld(EvtNpcPx(*C), EON::PxToCm(C->EvtKind == 1 ? 18.f : 28.f));
+	return true;
+}
+
+void AEONFloorManager::TestQuete(const TArray<FString>& Args)
+{
+	UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+	UEONSaveGame* M = MS ? MS->M() : nullptr;
+	if (!M || !Args.Num()) { return; }
+	const FString A = Args[0].ToLower();
+	const int32 V = Args.Num() > 1 ? FCString::Atoi(*Args[1]) : 0;
+	if (A == TEXT("ulysse")) { M->bUlysse = V != 0; if (!V) { M->Crew.Reset(); } }
+	else if (A == TEXT("gamine")) { M->bNewtDone = V != 0; M->NewtEnd.Reset(); }
+	else if (A == TEXT("peluche")) { bHasDoudou = true; }
+	else if (A == TEXT("poche")) { for (int32 I = 0; I < FMath::Min(V, (int32)UE_ARRAY_COUNT(GEvtCrew)); ++I) { M->Crew.Add(GEvtCrew[I], TEXT("poche")); } }
+	else if (A == TEXT("log")) { OnQuestPickup(EEONPickup::Log, FString()); }
+	MS->Save();
+	UE_LOG(LogEON, Display, TEXT("eon.quete %s : Ulysse %d, gamine %d, peluche %d, equipage %d"), *A, M->bUlysse ? 1 : 0, M->bNewtDone ? 1 : 0, bHasDoudou ? 1 : 0, M->Crew.Num());
 }

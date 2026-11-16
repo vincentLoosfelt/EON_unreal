@@ -84,6 +84,8 @@ public:
 	/** Ramassable énergie : +V, rien en mutation. */
 	void PickupEnergy(float V);
 	void Heal(int32 N) { HP = FMath::Min(MaxHP, HP + N); }
+	/** Insignes rendus à Ulysse : +N PV max (et PV), pour la run en cours. */
+	void AddMaxHP(int32 N) { MaxHP += N; HP += N; }
 	/** takeItem(it) : applique l'effet de l'objet (DONNEES/items.json). */
 	void TakeItem(FName Id);
 	bool HasItem(FName Id) const { return Items.Contains(Id); }

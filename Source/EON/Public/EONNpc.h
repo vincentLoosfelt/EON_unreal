@@ -24,6 +24,8 @@ public:
 	void SetDown(bool bDown);
 	/** Flash blanc d'un coup reçu (0,15 s). */
 	void Flash(float Seconds) { FlashT = Seconds; }
+	/** Tremblement latéral (px) : la gamine recroquevillée, Ulysse terrifié. 0 = immobile. */
+	float ShakePx = 0.f;
 
 	virtual void Tick(float DeltaSeconds) override;
 
@@ -39,5 +41,7 @@ private:
 	float FlashT = 0.f;
 	bool bFlashOn = false;
 	bool bIsDown = false;
+	FVector BodyBase = FVector::ZeroVector, HeadBase = FVector::ZeroVector;
+	float Age = 0.f;
 	void ApplyColors(bool bWhite);
 };

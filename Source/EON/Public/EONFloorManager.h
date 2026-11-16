@@ -8,6 +8,8 @@
 #include "EONTileGrid.h"
 #include "EONFloorManager.generated.h"
 
+enum class EEONPickup : uint8;
+
 class AEONTileRoom;
 class AEONCharacter;
 
@@ -56,6 +58,13 @@ struct EON_API FEONFloorCell
 	/** Cartographe : 0 attend (« ! »), 1 parle, 2 défendu (2 vagues), 3 mort, 4 sauvé (dialogue), 5 reparti. 6 PV. */
 	uint8 KidSt = 0;
 	int32 KidHp = 6;
+	/** markFloorPickups : le log de l'étage, la peluche de la gamine (étage 1) ; pris = ne revient plus. */
+	bool bLog = false, bLogTaken = false, bDoudou = false, bDoudouTaken = false;
+	/** Salle Événement : 1 la gamine, 2 Ulysse, 3 un membre d'équipage muté, 4 un survivant muté (équipage complet). 0 = pas encore décidé.
+	 *  EvtSt : gamine 0 attend, 1 parle, 2 calmée, 3 mutée (combat), 4 partie ; les autres 0 à venir, 1 combat, 2 sauf/nettoyée, 3 Ulysse a parlé. */
+	uint8 EvtKind = 0;
+	uint8 EvtSt = 0;
+	FString CrewName;
 	UPROPERTY() FEONTileGrid Grid;
 	/** Salle dessinée (Blueprint) tirée pour cette case ; vide = salle générée. */
 	UPROPERTY() TSubclassOf<AEONTileRoom> RoomClass;
@@ -156,6 +165,16 @@ public:
 	bool GetKidHud(FVector& OutWorld, uint8& OutSt, int32& OutHp) const;
 	/** Carte de l'étage révélée par le Cartographe (floor.mapped) : toutes les salles et leur rôle. */
 	bool IsMapped() const { return bMapped; }
+	/** La peluche (Lapin) en poche pendant la run (P.doudou). */
+	bool HasDoudou() const { return bHasDoudou; }
+	/** eon.quete (tests). */
+	void TestQuete(const TArray<FString>& Args);
+	/** Ramassable de quête pris (log, peluche, insigne). */
+	void OnQuestPickup(EEONPickup Type, const FString& Name);
+	/** Log en surimpression (readLog / drawLog) : texte, numéro, temps écoulé. Faux s'il n'y en a pas. */
+	bool GetLogMsg(FString& OutTxt, int32& OutN, float& OutEl) const;
+	/** Repère au-dessus du PNJ d'event (« ? » de la gamine, « ?! » / « ! » d'Ulysse) : position monde, texte, couleur. */
+	bool GetEvtHud(FVector& OutWorld, FString& OutTxt, FLinearColor& OutCol) const;
 	/** Pilote automatique (eon.auto) : un PNJ d'event qui attend qu'on vienne lui parler. */
 	bool GetAutoNpcPx(FVector2D& OutPx) const;
 	/** C.O.M à quai au Kibo : début de run, avant le premier levier (FloorN = 0). */
@@ -322,4 +341,21 @@ private:
 	float KidHurtT = 0.f;
 	float KidT = 0.f;
 	bool bMapped = false;
+	// --- Gamine, Ulysse, équipage, logs (jalon 9)
+	void TickEvent(float Dt, AEONCharacter* J, const FVector2D& P, FEONFloorCell& C);
+	void MarkFloorPickups();
+	static FVector2D FreeSpot(const FEONTileGrid& G, int32 Dx);
+	static FVector2D EvtNpcPx(const FEONFloorCell& C) { return FVector2D((C.Grid.W >> 1) * 16.f, 2 * 16.f + (C.EvtKind == 1 ? 14.f : 10.f)); }
+	/** Un objet sur un socle gratuit (bEpic : épique d'abord, sinon au moins rare). */
+	void PlaceEvtPed(FEONFloorCell& C, const FVector2D& Px, bool bEpic);
+	TArray<FString> CrewMissing() const;
+	void SayUlysseHub();
+	TWeakObjectPtr<class AEONNpc> EvtNpc;
+	TWeakObjectPtr<class AEONNpc> UlysseKibo;
+	bool bUlysseKiboTalked = false;
+	bool bHasDoudou = false;
+	int32 MetUlysse = 0;
+	double LogT0 = -1.0;
+	FString LogTxt;
+	int32 LogShownN = 0;
 };

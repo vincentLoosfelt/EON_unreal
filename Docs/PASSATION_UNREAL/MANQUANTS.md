@@ -308,3 +308,19 @@ Provisoire ou manquant :
   - Test : `eon.salle CARTO` (si l'étage n'en a pas, une salle Combat ou Tension pas encore visitée en devient une).
   - Le pilote automatique (`eon.auto`) va lui parler. Capture `Docs/J9_carto_defense.png`, vidéo `Docs/J9_carto.mp4`.
 - **Cartographe, provisoire** : le gamin est un cylindre vert (veste) et une sphère (visage), 20 × 7 px ; le proto a un sprite `cartographe.png` (16 × 22, casquette ambre). Modèle à produire (`AEONNpc`, réutilisable pour la gamine, Ulysse et l'équipage).
+- **Salle Événement** (`buildRoom`, `loadRoom`, `eventsUpdate`) : fait. Le contenu se décide à la première entrée :
+  - **la gamine** (étage 2, tant qu'elle n'a pas été rencontrée) : recroquevillée au nord, elle tremble, « ? » au-dessus. À 34 px :
+    - avec la peluche : dialogue `newtGood`, elle se calme et laisse un objet (rare au moins) sur un socle ;
+    - sans la peluche : dialogue `newtBad`, la salle se verrouille, elle mute (Brainless élite « La gamine », 22 PV × (1 + 0,3 × (étage − 1)), rayon 7, masse ×2, bannière « La gamine mute »). Morte : « Elle ne souffre plus », un objet épique d'abord sur un socle.
+    - Les deux fins sont gardées dans la sauvegarde (`bNewtDone`, `NewtEnd` « calme » / « perdue ») et le journal des quêtes les affiche déjà.
+  - **Ulysse** (tant qu'il n'est pas sauvé) : salle verrouillée, un Slasher élite « Ex-quartier-maitre » (20 PV × (1 + 0,3 × (étage − 1)), rayon 6, masse ×2,2) ; Ulysse tremble, « ?! ». Mort : « Ulysse est sauf », « ! » au-dessus de lui. À 28 px : dialogue `ulysse1` (ou `ulysse2` s'il a déjà été croisé dans la run), insigne du quartier-maître en poche, un objet (rare au moins) sur un socle, bannière « Ulysse t'attend au Kibo ».
+  - **l'équipage** (Ulysse sauvé) : un membre d'équipage muté encore jamais trouvé (Slasher ou Brainless élite, à son nom) ; mort, il lâche son insigne (« Insigne : … - a rendre a Ulysse »). Équipage complet : un « Survivant mute » sans insigne.
+- **Ulysse au Kibo** : il attend à côté des cuves (8 × 16, 16 × 16 + 8 px). À 26 px (une fois par passage), il prend les insignes en poche : +10 scrap chacun, tous les 3 rendus +1 PV max permanent (2 au plus), répliques d'`ulysseHubLines` (« Il en reste N », « Tout l'équipage est là »…).
+- **Logs et peluche** (`markFloorPickups`, `readLog`, `drawLog`) : fait. Un log par étage dans une salle Calme, Opportunité, Combat ou Tension (à gauche du centre) ; à l'étage 1, tant que la gamine n'a pas été rencontrée, la peluche dans une autre salle (pas Combat si possible). Pris, ils ne reviennent plus ; laissés, ils restent dans leur salle. Le log s'affiche en haut sans pause (« TRANSMISSION - LOG n/8 », 40 caractères par seconde, puis 5 s) et compte dans le journal. La peluche en poche s'affiche sous les cœurs (« Lapin (peluche) »).
+- Test : `eon.quete ulysse 0|1`, `gamine 0|1`, `peluche`, `poche N` (N insignes en poche), `log` (modifient la sauvegarde) ; la gamine : `eon.etage` deux fois puis `eon.salle EVENEMENT`. Le pilote automatique va parler à la gamine et à Ulysse.
+- Captures : `Docs/J9_gamine_log.png` (la gamine, la peluche en poche, un log), `J9_ulysse_kibo.png` ; vidéos `J9_gamine_calme.mp4`, `J9_ulysse_kibo.mp4`. Ulysse sauvé et la gamine mutée ont été vérifiés dans les journaux (bannières, dialogues), pas filmés.
+- **Gamine, Ulysse, équipage, provisoire** :
+  - la gamine et Ulysse sont des `AEONNpc` (cylindre et sphère) : le proto a les sprites `gamine` (2 frames : tremble, calmée avec la peluche), `gamine_mutee` (Brainless teinté rose) et `ulysse` ; modèles à produire. La gamine mutée a le modèle du Brainless ;
+  - la grille d'aération derrière la gamine et la gerbe de 30 particules à la mutation (Niagara, jalon 10) ne sont pas faites ;
+  - log, peluche et insigne sont des sphères (cyan, rose, ambre) : le proto a la feuille `ramassables_quete` (3 frames) ;
+  - les couleurs d'Ulysse (veste brune) sont approximatives.

@@ -17,7 +17,11 @@ enum class EEONPickup : uint8
 	Energy,
 	Heart,
 	/** Données (méta) : gardées pour toujours, ne tombent jamais. */
-	Donnee
+	Donnee,
+	/** Ramassables de quête (drawQuestPickup) : un log par étage, la peluche de la gamine, l'insigne d'un membre d'équipage. */
+	Log,
+	Doudou,
+	Insigne
 };
 
 UCLASS()
@@ -41,6 +45,8 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 
+	/** Insigne : nom du membre d'équipage. */
+	FString Name;
 	EEONPickup Type = EEONPickup::Adn;
 	float Value = 1.f;
 

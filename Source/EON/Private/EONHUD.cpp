@@ -186,6 +186,41 @@ void AEONHUD::DrawHUD()
 			Rect(7 * U, 36 * U, 7 * U, U, FLinearColor::White);
 			Txt(TEXT("Carte rouge"), 18 * U, 34 * U, Red, U / 4.f);
 		}
+		// La peluche en poche (Lapin), sous la carte rouge.
+		if (FC->HasDoudou()) { Txt(TEXT("Lapin (peluche)"), 6 * U, (FC->HasRedCard() ? 42 : 34) * U, FLinearColor(FColor(232, 176, 192)), U / 4.f); }
+		// Repère au-dessus du PNJ d'event : « ? » de la gamine, « ?! » puis « ! » d'Ulysse.
+		{
+			FVector Ew; FString Et; FLinearColor Ec; FVector2D Es;
+			if (FC->GetEvtHud(Ew, Et, Ec) && GetOwningPlayerController() && GetOwningPlayerController()->ProjectWorldLocationToScreen(Ew, Es))
+			{
+				Txt(Et, Es.X, Es.Y - 4 * U + FMath::RoundToFloat(FMath::Sin(Time * 5.f)) * U, Ec, U / 2.5f, true);
+			}
+		}
+		// Log trouvé (drawLog) : « TRANSMISSION - LOG n/8 », le texte s'écrit à 40 caractères par seconde.
+		{
+			FString Lt; int32 Ln = 0; float El = 0.f;
+			if (FC->GetLogMsg(Lt, Ln, El))
+			{
+				const float Dur = Lt.Len() / 40.f + 5.f;
+				const float A = FMath::Clamp(FMath::Min3(1.f, El * 4.f, (Dur - El) * 2.f), 0.f, 1.f);
+				TArray<FString> Wr;
+				{
+					TArray<FString> Words; Lt.ParseIntoArray(Words, TEXT(" "));
+					FString Cur;
+					for (const FString& Wd : Words) { if (Cur.Len() && Cur.Len() + 1 + Wd.Len() > 60) { Wr.Add(Cur); Cur = Wd; } else { Cur = Cur.Len() ? Cur + TEXT(" ") + Wd : Wd; } }
+					if (Cur.Len()) { Wr.Add(Cur); }
+				}
+				const float Bw = 276 * U, Bx = SX * 0.5f - Bw * 0.5f, By = 24 * U, Bh = (15 + Wr.Num() * 8) * U;
+				Rect(Bx, By, Bw, Bh, FLinearColor(0.027f, 0.024f, 0.06f, 0.9f * A));
+				FLinearColor Cy(FColor(62, 242, 224)); Cy.A = A;
+				Rect(Bx, By, Bw, U, Cy);
+				Rect(Bx, By + Bh - U, Bw, U, Cy);
+				Txt(FString::Printf(TEXT("TRANSMISSION - LOG %d/%d"), Ln, UEONUISubsystem::NumLogs()), Bx + 4 * U, By + 3 * U, Cy, U / 4.f);
+				int32 Left = FMath::FloorToInt(El * 40.f);
+				FLinearColor Tc(FColor(232, 228, 255)); Tc.A = A;
+				for (int32 I = 0; I < Wr.Num() && Left > 0; ++I) { Txt(Wr[I].Left(Left), Bx + 4 * U, By + (13 + I * 8) * U, Tc, U / 4.f); Left -= Wr[I].Len(); }
+			}
+		}
 		// Porte intérieure fermée à portée : invite.
 		if (const AEONTileRoom* Rm = FC->GetRoom(); Rm && !(FC->IsHubMode() && FC->GetCurrentRole() == TEXT("DEPART")))
 		{

@@ -33,6 +33,8 @@ void AEONNpc::Setup(float HeightPx, float WidthPx, const FLinearColor& BodyCol, 
 	Body->SetRelativeLocation(FVector(0.f, 0.f, BodyH * 0.5f));
 	Head->SetRelativeScale3D(FVector(HeadD / 100.f));
 	Head->SetRelativeLocation(FVector(0.f, 0.f, BodyH + HeadD * 0.5f));
+	BodyBase = Body->GetRelativeLocation();
+	HeadBase = Head->GetRelativeLocation();
 	BodyC = BodyCol;
 	HeadC = HeadCol;
 	if (BaseMaterial)
@@ -66,4 +68,8 @@ void AEONNpc::Tick(float DeltaSeconds)
 	FlashT -= DeltaSeconds;
 	const bool bOn = FlashT > 0.f;
 	if (bOn != bFlashOn) { bFlashOn = bOn; ApplyColors(bOn); }
+	Age += DeltaSeconds;
+	const float Dx = ShakePx > 0.f ? EON::PxToCm(FMath::RoundToFloat(FMath::Sin(Age * 30.f) * ShakePx * 2.f) * 0.5f) : 0.f;
+	Body->SetRelativeLocation(BodyBase + FVector(Dx, 0.f, 0.f));
+	Head->SetRelativeLocation(HeadBase + FVector(Dx, 0.f, 0.f));
 }
