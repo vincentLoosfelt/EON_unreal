@@ -102,5 +102,11 @@ void AEONPlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaT
 	OutVT.POV.FOV = Fov;
 	if (FM && FM->bDevView) { OutVT.POV.Location = FM->DevViewLoc; OutVT.POV.Rotation = FM->DevViewRot; OutVT.POV.FOV = FM->DevViewFov; }
 	OutVT.POV.ProjectionMode = ECameraProjectionMode::Perspective;
+	// Irruption : le noir (seule la lampe de Jira éclaire) passe par la compensation d'exposition.
+	// (le POV garde ses réglages d'une image à l'autre : on remet l'override à zéro hors du noir)
+	const float Bias = FM ? FM->GetExposureBias() : 0.f;
+	OutVT.POV.PostProcessBlendWeight = Bias != 0.f ? 1.f : 0.f;
+	OutVT.POV.PostProcessSettings.bOverride_AutoExposureBias = Bias != 0.f;
+	OutVT.POV.PostProcessSettings.AutoExposureBias = Bias;
 	LastViewWidthCm = HalfW * 2.f;
 }

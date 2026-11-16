@@ -871,3 +871,14 @@ bool AEONCombatDirector::IsFightOver() const
 	for (const AEONEnemy* E : Enemies) { if (E && !E->bDead) { return false; } }
 	return true;
 }
+
+AEONEnemy* AEONCombatDirector::SpawnEnemyAt(FName Type, const FVector2D& Px, bool bElite)
+{
+	FSpawn S;
+	S.Type = Type;
+	S.Pos = Px;
+	S.bElite = bElite;
+	const int32 N = Enemies.Num();
+	SpawnEnemyNow(S);
+	return Enemies.Num() > N ? Enemies.Last().Get() : nullptr;
+}

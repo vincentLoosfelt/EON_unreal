@@ -45,6 +45,11 @@ struct EON_API FEONFloorCell
 	FVector2D ConfPx = FVector2D::ZeroVector;
 	uint8 RiftSide = 0;
 	bool bRiftDone = false;
+	/** Cuves posées dans la salle (placeVats) : coin haut-gauche (2 × 3 tuiles) et cuve brisée (vide) ou scellée. */
+	UPROPERTY() TArray<FIntPoint> Pods;
+	UPROPERTY() TArray<bool> PodBroken;
+	/** Irruption : 0 calme, 1 noir (la chose rôde), 2 lumière revenue. */
+	uint8 IrrSt = 0;
 	UPROPERTY() FEONTileGrid Grid;
 	/** Salle dessinée (Blueprint) tirée pour cette case ; vide = salle générée. */
 	UPROPERTY() TSubclassOf<AEONTileRoom> RoomClass;
@@ -137,6 +142,8 @@ public:
 	float GetRiftO2() const { return RiftO2; }
 	bool IsConfinementReady() const { return bConfOn; }
 	FVector GetConfWorld() const;
+	/** Irruption : compensation d'exposition (EV) appliquée par la caméra ; 0 hors Irruption, négative dans le noir. */
+	float GetExposureBias() const { return ExpBias; }
 	/** C.O.M à quai au Kibo : début de run, avant le premier levier (FloorN = 0). */
 	bool IsDockedMode() const { return bDocked; }
 	/** Salle du Kibo où se trouve Jira : 0 aucune (étage), 1 salle de réveil, 2 passerelle, 3 C.O.M à quai. */
@@ -186,6 +193,11 @@ private:
 	/** Console de confinement de la Faille (placeholder : un bloc, éteint puis cyan). */
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> ConfMesh;
 	UPROPERTY(Transient) TObjectPtr<class UMaterialInstanceDynamic> ConfMID;
+	/** Irruption : la lampe de Jira (58 px) et les yeux rouges de la chose, seules lumières dans le noir. */
+	UPROPERTY(VisibleAnywhere) TObjectPtr<class UPointLightComponent> LampLight;
+	UPROPERTY(VisibleAnywhere) TObjectPtr<class UPointLightComponent> EyeLight;
+	/** Acteurs posés pour la salle en cours (cuves) : détruits au chargement de la salle suivante. */
+	UPROPERTY(Transient) TArray<TObjectPtr<AActor>> RoomActors;
 	bool bRedCard = false;
 	bool bRedHint = false;
 	bool bFloorDone = false;
@@ -282,4 +294,12 @@ private:
 	bool bConfOn = false;
 	float RiftAlarmT = 0.f;
 	float RiftHurtT = 0.f;
+	// --- Irruption (eventsUpdate) et cuves (placeVats).
+	void PlaceVats(FEONFloorCell& C);
+	void TickIrruption(float Dt, AEONCharacter* J, const FVector2D& P, FEONFloorCell& C);
+	void ClearRoomActors();
+	float IrrT = 0.f;
+	float ExpBias = 0.f;
+	float FlickT = 0.f;
+	TWeakObjectPtr<class AEONEnemy> Stalker;
 };

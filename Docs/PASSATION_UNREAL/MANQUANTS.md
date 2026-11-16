@@ -285,3 +285,16 @@ Provisoire ou manquant :
 - **Faille, provisoire** :
   - console de confinement : un bloc de 0,9 × 0,9 × 1 m (éteint gris-bleu, puis cyan). Le proto a un sprite `console_faille` à 3 frames ; modèle 3D à produire ;
   - la brèche est un trou noir dans le mur. Le proto ajoute une bande de danger rouge clignotante le long du mur, un courant d'air (particules aspirées) et une gerbe de 40 éclats à chaque ouverture : à faire avec Niagara (jalon 10).
+- **L'Irruption** (`eventsUpdate`, `stalkUpdate`) : fait.
+  - La salle est une salle Calme avec 2 à 4 cuves (`placeVats` porté : 2 × 3 tuiles le long des murs nord et sud, sans couper de passage) ; la première est brisée et vide, les autres scellées. Ce sont les cuves de la salle de réveil (`AEONWakePod`).
+  - La salle se verrouille. Les lampes vacillent, puis à 1,8 s « Les lumieres lachent » : il ne reste que la lampe de Jira (58 px). La chose (Kama élite, 1 PV, « La chose ») apparaît sur la tuile de sol la plus loin de Jira, à moins de 260 px.
+  - Elle rôde autour de Jira (110 × 80 px) 2,5 à 4 s, s'arrête 0,65 s (rugissement, yeux rouges plus forts), charge à 240 px/s pendant 0,75 s, puis recommence. Un contact hors rôde inflige PV + 5 : seuls le bouclier et la Renaissance sauvent.
+  - Morte : « La lumiere revient », un objet rare ou épique sur un socle au centre, 3 Données.
+  - Test : `eon.salle IRRUPTION` (si l'étage n'en a pas, une salle Combat ou Tension pas encore visitée en devient une).
+  - Captures : `Docs/J9_irruption_cuves.png`, `J9_irruption_noir.png` ; vidéo `Docs/J9_irruption.mp4`.
+  - Noms des salles alignés sur le proto : « Irruption » (l'ancien portage affichait « Calme »), « Le corridor », « La faille ».
+- **Irruption, provisoire** :
+  - le noir passe par la compensation d'exposition de la caméra (−5 EV), la lampe de Jira et les yeux de la chose par deux lumières ponctuelles ; à régler à l'œil par Vincent (intensités dans le constructeur de `AEONFloorManager`) ;
+  - le vacillement avant la coupure est global (−1,5 EV par à-coups), le proto éteint des lampes une par une ;
+  - la chose utilise le modèle du Kama élite ; le proto n'a pas de sprite à part non plus ;
+  - les traînées de particules de la charge : Niagara (jalon 10).

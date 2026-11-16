@@ -80,6 +80,8 @@ public:
 	const TArray<TObjectPtr<AEONEnemy>>& GetEnemies() const { return Enemies; }
 	/** Toutes les vagues de la salle sont parties et il ne reste ni ennemi vivant ni apparition en cours. */
 	bool IsFightOver() const;
+	/** Fait apparaître un ennemi tout de suite (events : la chose, le dormeur des pièces…). */
+	AEONEnemy* SpawnEnemyAt(FName Type, const FVector2D& Px, bool bElite);
 	AEONTileRoom* GetRoom() const { return CurRoom.Get(); }
 	FVector2D GetJiraPx() const { return JiraPx; }
 	AEONCharacter* GetJira() const;

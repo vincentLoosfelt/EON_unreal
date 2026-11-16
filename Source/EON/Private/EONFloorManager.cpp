@@ -20,6 +20,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/PointLightComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -57,8 +58,8 @@ namespace
 			{ TEXT("DEPART"), TEXT("C.O.M") }, { TEXT("COMBAT"), TEXT("Combat") }, { TEXT("TENSION"), TEXT("Tension") },
 			{ TEXT("CALME"), TEXT("Calme") }, { TEXT("OPPORTUNITE"), TEXT("Opportunite") }, { TEXT("ASCENSEUR"), TEXT("Gardien") },
 			{ TEXT("SECURITE"), TEXT("Securite") }, { TEXT("EVENEMENT"), TEXT("Evenement") }, { TEXT("MARCHAND"), TEXT("Marchand") },
-			{ TEXT("CORRIDOR"), TEXT("Corridor") }, { TEXT("FAILLE"), TEXT("Faille") }, { TEXT("TRESOR"), TEXT("Tresor") },
-			{ TEXT("IRRUPTION"), TEXT("Calme") }, { TEXT("CARTO"), TEXT("Cartographe") } };
+			{ TEXT("CORRIDOR"), TEXT("Le corridor") }, { TEXT("FAILLE"), TEXT("La faille") }, { TEXT("TRESOR"), TEXT("Tresor") },
+			{ TEXT("IRRUPTION"), TEXT("Irruption") }, { TEXT("CARTO"), TEXT("Cartographe") } };
 		const FString* S = N.Find(Role);
 		return S ? *S : Role.ToString();
 	}
@@ -225,6 +226,20 @@ AEONFloorManager::AEONFloorManager()
 	ConfMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ConfMesh->SetWorldScale3D(FVector(0.875f, 0.875f, 1.f));
 	ConfMesh->SetVisibility(false);
+	// Irruption : la lampe de Jira dans le noir (58 px) et les yeux de la chose (10 px en rôde, 22 px quand elle charge).
+	LampLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("LampeJira"));
+	LampLight->SetupAttachment(RootComponent);
+	LampLight->SetMobility(EComponentMobility::Movable);
+	LampLight->SetAttenuationRadius(EON::PxToCm(58.f));
+	LampLight->SetIntensity(60000.f);
+	LampLight->SetCastShadows(false);
+	LampLight->SetVisibility(false);
+	EyeLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("YeuxChose"));
+	EyeLight->SetupAttachment(RootComponent);
+	EyeLight->SetMobility(EComponentMobility::Movable);
+	EyeLight->SetLightColor(FLinearColor(FColor(255, 61, 85)));
+	EyeLight->SetCastShadows(false);
+	EyeLight->SetVisibility(false);
 }
 
 AEONFloorManager* AEONFloorManager::Get(const UObject* WorldContext)
@@ -399,6 +414,7 @@ void AEONFloorManager::ClearKiboActors()
 {
 	for (AActor* A : KiboActors) { if (A) { A->Destroy(); } }
 	KiboActors.Reset();
+	ClearRoomActors();
 	JiraPod = nullptr;
 	WakeT = -1.f;
 	WakeLift = 0.f;
@@ -1014,6 +1030,12 @@ void AEONFloorManager::EnterCell(FIntPoint P, uint8 FromDir, bool bFromCom)
 			}
 		}
 		if (R == TEXT("FAILLE")) { BuildRift(*C); }
+		// Irruption : une salle de cuves (placeVats en Calme), la première brisée et vide, les autres scellées.
+		if (R == TEXT("IRRUPTION"))
+		{
+			PlaceVats(*C);
+			for (int32 I = 0; I < C->PodBroken.Num(); ++I) { C->PodBroken[I] = I == 0; }
+		}
 		C->bCleared = R == TEXT("DEPART") || R == TEXT("CALME") || R == TEXT("OPPORTUNITE") || R == TEXT("MARCHAND") || R == TEXT("TRESOR")
 			|| R == TEXT("SECURITE");   // la carte rouge et son embuscade : jalon 5
 		C->bBuilt = true;
@@ -1055,6 +1077,18 @@ void AEONFloorManager::LoadRoom(FEONFloorCell& C, uint8 Entry, bool bFromCom)
 	bool bLocked = false;
 	const FName R = C.Role;
 	RiftT = -1.f; RiftStage = 0; RiftO2 = 1.f; bConfOn = false;
+	ClearRoomActors();
+	for (int32 I = 0; I < C.Pods.Num(); ++I)
+	{
+		FActorSpawnParameters Sp;
+		Sp.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		const FIntPoint Q = C.Pods[I];
+		if (AEONWakePod* Pd = GetWorld()->SpawnActor<AEONWakePod>(AEONWakePod::StaticClass(), Room->RoomPxToWorld(FVector2D((Q.X + 1) * 16.f, (Q.Y + 1.5f) * 16.f), 0.f), FRotator::ZeroRotator, Sp))
+		{
+			Pd->Init(C.PodBroken.IsValidIndex(I) && C.PodBroken[I] ? EEONPodState::Broken : EEONPodState::Sealed);
+			RoomActors.Add(Pd);
+		}
+	}
 	if (!C.bCleared)
 	{
 		if (R == TEXT("COMBAT")) { bLocked = true; RoomWaves = (CombatN < 2 || FloorN == 4) ? 1 : 2; RoomStartT = 0.6f; }
@@ -1062,7 +1096,8 @@ void AEONFloorManager::LoadRoom(FEONFloorCell& C, uint8 Entry, bool bFromCom)
 		else if (R == TEXT("CORRIDOR")) { bLocked = true; RoomWaves = 3; RoomStartT = 0.9f; }
 		else if (R == TEXT("FAILLE")) { bLocked = true; RoomWaves = 1; RoomStartT = 0.7f; RiftT = C.RiftTiles.Num() ? 0.f : -1.f; RiftAlarmT = 0.f; RiftHurtT = 0.f; }
 		else if (R == TEXT("ASCENSEUR")) { bLocked = true; }    // gardien : la salle se verrouille, il sort de sa cuve (AEONBoss)
-		else if (R == TEXT("EVENEMENT") || R == TEXT("CARTO") || R == TEXT("IRRUPTION")) { C.bCleared = true; }   // events : jalons 8–9
+		else if (R == TEXT("IRRUPTION")) { bLocked = true; C.IrrSt = 0; IrrT = 0.f; FlickT = 0.f; }
+		else if (R == TEXT("EVENEMENT") || R == TEXT("CARTO")) { C.bCleared = true; }   // events : jalon 9, à suivre
 		if (!C.bCounted && !C.bCleared) { ++CombatN; C.bCounted = true; }
 	}
 	Room->SetLocked(bLocked);
@@ -1262,6 +1297,8 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 	if (bHub && Cur == Start) { TickHub(DeltaSeconds, J); return; }
 	const FVector2D P = Room->WorldToRoomPx(J->GetActorLocation());
 	if (CM->Role == TEXT("FAILLE") && RiftT >= 0.f && !CM->bRiftDone) { TickRift(DeltaSeconds, J, P, *CM); }
+	if (CM->Role == TEXT("IRRUPTION") && !CM->bCleared) { TickIrruption(DeltaSeconds, J, P, *CM); }
+	else if (ExpBias != 0.f || LampLight->IsVisible()) { ExpBias = 0.f; LampLight->SetVisibility(false); EyeLight->SetVisibility(false); }
 	// Carte rouge : ramassage à moins de 10 px, puis embuscade (la salle se verrouille, 2 vagues).
 	if (CM->Role == TEXT("SECURITE") && !CM->bCardTaken && !J->IsFallingIntoVoid() && FVector2D::Distance(P, GetCardPx()) < 10.f)
 	{
@@ -1498,6 +1535,22 @@ bool AEONFloorManager::GoToRole(FName InRole)
 	for (const TPair<FIntPoint, FEONFloorCell>& KV : Cells)
 	{
 		if (KV.Value.Role == InRole) { EnterCell(KV.Key, 0, false); return true; }
+	}
+	// Events tirés au hasard (Irruption 50 %) : s'il n'y en a pas, une salle Combat ou Tension pas encore construite le devient (test).
+	if (InRole == TEXT("IRRUPTION"))
+	{
+		for (TPair<FIntPoint, FEONFloorCell>& KV : Cells)
+		{
+			FEONFloorCell& C = KV.Value;
+			if (!C.bBuilt && (C.Role == TEXT("COMBAT") || C.Role == TEXT("TENSION")))
+			{
+				C.Role = InRole;
+				C.Shape = TEXT("std");
+				C.RoomClass = nullptr;
+				EnterCell(KV.Key, 0, false);
+				return true;
+			}
+		}
 	}
 	return false;
 }
@@ -1928,4 +1981,160 @@ FVector AEONFloorManager::GetConfWorld() const
 {
 	const FEONFloorCell* C = Cells.Find(Cur);
 	return C && Room ? Room->RoomPxToWorld(C->ConfPx, 50.f) : FVector::ZeroVector;
+}
+
+// ---------------------------------------------------------------- cuves (placeVats) et Irruption (eventsUpdate)
+
+void AEONFloorManager::ClearRoomActors()
+{
+	for (AActor* A : RoomActors) { if (A) { A->Destroy(); } }
+	RoomActors.Reset();
+	ExpBias = 0.f;
+	if (LampLight) { LampLight->SetVisibility(false); }
+	if (EyeLight) { EyeLight->SetVisibility(false); }
+}
+
+void AEONFloorManager::PlaceVats(FEONFloorCell& C)
+{
+	// 2 à 4 cuves de 2 × 3 tuiles le long des murs nord et sud ; une cuve n'est posée que si elle laisse un tour de sol
+	// devant elle, ne coupe aucune porte et ne retire pas plus de 6 tuiles accessibles par cuve.
+	if (C.Shape == TEXT("corH") || C.Shape == TEXT("corV")) { return; }
+	FEONTileGrid& G = C.Grid;
+	const int32 W = G.W, H = G.H, Cx = W >> 1;
+	const uint8 Fl = (uint8)EEONTile::Floor;
+	auto IsF = [&](int32 I) { return G.T[I] == Fl; };
+	TArray<uint8> DoorList;
+	for (uint8 D : DoorOrder) { if (G.Doors & D) { DoorList.Add(D); } }
+	if (!DoorList.Num()) { return; }
+	auto Reach = [&](bool& bOk) -> int32
+	{
+		auto Walk = [&](int32 I) { const uint8 V = G.T[I]; return V == Fl || V == (uint8)EEONTile::Door || (V == (uint8)EEONTile::Pit && G.Gap.Contains(I)); };
+		FIntPoint Dt[2];
+		G.GetDoorTiles(DoorList[0], Dt);
+		TArray<uint8> Seen; Seen.SetNumZeroed(W * H);
+		TArray<int32> Q = { Dt[0].Y * W + Dt[0].X };
+		Seen[Q[0]] = 1;
+		int32 N = 0;
+		while (Q.Num())
+		{
+			const int32 I = Q.Pop(EAllowShrinking::No);
+			if (G.T[I] == Fl) { ++N; }
+			const int32 X = I % W, Y = I / W;
+			for (const FIntPoint Dd : { FIntPoint(1, 0), FIntPoint(-1, 0), FIntPoint(0, 1), FIntPoint(0, -1) })
+			{
+				const int32 Nx = X + Dd.X, Ny = Y + Dd.Y;
+				if (Nx < 0 || Ny < 0 || Nx >= W || Ny >= H) { continue; }
+				const int32 J = Ny * W + Nx;
+				if (!Seen[J] && Walk(J)) { Seen[J] = 1; Q.Add(J); }
+			}
+		}
+		bOk = true;
+		for (uint8 D : DoorList) { FIntPoint T2[2]; G.GetDoorTiles(D, T2); for (const FIntPoint& Tq : T2) { if (!Seen[Tq.Y * W + Tq.X]) { bOk = false; } } }
+		return N;
+	};
+	bool bOk0 = true;
+	const int32 Base = Reach(bOk0);
+	const int32 Want = 2 + Rng.RandRange(0, 2);
+	struct FSlot { int32 X, Y; uint8 Side; };
+	TArray<FSlot> Slots;
+	for (int32 X = 2; X < W - 3; ++X) { Slots.Add({ X, 1, EONDoor::N }); Slots.Add({ X, H - 4, EONDoor::S }); }
+	for (int32 I = Slots.Num() - 1; I > 0; --I) { Slots.Swap(I, Rng.RandRange(0, I)); }
+	C.Pods.Reset();
+	C.PodBroken.Reset();
+	for (const FSlot& S : Slots)
+	{
+		if (C.Pods.Num() >= Want) { break; }
+		if ((G.Doors & S.Side) && FMath::Abs(S.X + 1 - Cx) < 5) { continue; }
+		bool bNear = false;
+		for (const FIntPoint& Pq : C.Pods) { if (FMath::Abs(Pq.X - S.X) < 4 && Pq.Y == S.Y) { bNear = true; } }
+		if (bNear) { continue; }
+		bool bOk = true;
+		for (int32 Y = S.Y; Y < S.Y + 3 && bOk; ++Y) { for (int32 X = S.X; X < S.X + 2; ++X) { if (!IsF(Y * W + X)) { bOk = false; } } }
+		const int32 Fy = S.Side == EONDoor::N ? S.Y + 3 : S.Y - 1;
+		for (int32 X = S.X; X < S.X + 2 && bOk; ++X) { if (!IsF(Fy * W + X)) { bOk = false; } }
+		if (!bOk) { continue; }
+		for (int32 Y = S.Y; Y < S.Y + 3; ++Y) { for (int32 X = S.X; X < S.X + 2; ++X) { G.T[Y * W + X] = (uint8)EEONTile::Tank; } }
+		bool bReachOk = true;
+		const int32 N = Reach(bReachOk);
+		if (!bReachOk || N < Base - 6 * (C.Pods.Num() + 1))
+		{
+			for (int32 Y = S.Y; Y < S.Y + 3; ++Y) { for (int32 X = S.X; X < S.X + 2; ++X) { G.T[Y * W + X] = Fl; } }
+			continue;
+		}
+		C.Pods.Add(FIntPoint(S.X, S.Y));
+		C.PodBroken.Add(Rng.GetFraction() < 0.28f);
+	}
+	// Les cuves sont des acteurs (AEONWakePod) : pas de cylindre provisoire pour ces tuiles K.
+	if (C.Pods.Num()) { G.Feat += TEXT("+pods"); }
+	UE_LOG(LogEON, Display, TEXT("EON cuves : %d posées (%s)"), C.Pods.Num(), *C.Role.ToString());
+}
+
+void AEONFloorManager::TickIrruption(float Dt, AEONCharacter* J, const FVector2D& P, FEONFloorCell& C)
+{
+	IrrT += Dt;
+	AEONCombatDirector* Dir = AEONCombatDirector::Get(GetWorld());
+	if (C.IrrSt == 0)
+	{
+		// Les lampes de la salle vacillent (35 % d'extinction à chaque image dans le proto) avant de lâcher.
+		if ((FlickT -= Dt) <= 0.f) { FlickT = 0.05f; ExpBias = FMath::FRand() < 0.35f ? -1.5f : 0.f; }
+		if (IrrT > 1.8f && Dir)
+		{
+			C.IrrSt = 1;
+			IrrT = 0.f;
+			EONSfx::Play(this, TEXT("SFX_Proto_hiss"), 0.8f);
+			Dir->Shake(0.3f);
+			ShowBanner(TEXT("Les lumieres lachent"), FLinearColor(FColor(90, 86, 120)));
+			// La chose apparaît sur la tuile de sol la plus éloignée de Jira, à moins de 260 px.
+			FVector2D Best(C.Grid.W * 8.f, C.Grid.H * 8.f);
+			float Bd = -1.f;
+			for (int32 I = 0; I < C.Grid.W * C.Grid.H; ++I)
+			{
+				if (C.Grid.T[I] != (uint8)EEONTile::Floor) { continue; }
+				const FVector2D Q((I % C.Grid.W + 0.5f) * 16.f, (I / C.Grid.W + 0.5f) * 16.f);
+				const float D = FVector2D::Distance(Q, P);
+				if (D > Bd && D < 260.f) { Bd = D; Best = Q; }
+			}
+			AEONEnemy* M = Dir->SpawnEnemyAt(TEXT("slasher"), Best, true);
+			if (M) { M->MakeStalker(); }
+			Stalker = M;
+			UE_LOG(LogEON, Display, TEXT("EON Irruption : les lumières lâchent, la chose en (%.0f, %.0f)"), Best.X, Best.Y);
+		}
+	}
+	else if (C.IrrSt == 1)
+	{
+		// Le noir : seule la lampe de Jira (58 px) et les yeux de la chose éclairent.
+		ExpBias = -5.f;
+		LampLight->SetVisibility(true);
+		LampLight->SetWorldLocation(J->GetActorLocation() + FVector(0.f, 0.f, 80.f));
+		AEONEnemy* M = Stalker.Get();
+		if (M && !M->bDead)
+		{
+			const bool bLurk = M->StalkSt == 0;
+			EyeLight->SetVisibility(true);
+			EyeLight->SetAttenuationRadius(EON::PxToCm(bLurk ? 10.f : 22.f));
+			EyeLight->SetIntensity(bLurk ? 15000.f : 60000.f);
+			EyeLight->SetWorldLocation(Room->RoomPxToWorld(M->Pos, 70.f));
+		}
+		else
+		{
+			// Elle est morte : la lumière revient, un objet rare ou épique sur un socle, 3 Données.
+			C.IrrSt = 2;
+			ExpBias = 0.f;
+			LampLight->SetVisibility(false);
+			EyeLight->SetVisibility(false);
+			MarkCurrentRoomCleared();
+			EONSfx::Play(this, TEXT("SFX_Proto_door"), 0.8f);
+			ShowBanner(TEXT("La lumiere revient"), FLinearColor(FColor(62, 242, 224)));
+			const FVector2D Ctr((C.Grid.W >> 1) * 16.f, (C.Grid.H >> 1) * 16.f);
+			FName It = NAME_None;
+			for (const FName& Id : EONItems::Roll(3, J, false)) { if (EONItems::Find(Id)->Rar != TEXT('C')) { It = Id; break; } }
+			if (It.IsNone()) { const TArray<FName> One = EONItems::Roll(1, J, false); if (One.Num()) { It = One[0]; } }
+			if (!It.IsNone())
+			{
+				C.PedItems.Add(It); C.PedPrice.Add(0); C.PedPx.Add(Ctr);
+				AEONPedestal::Spawn(GetWorld(), Room, It, Ctr, 0, C.PedItems.Num() - 1);
+			}
+			AEONPickup::Spawn(GetWorld(), Room, EEONPickup::Donnee, Ctr + FVector2D(24.f, 10.f), FVector2D::ZeroVector, 3.f, 1.f);
+		}
+	}
 }

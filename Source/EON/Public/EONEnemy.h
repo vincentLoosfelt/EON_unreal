@@ -70,6 +70,15 @@ public:
 	// --- État du proto, en px salle et px/s (lu par le directeur pour les vagues, l'AOE, les vols de mates).
 	FName Type;
 	FString DisplayName;
+	/** Irruption, « la chose » (stalk du proto) : rôde autour de Jira, s'arrête (yeux rouges, 0,65 s), puis charge à 240 px/s
+	 *  pendant 0,75 s. Un contact (hors rôde) tue. StalkSt : 0 rôde, 1 arrêt, 2 charge. */
+	bool bStalk = false;
+	uint8 StalkSt = 0;
+	float StalkT = 0.f;
+	float StalkA = 0.f;
+	FVector2D StalkV = FVector2D::ZeroVector;
+	void MakeStalker();
+	void StalkUpdate(float Dt, const FVector2D& JiraPx);
 	FVector2D Pos = FVector2D::ZeroVector;
 	FVector2D Vel = FVector2D::ZeroVector;
 	FVector2D Knock = FVector2D::ZeroVector;

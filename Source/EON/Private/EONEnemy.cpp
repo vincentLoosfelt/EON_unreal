@@ -10,6 +10,8 @@
 #include "EONStatics.h"
 #include "EONTileRoom.h"
 #include "EONTuningSubsystem.h"
+#include "EONSfx.h"
+#include "Kismet/GameplayStatics.h"
 #include "Components/CapsuleComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/DataTable.h"
@@ -299,6 +301,7 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 		if (Falling <= 0.f) { MarkDead(); Dir->OnEnemyFell(this); }
 		return;
 	}
+	if (bStalk) { StalkUpdate(Dt, Dir->GetJiraPx()); return; }
 
 	const FEONGameFeelRow F = UEONStatics::GetGameFeel(this);
 	// Écart 3D (MANQUANTS §9) : les vitesses de croisière suivent SpeedMul3D comme Jira ;
@@ -642,4 +645,63 @@ void AEONEnemy::UpdateVisual(float Dt, const FVector2D& Tg)
 		DrawDebugString(W, At(Pos, TopPx + 8.f), DisplayName, nullptr, FColor(255, 176, 192), 0.f, false, 1.1f);
 	}
 #endif
+}
+
+// ---------------------------------------------------------------- la chose (Irruption, stalkUpdate)
+
+void AEONEnemy::MakeStalker()
+{
+	bStalk = true;
+	StalkSt = 0;
+	StalkT = 2.5f + FMath::FRand() * 1.5f;
+	StalkA = FMath::FRand() * 2.f * PI;
+	DisplayName = TEXT("La chose");
+	Hp = MaxHp = 1.f;
+	R = 6.f;
+}
+
+void AEONEnemy::StalkUpdate(float Dt, const FVector2D& P)
+{
+	AEONCombatDirector* Dir = Director.Get();
+	AEONTileRoom* Rm = Room.Get();
+	if (!Dir || !Rm) { return; }
+	StalkT -= Dt;
+	if (StalkSt == 0)
+	{
+		// Rôde : vise un point qui tourne autour de Jira (110 × 80 px), à 70 px/s au plus.
+		StalkA += Dt * 0.9f;
+		const FVector2D Tg(P.X + FMath::Cos(StalkA) * 110.f, P.Y + FMath::Sin(StalkA) * 80.f);
+		const FVector2D D = Tg - Pos;
+		const float Ln = FMath::Max(1.f, D.Size());
+		Pos += D / Ln * FMath::Min(70.f, Ln * 3.f) * Dt;
+		Rm->CollideCircle(Pos, R, true);
+		if (StalkT <= 0.f) { StalkSt = 1; StalkT = 0.65f; EONSfx::Play(this, TEXT("SFX_Proto_roar"), 0.9f); }
+	}
+	else if (StalkSt == 1)
+	{
+		if (StalkT <= 0.f)
+		{
+			StalkSt = 2;
+			StalkT = 0.75f;
+			const float A = FMath::Atan2(P.Y - Pos.Y, P.X - Pos.X);
+			StalkV = FVector2D(FMath::Cos(A), FMath::Sin(A)) * 240.f;
+		}
+	}
+	else
+	{
+		Pos += StalkV * Dt;
+		if (Rm->CollideCircle(Pos, R, true) || StalkT <= 0.f)
+		{
+			StalkSt = 0;
+			StalkT = 2.f + FMath::FRand() * 1.5f;
+			StalkA = FMath::Atan2(Pos.Y - P.Y, Pos.X - P.X);
+		}
+	}
+	Vel = FVector2D::ZeroVector;
+	// Un contact tue (hurtPlayer(P.hp + 5)) : seuls le bouclier et la Renaissance sauvent.
+	if (StalkSt != 0 && FVector2D::Distance(P, Pos) < R + PlayerR + 2.f)
+	{
+		const AEONCharacter* J = Cast<AEONCharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
+		Dir->HurtJira((J ? J->GetHP() : 6) + 5, Pos);
+	}
 }
