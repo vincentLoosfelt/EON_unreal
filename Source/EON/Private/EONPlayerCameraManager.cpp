@@ -4,6 +4,7 @@
 #include "EONBoss.h"
 #include "EONTuningSubsystem.h"
 #include "EONTypes.h"
+#include "EONFloorManager.h"
 
 namespace
 {
@@ -90,12 +91,16 @@ void AEONPlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaT
 	const float Pitch = FMath::Clamp(Feel.CamPitch, 20.f, 89.f);
 	const float Dist = HalfW / FMath::Tan(FMath::DegreesToRadians(Fov * 0.5f));
 	const float PitchRad = FMath::DegreesToRadians(Pitch);
-	const FVector LookAt(Look.X, Look.Y, P.Z - (Target->GetSimpleCollisionHalfHeight()));
+	// Descente du C.O.M : la caméra ne suit pas Jira verticalement.
+	const AEONFloorManager* FM = AEONFloorManager::Get(this);
+	const float CamDz = FM ? FM->GetCamDz() : 0.f;
+	const FVector LookAt(Look.X, Look.Y, P.Z - CamDz - (Target->GetSimpleCollisionHalfHeight()));
 	const FVector CamLoc = LookAt + FVector(0.f, Dist * FMath::Cos(PitchRad), Dist * FMath::Sin(PitchRad));
 
 	OutVT.POV.Location = CamLoc;
 	OutVT.POV.Rotation = FRotator(-Pitch, -90.f, 0.f);
 	OutVT.POV.FOV = Fov;
+	if (FM && FM->bDevView) { OutVT.POV.Location = FM->DevViewLoc; OutVT.POV.Rotation = FM->DevViewRot; OutVT.POV.FOV = FM->DevViewFov; }
 	OutVT.POV.ProjectionMode = ECameraProjectionMode::Perspective;
 	LastViewWidthCm = HalfW * 2.f;
 }

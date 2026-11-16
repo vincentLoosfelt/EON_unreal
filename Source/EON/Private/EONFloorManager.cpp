@@ -11,6 +11,10 @@
 #include "EONPedestal.h"
 #include "EONPickup.h"
 #include "EONSlidingDoor.h"
+#include "EONTrainingDummy.h"
+#include "EONChampForce.h"
+#include "EONElectricArc.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/StaticMeshActor.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Components/StaticMeshComponent.h"
@@ -62,6 +66,21 @@ namespace
 		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>&, UWorld* World)
 		{
 			if (AEONFloorManager* F = AEONFloorManager::Get(World)) { F->StartFloor(); }
+		}));
+	FAutoConsoleCommandWithWorldAndArgs GEONCmdKibo(TEXT("eon.kibo"), TEXT("eon.kibo reveil|passerelle|quai : va dans cette salle du Kibo (nouvelle run si besoin)"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			const FString A = Args.Num() ? Args[0].ToLower() : FString(TEXT("reveil"));
+			if (AEONFloorManager* F = AEONFloorManager::Get(World)) { F->GoKibo(A.StartsWith(TEXT("pass")) ? 2 : A.StartsWith(TEXT("quai")) ? 3 : 1); }
+		}));
+	FAutoConsoleCommandWithWorldAndArgs GEONCmdVue(TEXT("eon.vue"), TEXT("eon.vue x y z vx vy vz [fov] | off : caméra fixe à (x,y,z) du centre du C.O.M, visant (vx,vy,vz) ; outil de tournage"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			AEONFloorManager* F = AEONFloorManager::Get(World);
+			if (!F) { return; }
+			if (Args.Num() < 6) { F->bDevView = false; return; }
+			auto V = [&Args](int32 I) { return FCString::Atof(*Args[I]); };
+			F->SetDevView(FVector(V(0), V(1), V(2)), FVector(V(3), V(4), V(5)), Args.Num() > 6 ? V(6) : 60.f);
 		}));
 	FAutoConsoleCommandWithWorldAndArgs GEONCmdMap(TEXT("eon.map"), TEXT("eon.map : plan de l'étage dans le log"),
 		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>&, UWorld* World)
@@ -295,10 +314,10 @@ void AEONFloorManager::NewRun()
 	if (UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this)) { MS->OnRunStart(); }
 	if (AEONCharacter* J = GetJira()) { J->ResetRun(); }
 	// newRun : la run commence au Kibo, C.O.M à quai (floor absent jusqu'au levier). Sans hub 3D : directement l'étage 1.
-	if (bHub) { LoadDock(); } else { StartFloor(); }
+	if (bHub) { BeginKibo(); EnterTraining(true); } else { StartFloor(); }
 }
 
-void AEONFloorManager::LoadDock()
+void AEONFloorManager::BeginKibo()
 {
 	bDocked = true;
 	bFloorDone = true;   // le levier est déjà prêt
@@ -316,10 +335,19 @@ void AEONFloorManager::LoadDock()
 	RoomWaves = 0; RoomStartT = 0.f;
 	if (Room) { Room->SetLocked(false); }
 	if (AEONCharacter* J = GetJira()) { J->RefillShield(); }
-	// Une seule porte, au sud, vers la passerelle du Kibo : pas encore construite, donc les 4 sas restent fermés.
+	// Le quai n'a qu'une porte, au sud, vers la passerelle : les 3 autres passerelles sont retirées et murées.
 	SetHubDoorsForced(0);
+	for (AEONSlidingDoor* D : HubDoorActors) { if (D && D->GetActorLocation().Y - HubCentre.Y > 300.f) { D->ForceState = -1; } }
 	SetDockLayout(true);
-	LoadHub(0, true);
+}
+
+void AEONFloorManager::LoadDock()
+{
+	ClearKiboActors();
+	Kibo = 3;
+	AEONPickup::ClearAll(GetWorld(), true);
+	Room->SetLocked(false);
+	LoadHub(EONDoor::S, false);
 	ShowBanner(TEXT("Kibo - C.O.M a quai"), FLinearColor(FColor(62, 242, 224)));
 	UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
 	UEONSaveGame* Sv = MS ? MS->M() : nullptr;
@@ -331,6 +359,150 @@ void AEONFloorManager::LoadDock()
 	}
 	OnRoomLoaded.Broadcast(this);
 	UE_LOG(LogEON, Display, TEXT("EON Kibo : C.O.M a quai, levier pret"));
+}
+
+void AEONFloorManager::ClearKiboActors()
+{
+	for (AActor* A : KiboActors) { if (A) { A->Destroy(); } }
+	KiboActors.Reset();
+	JiraPod = nullptr;
+	WakeT = -1.f;
+}
+
+void AEONFloorManager::LoadKiboGrid(const FEONTileGrid& G, uint8 Entry, const FVector2D* At)
+{
+	if (!Room) { return; }
+	ClearKiboActors();
+	AEONPickup::ClearAll(GetWorld(), true);
+	AEONPedestal::ClearAll(GetWorld());
+	if (CardMesh) { CardMesh->SetVisibility(false); }
+	if (Room->GetClass() != AEONTileRoom::StaticClass())
+	{
+		const FTransform Xf = Room->GetActorTransform();
+		Room->Destroy();
+		FActorSpawnParameters P;
+		P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		Room = GetWorld()->SpawnActor<AEONTileRoom>(AEONTileRoom::StaticClass(), Xf, P);
+	}
+	KiboGrid = G;
+	Room->SetGrid(G);
+	Room->SetLocked(false);
+	Room->SetRedDoor(0);
+	Room->SetInfest(TArray<int32>(), 0.f);
+	RoomWaves = 0; RoomStartT = 0.f; AmbushT = -1.f;
+	if (AEONCharacter* J = GetJira())
+	{
+		const FVector2D E = At ? *At : Room->DoorCenterPx(Entry);
+		J->ResetForRoom(Room->RoomPxToWorld(E, J->GetSimpleCollisionHalfHeight() + 2.f));
+		if (APlayerController* PC = Cast<APlayerController>(J->GetController())) { if (PC->PlayerCameraManager) { PC->PlayerCameraManager->SetGameCameraCutThisFrame(); } }
+	}
+	OnRoomLoaded.Broadcast(this);
+}
+
+void AEONFloorManager::EnterTraining(bool bCine)
+{
+	// buildTraining : 36 × 20, 7 cuves (PODS), fossé à dasher, petit trou, porte nord.
+	FEONTileGrid G = FEONTileGrid::BuildTraining();
+	const FIntPoint Pod(17, 15);   // la cuve de Jira (PODS, st 'jira')
+	if (bCine) { for (int32 Y = Pod.Y; Y < Pod.Y + 3; ++Y) { for (int32 X = Pod.X; X < Pod.X + 2; ++X) { G.Set(X, Y, EEONTile::Floor); } } }
+	const FVector2D PodPx((Pod.X + 1) * 16.f, (Pod.Y + 1.5f) * 16.f);
+	LoadKiboGrid(G, EONDoor::N, bCine ? &PodPx : nullptr);
+	Kibo = 1;
+	FActorSpawnParameters P;
+	P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	// Les 4 cibles d'entraînement (dummy, increvables) : trois près des cuves, une au-delà du fossé.
+	for (const FVector2D& Px : { FVector2D(96.f, 128.f), FVector2D(160.f, 112.f), FVector2D(224.f, 136.f), FVector2D(504.f, 160.f) })
+	{
+		if (AActor* A = GetWorld()->SpawnActor<AEONTrainingDummy>(AEONTrainingDummy::StaticClass(), Room->RoomPxToWorld(Px, 0.f), FRotator::ZeroRotator, P)) { KiboActors.Add(A); }
+	}
+	if (bCine)
+	{
+		// La cuve de Jira : un cylindre qui se vidange puis s'enfonce dans le sol (2,6 s).
+		UStaticMesh* Cyl = LoadObject<UStaticMesh>(nullptr, TEXT("/Game/EON/Meshes/SM_Cylinder_N.SM_Cylinder_N"));
+		UMaterialInterface* Mat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/EON/Materials/BG/MI_BG_pipe_1.MI_BG_pipe_1"));
+		JiraPod = GetWorld()->SpawnActor<AStaticMeshActor>(Room->RoomPxToWorld(PodPx, 110.f), FRotator::ZeroRotator, P);
+		if (JiraPod && Cyl)
+		{
+			JiraPod->SetMobility(EComponentMobility::Movable);
+			UStaticMeshComponent* SM = JiraPod->GetStaticMeshComponent();
+			SM->SetStaticMesh(Cyl);
+			SM->SetWorldScale3D(FVector(1.88f, 2.82f, 2.2f));
+			SM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			if (Mat) { SM->SetMaterial(0, Mat); }
+			KiboActors.Add(JiraPod);
+		}
+		WakeT = 0.f;
+	}
+	ShowBanner(TEXT("Kibo - Salle de reveil"), FLinearColor(FColor(62, 242, 224)));
+	UE_LOG(LogEON, Display, TEXT("EON Kibo : salle de reveil%s"), bCine ? TEXT(" (cinematique)") : TEXT(""));
+}
+
+void AEONFloorManager::EnterPasserelle(uint8 Entry)
+{
+	// buildPasserelle : 12 × 30, un pont de 4 tuiles (x 4–7), du vide de chaque côté, portes nord et sud.
+	FEONTileGrid G;
+	G.W = 12; G.H = 30; G.Doors = EONDoor::N | EONDoor::S;
+	G.T.SetNumZeroed(G.W * G.H);
+	for (int32 Y = 0; Y < G.H; ++Y) for (int32 X = 0; X < G.W; ++X)
+	{
+		const bool bEdge = X == 0 || Y == 0 || X == G.W - 1 || Y == G.H - 1;
+		G.T[Y * G.W + X] = (uint8)(bEdge ? EEONTile::Wall : ((X < 4 || X > 7) && Y > 2 && Y < G.H - 3) ? EEONTile::Pit : EEONTile::Floor);
+	}
+	for (uint8 D : { EONDoor::N, EONDoor::S }) { FIntPoint Dt[2]; FEONTileGrid::DoorTiles(D, G.W, G.H, Dt); for (const FIntPoint& Q : Dt) { G.Set(Q.X, Q.Y, EEONTile::Door); } }
+	G.Feat = TEXT("passerelle");
+	LoadKiboGrid(G, Entry);
+	Kibo = 2;
+	ShowBanner(TEXT("Passerelle"), FLinearColor(FColor(62, 242, 224)));
+}
+
+void AEONFloorManager::GoKibo(uint8 Which)
+{
+	if (!bHub) { return; }
+	if (!bDocked) { BeginKibo(); }
+	if (Which == 2) { EnterPasserelle(EONDoor::S); } else if (Which == 3) { LoadDock(); } else { EnterTraining(false); }
+}
+
+void AEONFloorManager::TickKibo(float DeltaSeconds, AEONCharacter* J)
+{
+	// Cinématique de réveil (2,6 s) : la cuve se vidange (0,6 s), s'ouvre (1,7 s), Jira sort, puis le dialogue wake.
+	if (WakeT >= 0.f)
+	{
+		const float T0 = WakeT;
+		WakeT += DeltaSeconds;
+		AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld());
+		if (T0 < 1.7f && WakeT >= 1.7f && D) { D->Shake(0.3f); }
+		if (JiraPod && WakeT > 1.7f)
+		{
+			const float K = FMath::Clamp((WakeT - 1.7f) / 0.45f, 0.f, 1.f);
+			JiraPod->GetStaticMeshComponent()->SetWorldScale3D(FVector(1.88f, 2.82f, FMath::Max(0.02f, 2.2f * (1.f - K))));
+			FVector L = JiraPod->GetActorLocation(); L.Z = Room->RoomPxToWorld(FVector2D::ZeroVector, 0.f).Z + 110.f * (1.f - K); JiraPod->SetActorLocation(L);
+		}
+		if (WakeT >= 2.6f)
+		{
+			WakeT = -1.f;
+			if (JiraPod) { KiboActors.Remove(JiraPod); JiraPod->Destroy(); JiraPod = nullptr; }
+			if (D) { D->Shake(0.25f); }
+			if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->Say(TEXT("wake")); }
+		}
+		return;
+	}
+	if (Kibo == 3)
+	{
+		// C.O.M à quai : le sas sud mène à la passerelle.
+		if (FVector2D::Distance(FVector2D(J->GetActorLocation()), FVector2D(HubDoor[DoorIdx(EONDoor::S)])) < 130.f) { StartTrans([this]() { EnterPasserelle(EONDoor::N); }); }
+		return;
+	}
+	if (!Room || J->IsFallingIntoVoid()) { return; }
+	const FVector2D P = Room->WorldToRoomPx(J->GetActorLocation());
+	const float RH = KiboGrid.H * 16.f;
+	uint8 Dir = 0;
+	if (P.Y < 10.f && (KiboGrid.Doors & EONDoor::N)) { Dir = EONDoor::N; }
+	else if (P.Y > RH - 10.f && (KiboGrid.Doors & EONDoor::S)) { Dir = EONDoor::S; }
+	if (!Dir) { return; }
+	// Salle de réveil -> passerelle (par le sud) ; passerelle : sud -> réveil, nord -> C.O.M à quai.
+	if (Kibo == 1) { StartTrans([this]() { EnterPasserelle(EONDoor::S); }); }
+	else if (Dir == EONDoor::S) { StartTrans([this]() { EnterTraining(false); }); }
+	else { StartTrans([this]() { LoadDock(); }); }
 }
 
 void AEONFloorManager::SetDockLayout(bool bOn)
@@ -415,6 +587,24 @@ void AEONFloorManager::SetDockLayout(bool bOn)
 	UE_LOG(LogEON, Display, TEXT("EON Kibo : %d pieces de passerelle retirees, %d murs et barrieres poses"), DockRemoved.Num(), DockAdded.Num());
 }
 
+void AEONFloorManager::SetComDz(float Dz)
+{
+	const FVector Dv(0.f, 0.f, Dz - ComDz);
+	ComDz = Dz;
+	for (int32 I = 0; I < ComMovers.Num(); ++I) { if (ComMovers[I]) { ComMovers[I]->SetActorLocation(ComMoverBase[I] + FVector(0.f, 0.f, Dz)); } }
+	AEONElectricArc::ComShift = FVector(0.f, 0.f, Dz);
+	if (HubCube) { HubCube->AddActorWorldOffset(Dv); }
+	if (AEONCharacter* J = GetJira()) { J->AddActorWorldOffset(Dv); }
+}
+
+void AEONFloorManager::SetJiraFrozen(bool bFrozen)
+{
+	AEONCharacter* J = GetJira();
+	if (!J) { return; }
+	J->GetCharacterMovement()->StopMovementImmediately();
+	J->GetCharacterMovement()->SetMovementMode(bFrozen ? MOVE_None : MOVE_Walking);
+}
+
 void AEONFloorManager::SetHubDoorsForced(int32 State)
 {
 	for (AEONSlidingDoor* D : HubDoorActors) { if (D) { D->ForceState = State; } }
@@ -422,7 +612,7 @@ void AEONFloorManager::SetHubDoorsForced(int32 State)
 
 void AEONFloorManager::StartFloor()
 {
-	if (bDocked) { bDocked = false; SetHubDoorsForced(-1); SetDockLayout(false); }
+	if (bDocked) { bDocked = false; Kibo = 0; ClearKiboActors(); SetHubDoorsForced(-1); SetDockLayout(false); }
 	++FloorN;
 	bRedCard = false;
 	bFloorDone = false;
@@ -434,7 +624,13 @@ void AEONFloorManager::StartFloor()
 	EnterCell(Start, 0, true);
 	ShowBanner(FloorN == 2 ? TEXT("Etage 2 - Les cuves") : FloorN == 3 ? TEXT("Etage 3 - Les labos") : FloorN == 4 ? TEXT("Etage 4 - Les serres") : FString::Printf(TEXT("Etage %d"), FloorN), FLinearColor(FColor(62, 242, 224)));
 	if (UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this)) { MS->OnFloor(FloorN); }
-	// Dialogue d'arrivée : iaIntro au premier étage de la run, puis cuves, labos, serres, ou la phrase générique.
+	// Dialogue d'arrivée : après la descente du C.O.M s'il y en a une.
+	if (!bComArrive) { SayFloorIntro(); }
+}
+
+void AEONFloorManager::SayFloorIntro()
+{
+	// iaIntro au premier étage de la run, puis cuves, labos, serres, ou la phrase générique.
 	if (UEONUISubsystem* UI = UEONUISubsystem::Get(this))
 	{
 		if (!bIntroDone) { bIntroDone = true; UI->Say(TEXT("iaIntro")); }
@@ -916,16 +1112,74 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 		}
 		return;
 	}
-	// Le C.O.M descend : secousses 1,7 s, puis fondu et étage suivant (comTravel).
+	// Le C.O.M descend (comTravel), sans mouvement linéaire :
+	//  départ  : mise en marche 0,9 s (vibrations qui montent), descente de 32 m dans la colonne en accélérant (ease-in cubique),
+	//            fondu au noir (smoothstep) de 2,7 à 3,7 s ; l'étage suivant se charge dans le noir ;
+	//  arrivée : 0,25 s de noir, fondu d'ouverture 0,9 s, le C.O.M arrive de 22 m plus haut et freine (ease-out quintique) jusqu'à
+	//            la hauteur des passerelles en 3,3 s, puis un petit choc à l'arrêt.
+	static constexpr float ComDropOut = 3200.f;   // le C.O.M s'enfonce de 32 m dans la colonne
+	static constexpr float ComDropIn = 2200.f;    // et arrive de 22 m plus haut
+	auto Fade = [this](float A)
+	{
+		if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+		{
+			if (PC->PlayerCameraManager)
+			{
+				if (A > 0.001f) { PC->PlayerCameraManager->SetManualCameraFade(A, FLinearColor::Black, false); }
+				else { PC->PlayerCameraManager->StopCameraFade(); }
+			}
+		}
+	};
+	auto Smooth = [](float X) { X = FMath::Clamp(X, 0.f, 1.f); return X * X * (3.f - 2.f * X); };
 	if (ComTravelT >= 0.f)
 	{
+		const float T0 = ComTravelT;
 		ComTravelT += DeltaSeconds;
-		if (FMath::FRand() < DeltaSeconds * 14.f) { if (AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld())) { D->Shake(0.12f + ComTravelT * 0.12f); } }
-		if (ComTravelT > 1.7f && !bComGo) { bComGo = true; StartTrans([this]() { ComTravelT = -1.f; StartFloor(); }); }
+		const float T = ComTravelT;
+		AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld());
+		// Mise en marche : 3 à-coups de plus en plus forts, puis une vibration douce pendant la descente.
+		for (const float Kick : { 0.15f, 0.45f, 0.75f }) { if (D && T0 < Kick && T >= Kick) { D->Shake(0.1f + Kick * 0.25f); } }
+		if (T > 0.9f)
+		{
+			const float K = FMath::Min(1.f, (T - 0.9f) / 2.8f);
+			SetComDz(-ComDropOut * K * K * K);
+			if (D && FMath::Fmod(T, 0.35f) < DeltaSeconds) { D->Shake(0.06f); }
+		}
+		Fade(Smooth((T - 2.7f) / 1.f));
+		if (T >= 3.7f && !bComGo)
+		{
+			bComGo = true;
+			ComTravelT = -1.f;
+			bComArrive = true;
+			StartFloor();
+			ComDz = 0.f;          // Jira et le terminal viennent d'être reposés à hauteur des passerelles
+			SetComDz(ComDropIn);  // le C.O.M (et Jira) repartent d'en haut
+			SetJiraFrozen(true);
+			ComArrT = 0.f;
+			Fade(1.f);
+		}
+		return;
+	}
+	if (ComArrT >= 0.f)
+	{
+		ComArrT += DeltaSeconds;
+		Fade(1.f - Smooth((ComArrT - 0.25f) / 0.9f));
+		const float K = FMath::Clamp((ComArrT - 0.1f) / 3.2f, 0.f, 1.f);
+		SetComDz(ComDropIn * FMath::Pow(1.f - K, 5.f));
+		if (K >= 1.f)
+		{
+			ComArrT = -1.f;
+			bComArrive = false;
+			SetComDz(0.f);
+			Fade(0.f);
+			SetJiraFrozen(false);
+			if (AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld())) { D->Shake(0.3f); }
+			SayFloorIntro();
+		}
 		return;
 	}
 	AEONCharacter* J = GetJira();
-	if (bDocked) { return; }
+	if (bDocked) { if (J && !J->IsDead()) { TickKibo(DeltaSeconds, J); } return; }
 	FEONFloorCell* CM = CellAt(Cur);
 	if (!J || !CM || !Room || J->IsDead()) { return; }
 	if (bHub && Cur == Start) { TickHub(DeltaSeconds, J); return; }
@@ -1009,6 +1263,19 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 
 bool AEONFloorManager::AutoExit(uint8 Dir)
 {
+	// Kibo (eon.go N|S) : Jira est posée sur le seuil de la porte, la sortie se fait comme en marchant.
+	if (bDocked)
+	{
+		AEONCharacter* J = GetJira();
+		if (!J || !Room || TransT > 0.f || WakeT >= 0.f) { return false; }
+		if (Kibo == 3) { J->ResetForRoom(HubDoor[DoorIdx(EONDoor::S)] + FVector(0.f, -60.f, J->GetSimpleCollisionHalfHeight() + 2.f)); return true; }
+		const uint8 D = Dir ? Dir : EONDoor::N;
+		if (!(KiboGrid.Doors & D)) { return false; }
+		FVector2D Px = Room->DoorCenterPx(D);
+		Px.Y = D == EONDoor::N ? 6.f : KiboGrid.H * 16.f - 6.f;
+		J->ResetForRoom(Room->RoomPxToWorld(Px, J->GetSimpleCollisionHalfHeight() + 2.f));
+		return true;
+	}
 	const FEONFloorCell* C = CellAt(Cur);
 	if (!C || TransT > 0.f || ComTravelT >= 0.f || AmbushT > 0.f) { return false; }
 	auto Blocked = [this](const FIntPoint& From, const FIntPoint& Q) { const FEONFloorCell* N = CellAt(Q); return !N || (N->Role == TEXT("ASCENSEUR") && !bRedCard && FloorN != 4) || IsInfestEdge(From, Q); };
@@ -1190,7 +1457,7 @@ bool AEONFloorManager::IsNearComTerminal() const
 {
 	const FEONFloorCell* C = CellAt(Cur);
 	const AEONCharacter* J = GetJira();
-	if (bDocked && bHub && J && HubCube) { return FVector2D::Distance(FVector2D(J->GetActorLocation()), FVector2D(HubCube->GetActorLocation())) < 500.f; }
+	if (bDocked) { return Kibo == 3 && bHub && J && HubCube && FVector2D::Distance(FVector2D(J->GetActorLocation()), FVector2D(HubCube->GetActorLocation())) < 500.f; }
 	if (!C || !J || !Room || C->Role != TEXT("DEPART")) { return false; }
 	if (bHub) { return HubCube && FVector2D::Distance(FVector2D(J->GetActorLocation()), FVector2D(HubCube->GetActorLocation())) < 500.f; }   // zone du terminal : 5 m de rayon
 	return FVector2D::Distance(Room->WorldToRoomPx(J->GetActorLocation()), FVector2D(C->Grid.W * 8.f, C->Grid.H * 8.f)) < 56.f;
@@ -1213,6 +1480,8 @@ bool AEONFloorManager::PullLever()
 	if (!bFloorDone || ComTravelT >= 0.f) { return false; }
 	ComTravelT = 0.f;
 	bComGo = false;
+	ComDz = 0.f;
+	SetJiraFrozen(true);
 	if (AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld())) { D->Shake(0.5f); }
 	ShowBanner(TEXT("Le C.O.M descend"), FLinearColor(FColor(62, 242, 224)));
 	return true;
@@ -1220,7 +1489,7 @@ bool AEONFloorManager::PullLever()
 
 bool AEONFloorManager::IsDocked() const
 {
-	return bDocked;
+	return bDocked && Kibo == 3;
 }
 
 // ---------------------------------------------------------------- hub 3D (L_HUB) comme salle du C.O.M
@@ -1235,6 +1504,12 @@ void AEONFloorManager::SetupHub()
 	}
 	if (!Com) { return; }
 	HubCentre = Com->GetActorLocation();
+	// Ce qui descend avec le C.O.M : son maillage (dôme compris) et le champ de force.
+	ComMovers.Reset(); ComMoverBase.Reset();
+	if (AStaticMeshActor* CA = const_cast<AStaticMeshActor*>(Cast<AStaticMeshActor>(Com))) { CA->SetMobility(EComponentMobility::Movable); ComMovers.Add(CA); ComMoverBase.Add(CA->GetActorLocation()); }
+	for (TActorIterator<AEONChampForce> It(GetWorld()); It; ++It) { ComMovers.Add(*It); ComMoverBase.Add(It->GetActorLocation()); }
+	AEONElectricArc::ComCentre = HubCentre;
+	AEONElectricArc::ComShift = FVector::ZeroVector;
 	// Les 4 sas : chacun rangé selon sa direction depuis le C.O.M (nord = -Y, comme l'écran).
 	int32 Found = 0;
 	for (TActorIterator<AEONSlidingDoor> It(GetWorld()); It; ++It)
@@ -1312,7 +1587,7 @@ void AEONFloorManager::BuildHubFlesh()
 	uint8 D = 0;
 	for (uint8 Dd : DoorOrder) { if (Start + EONDoor::Dir(Dd) == Boss) { D = Dd; } }
 	if (!D) { return; }
-	// setInfest du hub : la passerelle vers le gardien est murée de chair, du dôme jusqu'au sas.
+	// setInfest du hub : la passerelle vers le gardien est murée de chair, du sas jusqu'au bord du C.O.M.
 	UStaticMesh* Sph = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	UMaterialInterface* Mat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/EON/Materials/BG/MI_BG_pipe.MI_BG_pipe"));
 	if (!Sph) { return; }
@@ -1326,11 +1601,12 @@ void AEONFloorManager::BuildHubFlesh()
 	const FIntPoint Dv = EONDoor::Dir(D);
 	const FVector Out(Dv.X, Dv.Y, 0.f), Side(-Dv.Y, Dv.X, 0.f);
 	FRandomStream R(FloorN * 131 + 7);
-	for (int32 I = 0; I < 6; ++I)
+	// La chair reste sur la passerelle (grilles, du sas jusqu'à 4,1 m en dedans) : elle ne déborde pas sur le C.O.M.
+	for (int32 I = 0; I < 5; ++I)
 	{
 		for (int32 K = -1; K <= 1; ++K)
 		{
-			const FVector At = Door - Out * (90.f + I * 90.f) + Side * (K * 70.f + R.FRandRange(-12.f, 12.f));
+			const FVector At = Door - Out * (70.f + I * 85.f) + Side * (K * 70.f + R.FRandRange(-10.f, 10.f));
 			FActorSpawnParameters P;
 			P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			AStaticMeshActor* A = GetWorld()->SpawnActor<AStaticMeshActor>(FVector(At.X, At.Y, HubCentre.Z + 45.f), FRotator(0.f, R.FRandRange(0.f, 360.f), 0.f), P);
@@ -1338,7 +1614,7 @@ void AEONFloorManager::BuildHubFlesh()
 			A->SetMobility(EComponentMobility::Movable);
 			UStaticMeshComponent* SM = A->GetStaticMeshComponent();
 			SM->SetStaticMesh(Sph);
-			const float S = R.FRandRange(1.0f, 1.45f);
+			const float S = R.FRandRange(0.95f, 1.2f);
 			SM->SetWorldScale3D(FVector(S, S, S * 0.75f));
 			SM->SetCollisionProfileName(TEXT("BlockAll"));
 			if (M) { SM->SetMaterial(0, M); }

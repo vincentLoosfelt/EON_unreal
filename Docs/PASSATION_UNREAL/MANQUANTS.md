@@ -244,9 +244,23 @@ Provisoire ou manquant :
   - Au quai, il ne reste qu'une passerelle, celle du sud. Au nord, à l'est et à l'ouest, les grilles, rambardes, murs percés et sas sont retirés, et les trous des portes sont murés avec le même WallA320 que le reste du hub. Une barrière invisible empêche de tomber au bout des moignons de passerelle (ils font partie du maillage COMv1).
   - Le terminal et l'arrivée de Jira sont côté sud. Au départ du C.O.M, tout revient tel que l'étage l'utilise (`SetDockLayout`).
   - Captures : `Docs/J8_quai.png`, `J8_quai_dialogue.png`, `J8_quai_levier.png`, `J8_quai_retour_etage.png`.
-- **Kibo, reste à faire** :
-  - la salle de réveil (cuves, cibles, fossé, `wake`, cinématique de 2,6 s) et la passerelle ;
-  - tant que la passerelle n'existe pas, les 4 sas du C.O.M à quai restent fermés. La spec veut une porte sud ouverte, qui mène à la passerelle.
+- **Kibo, deuxième partie (16/11) : salle de réveil et passerelle.**
+  - Une nouvelle run commence dans la cuve de Jira, avec une cinématique de 2,6 s : à 1,7 s, secousse et la cuve s'enfonce dans le sol ; à 2,6 s, Jira sort et le dialogue `wake` se lance. Pendant la cinématique, Jira ne répond pas.
+  - La salle de réveil suit `buildTraining` : 36 × 20, 7 cuves, fossé à dasher, petit trou, porte nord. Les 4 cibles d'entraînement sont aux positions du proto. La consigne « Teste chaque greffe sur les cibles » s'affiche en bas.
+  - La passerelle suit `buildPasserelle` : 12 × 30, pont de 4 tuiles, portes nord et sud.
+  - Enchaînement du proto : réveil (N) → passerelle → (N) C.O.M à quai, dont le sas sud est ouvert ; retour possible dans l'autre sens.
+  - Tests : `eon.kibo reveil|passerelle|quai` ; `eon.go N|S` pose Jira sur le seuil d'une porte du Kibo.
+  - Captures : `Docs/J8_kibo_cuve.png`, `J8_kibo_reveil.png`, `J8_kibo_passerelle.png`.
+- **Descente du C.O.M (16/11)** : le C.O.M est un centre d'opération mobile qui descend la colonne du hub d'un étage à l'autre.
+  - Au levier : mise en marche (3 à-coups), puis descente de 32 m en accélérant (ease-in cubique). Le maillage COMv1 (dôme compris), le champ de force, le terminal, Jira et les arcs électriques descendent ensemble.
+  - Fondu au noir doux (smoothstep), puis chargement de l'étage dans le noir et fondu d'ouverture. Le C.O.M arrive de 22 m plus haut et freine (ease-out quintique) jusqu'à la hauteur des passerelles, puis un petit choc à l'arrêt. Le dialogue d'arrivée suit.
+  - Pendant la séquence, Jira ne répond pas et la caméra reste à hauteur des passerelles. Durée : 3,7 s au départ, 3,3 s à l’arrivée. Vidéo : `Docs/J8_com_descente.mp4`.
+  - Becs du C.O.M (les 4 « anchor ») : ils doivent pivoter de 90° vers le bas avant le départ. Animation à faire par Vincent dans Blender ; un premier essai en C++ a été retiré le 16/11.
+  - Pas de son de moteur ni de grincement (§8).
+- **Kibo, provisoire** :
+  - les cuves sont les cylindres génériques des salles (§3) : pas encore de différence entre cuves scellées, brisées et celle de Jira, pas de vapeur ni de vidange visible (le proto a des particules, le son `hiss` et le son `door`) ;
+  - le texte de la consigne ne liste pas encore les greffes (le proto affiche « 1 Nom 2 Nom… ») ;
+  - la salle de réveil et la passerelle utilisent l'éclairage et la palette des salles générées, et non une ambiance propre au Kibo.
 - **Attendent le Kibo et les salles Événement (jalon 9)** :
   - Ulysse : sauvetage, refuge, insignes, PV permanents ;
   - le Cobaye jouable : seul son déblocage est en place, avec la bannière « Une cuve s'est ouverte au Kibo » ;

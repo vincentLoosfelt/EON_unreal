@@ -283,6 +283,7 @@ void AEONPlayerController::OnFireStop(const FInputActionValue&) { bFireInput = f
 void AEONPlayerController::OnDashStart(const FInputActionValue&)
 {
 	bDashInput = true;
+	if (const AEONFloorManager* FM = AEONFloorManager::Get(this); FM && FM->IsCinematic()) { return; }
 	if (AEONCharacter* Jira = Cast<AEONCharacter>(GetPawn()))
 	{
 		Jira->SetDashHeld(true);
@@ -305,6 +306,7 @@ void AEONPlayerController::OnNamedAction(const FInputActionValue&, FString Name)
 	if (!Jira) { return; }
 	// Terminal, dialogue ou écran titre ouverts : ils lisent leurs touches eux-mêmes (TickUI).
 	if (const UEONUISubsystem* UI = UEONUISubsystem::Get(this); UI && (UI->IsBlocking() || (Name == TEXT("Interagir") && UI->JustClosed()))) { return; }
+	if (const AEONFloorManager* FM = AEONFloorManager::Get(this); FM && FM->IsCinematic()) { return; }
 	// Choix de niveau : [1] [2] [3] directement, ou greffe suivante / précédente puis tir ou Interagir.
 	if (Jira->IsLevelUpOpen())
 	{
@@ -343,6 +345,8 @@ void AEONPlayerController::PlayerTick(float DeltaTime)
 		UI->TickUI(this, FMath::Min((float)FApp::GetDeltaTime(), 0.1f));
 		if (UI->IsBlocking()) { Jira->SetFireHeld(false); Jira->SetMoveInput(FVector2D::ZeroVector); return; }
 	}
+	// Cinématique de réveil du Kibo : Jira ne répond pas.
+	if (const AEONFloorManager* FM = AEONFloorManager::Get(this); FM && FM->IsCinematic()) { Jira->SetFireHeld(false); Jira->SetMoveInput(FVector2D::ZeroVector); return; }
 	if (DevMenu.IsOpen())
 	{
 		// Menu ouvert : Jira se déplace en ZQSD / WASD seulement.

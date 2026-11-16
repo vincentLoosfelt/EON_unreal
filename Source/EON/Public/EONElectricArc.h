@@ -1,4 +1,4 @@
-// EON — arc électrique du HUB (ElectricArc.cs d'Unity, 8 instances dans Room_elevator) : relie une monture d'angle
+﻿// EON — arc électrique du HUB (ElectricArc.cs d'Unity, 8 instances dans Room_elevator) : relie une monture d'angle
 // (Rampe electro) au C.O.M, champ magnétique qui fait circuler le HUB verticalement (Vincent, 15/11).
 // Même algorithme qu'Unity : 24 segments, bruit de Perlin doux + cassures quantifiées, enveloppe sin^1.5, halo x3,
 // 2 arcs secondaires, scintillement, graines décalées toutes les 0,03 s, extrémités replacées toutes les 2-3 s.
@@ -33,6 +33,11 @@ public:
 	/** Points des surfaces émissives (glissières, lumières du C.O.M) où les extrémités se promènent (Vincent, 15/11). Vide = rayon autour du point. */
 	UPROPERTY(EditAnywhere, Category = "Arc") TArray<FVector> StartCandidates;
 	UPROPERTY(EditAnywhere, Category = "Arc") TArray<FVector> EndCandidates;
+
+	/** Descente du C.O.M : décalage appliqué aux extrémités posées sur le C.O.M (à moins de ComRadius de son centre, à plat). */
+	static FVector ComShift;
+	static FVector ComCentre;
+	static constexpr float ComRadius = 1300.f;
 
 	UPROPERTY(EditAnywhere, Category = "Arc") int32 Segments = 12;
 	/** Épaisseur du cœur en cm (Unity 0,06 m). */

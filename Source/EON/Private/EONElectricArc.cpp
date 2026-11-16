@@ -1,4 +1,4 @@
-#include "EONElectricArc.h"
+﻿#include "EONElectricArc.h"
 #include "ProceduralMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Camera/PlayerCameraManager.h"
@@ -30,6 +30,9 @@ namespace
 		return FColor(B(C.R / M), B(C.G / M), B(C.B / M), B(M * C.A / 4.f));
 	}
 }
+
+FVector AEONElectricArc::ComShift = FVector::ZeroVector;
+FVector AEONElectricArc::ComCentre = FVector::ZeroVector;
 
 AEONElectricArc::AEONElectricArc()
 {
@@ -147,15 +150,18 @@ void AEONElectricArc::Tick(float DeltaSeconds)
 	TArray<int32> I;
 	TArray<FColor> C;
 	TArray<FVector> P;
-	Generate(P, CurStart, CurEnd, 0.f, Segments);
+	// Les extrémités accrochées au C.O.M suivent sa descente.
+	auto Shift = [](const FVector& Q) { return FVector2D::Distance(FVector2D(Q), FVector2D(ComCentre)) < ComRadius ? Q + ComShift : Q; };
+	const FVector S0 = Shift(CurStart), E0 = Shift(CurEnd);
+	Generate(P, S0, E0, 0.f, Segments);
 	AddRibbon(P, Thickness * 3.f * Flicker, GlowColor * Flicker, Eye, V, I, C);   // halo (Unity : épaisseur ×3)
 	AddRibbon(P, Thickness * Flicker, ArcColor * Flicker, Eye, V, I, C);          // cœur
-	const FVector Perp = FVector::CrossProduct((CurEnd - CurStart).GetSafeNormal(), FVector::UpVector).GetSafeNormal();
+	const FVector Perp = FVector::CrossProduct((E0 - S0).GetSafeNormal(), FVector::UpVector).GetSafeNormal();
 	for (const FBranch& Br : Branches)
 	{
 		const float Nv = Perlin01(Time * AnimationSpeed * 0.5f + Br.Seed, Br.Seed * 0.7f) - 0.5f;
 		const FVector Off = Perp * Nv * NoiseIntensity * 0.3f * 100.f;   // Unity en m -> cm
-		Generate(P, FMath::Lerp(CurStart, CurEnd, Br.StartT) + Off, FMath::Lerp(CurStart, CurEnd, Br.EndT) - Off * 0.5f, Br.Seed, Segments);
+		Generate(P, FMath::Lerp(S0, E0, Br.StartT) + Off, FMath::Lerp(S0, E0, Br.EndT) - Off * 0.5f, Br.Seed, Segments);
 		AddRibbon(P, Thickness * 0.4f * Flicker, ArcColor * (Flicker * 0.6f), Eye, V, I, C);
 	}
 	Mesh->CreateMeshSection(0, V, I, TArray<FVector>(), TArray<FVector2D>(), C, TArray<FProcMeshTangent>(), false);

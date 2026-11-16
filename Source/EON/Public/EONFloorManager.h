@@ -122,6 +122,20 @@ public:
 	bool IsInTransition() const { return TransT > 0.f; }
 	/** C.O.M à quai au Kibo : début de run, avant le premier levier (FloorN = 0). */
 	bool IsDockedMode() const { return bDocked; }
+	/** Salle du Kibo où se trouve Jira : 0 aucune (étage), 1 salle de réveil, 2 passerelle, 3 C.O.M à quai. */
+	uint8 GetKiboRoom() const { return bDocked ? Kibo : 0; }
+	/** Cinématique de réveil en cours (2,6 s) : Jira ne répond pas. */
+	/** Pendant la descente du C.O.M, la caméra reste à hauteur des passerelles : on voit le C.O.M bouger (Jira bouge avec lui). */
+	float GetCamDz() const { return (ComTravelT >= 0.f || ComArrT >= 0.f) ? ComDz : 0.f; }
+	/** Vue de développement (eon.vue) : caméra fixe posée par rapport au centre du C.O.M, pour filmer une séquence. */
+	bool bDevView = false;
+	FVector DevViewLoc = FVector::ZeroVector;
+	FRotator DevViewRot = FRotator::ZeroRotator;
+	float DevViewFov = 60.f;
+	void SetDevView(const FVector& Rel, const FVector& LookRel, float Fov) { bDevView = true; DevViewLoc = HubCentre + Rel; DevViewRot = (LookRel - Rel).Rotation(); DevViewFov = Fov; }
+	bool IsCinematic() const { return WakeT >= 0.f || ComTravelT >= 0.f || ComArrT >= 0.f; }
+	/** Tests : eon.kibo reveil|passerelle|quai. */
+	void GoKibo(uint8 Which);
 
 	/** Hub 3D (L_HUB) : la salle du C.O.M est le hub lui-même ; ses 4 sas mènent aux salles générées, construites plus loin dans la carte. */
 	bool IsHubMode() const { return bHub; }
@@ -159,6 +173,16 @@ private:
 	float AmbushT = -1.f;
 	float ComTravelT = -1.f;
 	bool bComGo = false;
+	/** Arrivée du C.O.M à l'étage suivant : il descend d'en haut et se cale à hauteur des passerelles. */
+	float ComArrT = -1.f;
+	bool bComArrive = false;
+	/** Décalage vertical courant du C.O.M (cm, négatif = plus bas) ; ce qui bouge avec lui : COMv1 et le champ de force. */
+	float ComDz = 0.f;
+	UPROPERTY(Transient) TArray<TObjectPtr<AActor>> ComMovers;
+	TArray<FVector> ComMoverBase;
+	void SetComDz(float Dz);
+	void SetJiraFrozen(bool bFrozen);
+	void SayFloorIntro();
 	float InfBumpT = 0.f;
 	bool bInfHint = false;
 	/** P.introDone : le dialogue iaIntro joue au premier étage de chaque run. */
@@ -185,6 +209,17 @@ private:
 	/** Kibo : le C.O.M à quai (hub 3D, les 4 sas fermés, levier prêt). */
 	bool bDocked = false;
 	void LoadDock();
+	void BeginKibo();
+	void EnterTraining(bool bCine);
+	void EnterPasserelle(uint8 Entry);
+	void LoadKiboGrid(const FEONTileGrid& G, uint8 Entry, const FVector2D* At = nullptr);
+	void TickKibo(float DeltaSeconds, AEONCharacter* J);
+	void ClearKiboActors();
+	uint8 Kibo = 0;
+	float WakeT = -1.f;
+	FEONTileGrid KiboGrid;
+	UPROPERTY(Transient) TArray<TObjectPtr<AActor>> KiboActors;
+	UPROPERTY(Transient) TObjectPtr<class AStaticMeshActor> JiraPod;
 	void SetHubDoorsForced(int32 State);
 	UPROPERTY(Transient) TArray<TObjectPtr<class AEONSlidingDoor>> HubDoorActors;
 	/** Quai : une seule passerelle (sud). Les 3 autres (grilles, rambardes, mur percé, sas) sont retirées et leurs trous murés ; tout revient au départ du C.O.M. */
