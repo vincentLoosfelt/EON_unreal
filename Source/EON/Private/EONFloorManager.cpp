@@ -12,6 +12,7 @@
 #include "EONPickup.h"
 #include "EONSlidingDoor.h"
 #include "EONTrainingDummy.h"
+#include "EONWakePod.h"
 #include "EONChampForce.h"
 #include "EONElectricArc.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -367,6 +368,7 @@ void AEONFloorManager::ClearKiboActors()
 	KiboActors.Reset();
 	JiraPod = nullptr;
 	WakeT = -1.f;
+	WakeLift = 0.f;
 }
 
 void AEONFloorManager::LoadKiboGrid(const FEONTileGrid& G, uint8 Entry, const FVector2D* At)
@@ -415,23 +417,31 @@ void AEONFloorManager::EnterTraining(bool bCine)
 	{
 		if (AActor* A = GetWorld()->SpawnActor<AEONTrainingDummy>(AEONTrainingDummy::StaticClass(), Room->RoomPxToWorld(Px, 0.f), FRotator::ZeroRotator, P)) { KiboActors.Add(A); }
 	}
+	// Les 7 cuves (PODS du proto) : scellées, brisées, et celle de Jira (pleine pendant la cinématique, ouverte ensuite).
+	static const EEONPodState States[] = { EEONPodState::Sealed, EEONPodState::Broken, EEONPodState::Sealed, EEONPodState::Sealed, EEONPodState::Sealed, EEONPodState::Broken, EEONPodState::Jira };
+	const TArray<FIntPoint>& Pods = FEONTileGrid::TrainingPods();
+	for (int32 I = 0; I < Pods.Num(); ++I)
+	{
+		const FIntPoint Q = Pods[I];
+		AEONWakePod* Pd = GetWorld()->SpawnActor<AEONWakePod>(AEONWakePod::StaticClass(), Room->RoomPxToWorld(FVector2D((Q.X + 1) * 16.f, (Q.Y + 1.5f) * 16.f), 0.f), FRotator::ZeroRotator, P);   // toutes vitre vers la caméra (sud) : vues de dos, les cuves du mur sud cachaient leur contenu
+		if (!Pd) { continue; }
+		const bool bJira = States[I] == EEONPodState::Jira;
+		Pd->Init(bJira && !bCine ? EEONPodState::Open : States[I]);
+		KiboActors.Add(Pd);
+		if (bJira) { JiraPod = Pd; }
+	}
 	if (bCine)
 	{
-		// La cuve de Jira : un cylindre qui se vidange puis s'enfonce dans le sol (2,6 s).
-		UStaticMesh* Cyl = LoadObject<UStaticMesh>(nullptr, TEXT("/Game/EON/Meshes/SM_Cylinder_N.SM_Cylinder_N"));
-		UMaterialInterface* Mat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/EON/Materials/BG/MI_BG_pipe_1.MI_BG_pipe_1"));
-		JiraPod = GetWorld()->SpawnActor<AStaticMeshActor>(Room->RoomPxToWorld(PodPx, 110.f), FRotator::ZeroRotator, P);
-		if (JiraPod && Cyl)
-		{
-			JiraPod->SetMobility(EComponentMobility::Movable);
-			UStaticMeshComponent* SM = JiraPod->GetStaticMeshComponent();
-			SM->SetStaticMesh(Cyl);
-			SM->SetWorldScale3D(FVector(1.88f, 2.82f, 2.2f));
-			SM->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			if (Mat) { SM->SetMaterial(0, Mat); }
-			KiboActors.Add(JiraPod);
-		}
+		if (JiraPod) { JiraPod->StartWake(); }
 		WakeT = 0.f;
+		// Jira flotte dans le tube (fond du verre à 130 cm), figée jusqu'à l'ouverture.
+		if (AEONCharacter* J = GetJira())
+		{
+			WakeGroundZ = J->GetActorLocation().Z;
+			WakeLift = 130.f;
+			J->AddActorWorldOffset(FVector(0.f, 0.f, WakeLift));
+			SetJiraFrozen(true);
+		}
 	}
 	ShowBanner(TEXT("Kibo - Salle de reveil"), FLinearColor(FColor(62, 242, 224)));
 	UE_LOG(LogEON, Display, TEXT("EON Kibo : salle de reveil%s"), bCine ? TEXT(" (cinematique)") : TEXT(""));
@@ -465,22 +475,20 @@ void AEONFloorManager::GoKibo(uint8 Which)
 void AEONFloorManager::TickKibo(float DeltaSeconds, AEONCharacter* J)
 {
 	// Cinématique de réveil (2,6 s) : la cuve se vidange (0,6 s), s'ouvre (1,7 s), Jira sort, puis le dialogue wake.
+	// La cuve (AEONWakePod) joue elle-même la vidange, l'ouverture, la vapeur et les sons.
 	if (WakeT >= 0.f)
 	{
 		const float T0 = WakeT;
 		WakeT += DeltaSeconds;
 		AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld());
 		if (T0 < 1.7f && WakeT >= 1.7f && D) { D->Shake(0.3f); }
-		if (JiraPod && WakeT > 1.7f)
-		{
-			const float K = FMath::Clamp((WakeT - 1.7f) / 0.45f, 0.f, 1.f);
-			JiraPod->GetStaticMeshComponent()->SetWorldScale3D(FVector(1.88f, 2.82f, FMath::Max(0.02f, 2.2f * (1.f - K))));
-			FVector L = JiraPod->GetActorLocation(); L.Z = Room->RoomPxToWorld(FVector2D::ZeroVector, 0.f).Z + 110.f * (1.f - K); JiraPod->SetActorLocation(L);
-		}
+		// Le tube est descendu (2,15 s) : Jira est relâchée et saute hors de la cuve, vers l'avant (+Y, côté caméra).
+		if (T0 < 2.2f && WakeT >= 2.2f) { SetJiraFrozen(false); if (J) { J->LaunchCharacter(FVector(0.f, 480.f, 220.f), true, true); } }
+		if (WakeLift > 0.f && WakeT >= 2.2f) { if (J) { WakeLift = FMath::Max(0.f, J->GetActorLocation().Z - WakeGroundZ); } }
 		if (WakeT >= 2.6f)
 		{
 			WakeT = -1.f;
-			if (JiraPod) { KiboActors.Remove(JiraPod); JiraPod->Destroy(); JiraPod = nullptr; }
+			WakeLift = 0.f;
 			if (D) { D->Shake(0.25f); }
 			if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->Say(TEXT("wake")); }
 		}

@@ -285,8 +285,9 @@ void AEONTileRoom::RebuildVisuals()
 		}
 	}
 	// Cuves : un cylindre par bloc de tuiles K (bloc = composante 4-connexe), à l'emprise du bloc.
+	// Salle de réveil du Kibo : les cuves sont des AEONWakePod posées par le FloorManager, pas de cylindre.
 	TArray<uint8> Seen; Seen.SetNumZeroed(Grid.W * Grid.H);
-	for (int32 I = 0; I < Grid.W * Grid.H; ++I)
+	for (int32 I = 0; I < Grid.W * Grid.H && Grid.Feat != TEXT("training"); ++I)
 	{
 		if (Seen[I] || Grid.T[I] != (uint8)EEONTile::Tank) { continue; }
 		int32 X0 = 9999, Y0 = 9999, X1 = -1, Y1 = -1;

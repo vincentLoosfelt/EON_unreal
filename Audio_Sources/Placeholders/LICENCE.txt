@@ -11,3 +11,9 @@ SFX_Jira_Laser       <- laser5.mp3
 SFX_Jira_Ultime_Rayon <- zap2.mp3
 SFX_Ennemi_Tir_01    <- phaserDown1.mp3
 SFX_Ennemi_Tir_02    <- phaserDown2.mp3
+
+Sons du proto (synthèse) : le proto EON_v0.60.1 synthétise ses sons en Web Audio (fonction sfx).
+Saved/Scripts/eon_sons_proto.py refait la même synthèse et l'écrit en WAV. Pas de source externe.
+SFX_Proto_hiss       <- sfx('hiss') : vidange de la cuve
+SFX_Proto_door       <- sfx('door') : ouverture
+SFX_Proto_lift       <- sfx('lift') : sortie de Jira, C.O.M

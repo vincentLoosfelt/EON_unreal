@@ -245,12 +245,12 @@ Provisoire ou manquant :
   - Le terminal et l'arrivée de Jira sont côté sud. Au départ du C.O.M, tout revient tel que l'étage l'utilise (`SetDockLayout`).
   - Captures : `Docs/J8_quai.png`, `J8_quai_dialogue.png`, `J8_quai_levier.png`, `J8_quai_retour_etage.png`.
 - **Kibo, deuxième partie (16/11) : salle de réveil et passerelle.**
-  - Une nouvelle run commence dans la cuve de Jira, avec une cinématique de 2,6 s : à 1,7 s, secousse et la cuve s'enfonce dans le sol ; à 2,6 s, Jira sort et le dialogue `wake` se lance. Pendant la cinématique, Jira ne répond pas.
+  - Une nouvelle run commence dans la cuve de Jira, avec une cinématique de 2,6 s : Jira flotte dans le tube de sa cuve ; à 1,7 s, secousse et le tube descend autour du socle ; à 2,2 s, Jira est relâchée et saute hors de la cuve, devant le socle (la caméra reste au niveau du sol) ; à 2,6 s et le dialogue `wake` se lance. Pendant la cinématique, Jira ne répond pas.
   - La salle de réveil suit `buildTraining` : 36 × 20, 7 cuves, fossé à dasher, petit trou, porte nord. Les 4 cibles d'entraînement sont aux positions du proto. La consigne « Teste chaque greffe sur les cibles » s'affiche en bas.
   - La passerelle suit `buildPasserelle` : 12 × 30, pont de 4 tuiles, portes nord et sud.
   - Enchaînement du proto : réveil (N) → passerelle → (N) C.O.M à quai, dont le sas sud est ouvert ; retour possible dans l'autre sens.
   - Tests : `eon.kibo reveil|passerelle|quai` ; `eon.go N|S` pose Jira sur le seuil d'une porte du Kibo.
-  - Captures : `Docs/J8_kibo_cuve.png`, `J8_kibo_reveil.png`, `J8_kibo_passerelle.png`.
+  - Captures : `Docs/J8_kibo_cuves.png`, `J8_kibo_reveil.png`, `J8_kibo_passerelle.png` ; vidéos du réveil : `Docs/J8_kibo_cuves_reveil.mp4` (vue du jeu), `Docs/J8_kibo_cuve_jira_proche.mp4` (caméra rapprochée, CamViewTiles 9).
 - **Descente du C.O.M (16/11)** : le C.O.M est un centre d'opération mobile qui descend la colonne du hub d'un étage à l'autre.
   - Au levier : mise en marche (3 à-coups), puis descente de 32 m en accélérant (ease-in cubique). Le maillage COMv1 (dôme compris), le champ de force, le terminal, Jira et les arcs électriques descendent ensemble.
   - Fondu au noir doux (smoothstep), puis chargement de l'étage dans le noir et fondu d'ouverture. Le C.O.M arrive de 22 m plus haut et freine (ease-out quintique) jusqu'à la hauteur des passerelles, puis un petit choc à l'arrêt. Le dialogue d'arrivée suit.
@@ -258,7 +258,9 @@ Provisoire ou manquant :
   - Becs du C.O.M (les 4 « anchor ») : ils doivent pivoter de 90° vers le bas avant le départ. Animation à faire par Vincent dans Blender ; un premier essai en C++ a été retiré le 16/11.
   - Pas de son de moteur ni de grincement (§8).
 - **Kibo, provisoire** :
-  - les cuves sont les cylindres génériques des salles (§3) : pas encore de différence entre cuves scellées, brisées et celle de Jira, pas de vapeur ni de vidange visible (le proto a des particules, le son `hiss` et le son `door`) ;
+  - les 7 cuves de la salle de réveil (16/11) sont des `AEONWakePod` : Cuve_1 (FBX studio, identique à Unity) séparée dans Blender en corps + tube de verre (`blender_cuve_reveil.py`, `eon_cuve_reveil.py`), posée au sol avec son socle (le tube commence à 130 cm, Jira y est levée pendant le réveil). Les cuves « plus avancées » du Drive que cherche Vincent ne sont pas encore identifiées (ni Assets_Cuves, ni Assets_Cuve.blend). Scellées : liquide vert du proto, silhouette sombre en formes simples (provisoire : pas de modèle de spécimen), voyant rouge qui clignote. Brisées : dents de verre sur les bords du tube, éclats et flaque verte au sol. Celle de Jira : vidange (0,6–1,6 s, son `hiss`), le tube descend dans le socle (1,7 s, son `door`), vapeur, bouffée à 2,6 s (son `lift`). La vapeur est faite de sphères translucides, en attendant Niagara (jalon 10) ;
+  - toutes les cuves ont la vitre tournée vers la caméra, même contre le mur sud : vues de dos, elles cachaient leur contenu (et Jira pendant le réveil) ;
+  - les sons `hiss`, `door` et `lift` sont la synthèse du proto rendue en WAV (`eon_sons_proto.py`, `SFX_Proto_*`) ; Cuve_1 n'a pas de texture de couleur (seulement une carte de curvature) : matériaux unis de Unity ;
   - le texte de la consigne ne liste pas encore les greffes (le proto affiche « 1 Nom 2 Nom… ») ;
   - la salle de réveil et la passerelle utilisent l'éclairage et la palette des salles générées, et non une ambiance propre au Kibo.
 - **Attendent le Kibo et les salles Événement (jalon 9)** :

@@ -126,7 +126,7 @@ public:
 	uint8 GetKiboRoom() const { return bDocked ? Kibo : 0; }
 	/** Cinématique de réveil en cours (2,6 s) : Jira ne répond pas. */
 	/** Pendant la descente du C.O.M, la caméra reste à hauteur des passerelles : on voit le C.O.M bouger (Jira bouge avec lui). */
-	float GetCamDz() const { return (ComTravelT >= 0.f || ComArrT >= 0.f) ? ComDz : 0.f; }
+	float GetCamDz() const { return WakeLift > 0.f ? WakeLift : (ComTravelT >= 0.f || ComArrT >= 0.f) ? ComDz : 0.f; }
 	/** Vue de développement (eon.vue) : caméra fixe posée par rapport au centre du C.O.M, pour filmer une séquence. */
 	bool bDevView = false;
 	FVector DevViewLoc = FVector::ZeroVector;
@@ -217,9 +217,12 @@ private:
 	void ClearKiboActors();
 	uint8 Kibo = 0;
 	float WakeT = -1.f;
+	// Réveil : hauteur de Jira au-dessus du sol (dans le tube, puis pendant sa chute) ; la caméra reste au sol.
+	float WakeLift = 0.f;
+	float WakeGroundZ = 0.f;
 	FEONTileGrid KiboGrid;
 	UPROPERTY(Transient) TArray<TObjectPtr<AActor>> KiboActors;
-	UPROPERTY(Transient) TObjectPtr<class AStaticMeshActor> JiraPod;
+	UPROPERTY(Transient) TObjectPtr<class AEONWakePod> JiraPod;
 	void SetHubDoorsForced(int32 State);
 	UPROPERTY(Transient) TArray<TObjectPtr<class AEONSlidingDoor>> HubDoorActors;
 	/** Quai : une seule passerelle (sud). Les 3 autres (grilles, rambardes, mur percé, sas) sont retirées et leurs trous murés ; tout revient au départ du C.O.M. */
