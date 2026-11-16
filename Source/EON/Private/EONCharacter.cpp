@@ -36,6 +36,8 @@ static TAutoConsoleVariable<int32> CVarEONAuto(TEXT("eon.auto"), 0,
 	TEXT("1 = pilote automatique de test : Jira vise et tire sur l'ennemi le plus proche, tourne autour, puis passe une porte."));
 static TAutoConsoleVariable<int32> CVarEONDemo(TEXT("eon.demo"), 0,
 	TEXT("1 = démo de locomotion : Jira au centre de la COM, parcours marche / course automatique."));
+static TAutoConsoleVariable<int32> CVarEONDiagSol(TEXT("eon.diagsol"), 0,
+	TEXT("1 = journal EON_SOL toutes les 0,5 s : mode de déplacement de Jira, sol sous ses pieds, contrainte de plan."));
 
 AEONCharacter::AEONCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -321,6 +323,15 @@ void AEONCharacter::Tick(float DeltaSeconds)
 	const UEONTuningSubsystem* Tuning = UEONTuningSubsystem::Get(this);
 	const FEONGameFeelRow Feel = Tuning ? Tuning->GetGameFeel() : FEONGameFeelRow();
 	const float Dt = DeltaSeconds;
+
+	// --- Diagnostic sol (eon.diagsol 1) : mode de déplacement, sol sous les pieds, contrainte de plan, toutes les 0,5 s.
+	if (CVarEONDiagSol.GetValueOnGameThread() > 0 && FMath::Fmod(GetWorld()->GetTimeSeconds(), 0.5) < Dt)
+	{
+		const UCharacterMovementComponent* M = GetCharacterMovement();
+		UE_LOG(LogEON, Display, TEXT("EON_SOL mode=%d chute=%d solMarchable=%d distSol=%.1f plan=%d pos=%s vit=%s"),
+			(int32)M->MovementMode.GetValue(), M->IsFalling() ? 1 : 0, M->CurrentFloor.IsWalkableFloor() ? 1 : 0,
+			M->CurrentFloor.FloorDist, M->bConstrainToPlane ? 1 : 0, *GetActorLocation().ToCompactString(), *GetVelocity().ToCompactString());
+	}
 
 	// --- Méta : stade de mutation le plus haut (META.st.maxMut) ; Shield NV2 : recharge après 10 s sans dégâts.
 	if (UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this))

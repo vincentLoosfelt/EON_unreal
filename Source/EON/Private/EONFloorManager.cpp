@@ -482,7 +482,9 @@ void AEONFloorManager::TickKibo(float DeltaSeconds, AEONCharacter* J)
 		WakeT += DeltaSeconds;
 		AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld());
 		if (T0 < 1.7f && WakeT >= 1.7f && D) { D->Shake(0.3f); }
-		// Le tube est descendu (2,15 s) : Jira est relâchée et saute hors de la cuve, vers l'avant (+Y, côté caméra).
+		// Le tube est descendu (2,15 s) : Jira est relâchée et saute hors de la cuve, vers le nord (-Y, ~4 m, au-delà de
+		// l'ombre du tube vu par la caméra) :
+		// vers la caméra (+Y), elle atterrissait derrière le muret sud, à 2,5 m de la cuve, hors de vue (16/11).
 		if (T0 < 2.2f && WakeT >= 2.2f)
 		{
 			SetJiraFrozen(false);
@@ -493,7 +495,7 @@ void AEONFloorManager::TickKibo(float DeltaSeconds, AEONCharacter* J)
 				bWakePlaneWas = J->GetCharacterMovement()->bConstrainToPlane;
 				bWakePlaneOff = true;
 				J->GetCharacterMovement()->SetPlaneConstraintEnabled(false);
-				J->LaunchCharacter(FVector(0.f, 480.f, 220.f), true, true);
+				J->LaunchCharacter(FVector(0.f, -520.f, 220.f), true, true);
 			}
 		}
 		if (WakeLift > 0.f && WakeT >= 2.2f) { if (J) { WakeLift = FMath::Max(0.f, J->GetActorLocation().Z - WakeGroundZ); } }
@@ -504,7 +506,7 @@ void AEONFloorManager::TickKibo(float DeltaSeconds, AEONCharacter* J)
 		{
 			if (bWakePlaneOff && J) { J->GetCharacterMovement()->SetPlaneConstraintEnabled(bWakePlaneWas); }
 			bWakePlaneOff = false;
-			UE_LOG(LogEON, Display, TEXT("EON_WAKE dialogue : Jira à %.0f cm du sol, en l'air=%d"), J ? J->GetActorLocation().Z - WakeGroundZ : -1.f, bInAir ? 1 : 0);
+			UE_LOG(LogEON, Display, TEXT("EON_WAKE dialogue : Jira à %.0f cm du sol, en l'air=%d, Jira %s, cuve %s"), J ? J->GetActorLocation().Z - WakeGroundZ : -1.f, bInAir ? 1 : 0, J ? *J->GetActorLocation().ToCompactString() : TEXT("-"), JiraPod ? *JiraPod->GetActorLocation().ToCompactString() : TEXT("-"));
 			WakeT = -1.f;
 			WakeLift = 0.f;
 			if (D) { D->Shake(0.25f); }
