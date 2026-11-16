@@ -78,6 +78,8 @@ public:
 	bool JiraHittable() const;
 
 	const TArray<TObjectPtr<AEONEnemy>>& GetEnemies() const { return Enemies; }
+	/** Toutes les vagues de la salle sont parties et il ne reste ni ennemi vivant ni apparition en cours. */
+	bool IsFightOver() const;
 	AEONTileRoom* GetRoom() const { return CurRoom.Get(); }
 	FVector2D GetJiraPx() const { return JiraPx; }
 	AEONCharacter* GetJira() const;

@@ -38,6 +38,13 @@ struct EON_API FEONFloorCell
 	/** Trésor : son butin a été posé (une seule fois). */
 	bool bLootDone = false;
 	bool bStock = false;
+	/** Faille (buildRoom) : tuiles de la brèche par paires (bord extérieur, puis rang intérieur), point de la brèche
+	 *  et console de confinement (px), paroi refermée. */
+	UPROPERTY() TArray<int32> RiftTiles;
+	FVector2D RiftPx = FVector2D::ZeroVector;
+	FVector2D ConfPx = FVector2D::ZeroVector;
+	uint8 RiftSide = 0;
+	bool bRiftDone = false;
 	UPROPERTY() FEONTileGrid Grid;
 	/** Salle dessinée (Blueprint) tirée pour cette case ; vide = salle générée. */
 	UPROPERTY() TSubclassOf<AEONTileRoom> RoomClass;
@@ -122,6 +129,14 @@ public:
 	bool IsInTransition() const { return TransT > 0.f; }
 	/** Secondes (temps réel) depuis le dernier chargement de salle ou la fin du fondu : les dialogues attendent 1 s. */
 	double SinceRoomReady() const { return FPlatformTime::Seconds() - RoomReadyAt; }
+	/** Faille en cours (updateRift) : brèche ouverte (stade 1 ou 2), salle pas encore confinée. */
+	bool IsRiftActive() const;
+	/** La salle en cours attend son confinement : le directeur ne la libère pas à la dernière mort. */
+	bool HoldsRoomClear() const;
+	/** Jauge du HUD : oxygène 0..1, console active, console en px de salle et en monde. */
+	float GetRiftO2() const { return RiftO2; }
+	bool IsConfinementReady() const { return bConfOn; }
+	FVector GetConfWorld() const;
 	/** C.O.M à quai au Kibo : début de run, avant le premier levier (FloorN = 0). */
 	bool IsDockedMode() const { return bDocked; }
 	/** Salle du Kibo où se trouve Jira : 0 aucune (étage), 1 salle de réveil, 2 passerelle, 3 C.O.M à quai. */
@@ -168,6 +183,9 @@ private:
 	/** Carte rouge posée sur sa plateforme (provisoire : un pavé rouge lumineux). */
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> CardMesh;
 	UPROPERTY() TObjectPtr<UMaterialInterface> CardMaterial;
+	/** Console de confinement de la Faille (placeholder : un bloc, éteint puis cyan). */
+	UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> ConfMesh;
+	UPROPERTY(Transient) TObjectPtr<class UMaterialInstanceDynamic> ConfMID;
 	bool bRedCard = false;
 	bool bRedHint = false;
 	bool bFloorDone = false;
@@ -254,4 +272,14 @@ private:
 	double RoomReadyAt = -10.0;
 	bool bTransDone = false;
 	TFunction<void()> TransFn;
+	// --- Faille (updateRift) : temps depuis l'entrée, stade de la brèche, oxygène, console, alarme, asphyxie.
+	void BuildRift(FEONFloorCell& C);
+	void RiftOpen(FEONFloorCell& C, int32 N);
+	void TickRift(float Dt, AEONCharacter* J, const FVector2D& P, FEONFloorCell& C);
+	float RiftT = -1.f;
+	int32 RiftStage = 0;
+	float RiftO2 = 1.f;
+	bool bConfOn = false;
+	float RiftAlarmT = 0.f;
+	float RiftHurtT = 0.f;
 };

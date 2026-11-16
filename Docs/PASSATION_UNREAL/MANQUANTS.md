@@ -270,3 +270,18 @@ Provisoire ou manquant :
 - **Portraits** : un carré provisoire à la couleur du personnage, avec son initiale et l'expression en petit. Les vrais portraits restent à produire (§6).
 - **Sons** : `item` (déblocage) et les voix de dialogue (une par personnage) n'ont pas de fichier (§8).
 - **Interface** : le terminal et l'écran titre sont dessinés au Canvas, en attendant l'habillage UMG selon la charte (§6).
+
+## Jalon 9 : les events (16/11)
+
+- **La Faille** (`buildRoom`, `riftOpen`, `updateRift`) : fait.
+  - Un pan de mur sans porte est choisi à la génération (6 tuiles au nord ou au sud, 4 à l'est ou à l'ouest). La console de confinement est sur la tuile de sol la plus éloignée de la brèche.
+  - À 1,2 s, le bord du mur devient du vide (bannière « Rupture de paroi », dialogue `rift`). À 6 s, le rang intérieur cède aussi (« La breche s'elargit »).
+  - Aspiration vers la brèche : 70 px/s par stade, ×0,45 pour Jira, ×0,3 pour les ennemis, ×0,25 pour les ramassables. Oxygène : 32 s, puis 1 PV toutes les 2 s. L'alarme sonne toutes les 3 s, puis 2,1 s, puis 1,2 s.
+  - Une seule vague (×0,9). La salle ne se libère pas à la dernière mort : la console s'allume (« Confinement disponible »), et la toucher (12 px) referme la paroi (« Paroi confinee »), sans bannière « Salle nettoyée » ni énergie, comme dans le proto.
+  - HUD : jauge OXYGENE (ASPHYXIE, CONFINEMENT PRET), étiquettes « HORS LIGNE » / « CONFINEMENT » au-dessus de la console et « BRECHE », repère de bord d'écran avec la distance.
+  - Sons `alarm`, `explode`, `card` et `roar` : synthèse du proto rendue en WAV (`eon_sons_proto.py`).
+  - Test : `eon.salle FAILLE`, puis `eon.place console` pose Jira sur la console (`eon.place X Y` : n'importe où dans la salle, en px).
+  - Captures : `Docs/J9_faille_combat.png`, `J9_faille_breche.png`, `J9_faille_confinee.png` ; vidéo `Docs/J9_faille.mp4`.
+- **Faille, provisoire** :
+  - console de confinement : un bloc de 0,9 × 0,9 × 1 m (éteint gris-bleu, puis cyan). Le proto a un sprite `console_faille` à 3 frames ; modèle 3D à produire ;
+  - la brèche est un trou noir dans le mur. Le proto ajoute une bande de danger rouge clignotante le long du mur, un courant d'air (particules aspirées) et une gerbe de 40 éclats à chaque ouverture : à faire avec Niagara (jalon 10).

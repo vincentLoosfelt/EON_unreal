@@ -144,3 +144,12 @@ void AEONPickup::Tick(float Dt)
 	// Petit flottement au-dessus du sol.
 	SetActorLocation(Rm->RoomPxToWorld(Px, 18.f + 6.f * FMath::Sin(T * 5.f + Value)));
 }
+
+void AEONPickup::PullAll(UWorld* World, const FVector2D& ToPx, float SpeedPx, float Dt)
+{
+	for (TActorIterator<AEONPickup> It(World); It; ++It)
+	{
+		const FVector2D D = ToPx - It->Px;
+		It->Px += D / FMath::Max(1.f, D.Size()) * SpeedPx * Dt;
+	}
+}

@@ -204,6 +204,69 @@ void AEONHUD::DrawHUD()
 		}
 	}
 
+	// --- Faille : jauge d'oxygène, étiquettes de la console et de la brèche, repère de bord d'écran vers la console.
+	if (const AEONFloorManager* FR = AEONFloorManager::Get(this); FR && FR->GetCurrentRole() == TEXT("FAILLE") && FR->GetRoom())
+	{
+		const FEONFloorCell* Cc = FR->GetCells().Find(FR->GetCurrentCell());
+		APlayerController* PC = GetOwningPlayerController();
+		if (Cc && PC && !Cc->bRiftDone && Cc->RiftTiles.Num())
+		{
+			const bool bOn = FR->IsConfinementReady();
+			const FLinearColor Grn(FColor(138, 240, 122)), Yel(FColor(255, 210, 74));
+			const FVector ConfW = FR->GetConfWorld();
+			FVector2D Cs;
+			const bool bConfVis = PC->ProjectWorldLocationToScreen(ConfW + FVector(0, 0, 60.f), Cs);
+			if (bConfVis) { Txt(bOn ? TEXT("CONFINEMENT") : TEXT("HORS LIGNE"), Cs.X, Cs.Y - 10 * U, bOn ? Cyan : Dim, U / 4.f, true); }
+			if (FR->IsRiftActive())
+			{
+				const bool bFl = FMath::Fmod(Time * 6.f, 2.f) < 1.f;
+				FVector2D Bs;
+				if (PC->ProjectWorldLocationToScreen(FR->GetRoom()->RoomPxToWorld(Cc->RiftPx, 20.f), Bs))
+				{
+					Txt(TEXT("BRECHE"), Bs.X, Bs.Y - 6 * U, bFl ? FLinearColor::White : Red, U / 4.f, true);
+				}
+				// Jauge d'oxygène, en bas au centre.
+				const float O2 = FR->GetRiftO2(), Bw = 70 * U, Bx = SX * 0.5f - Bw * 0.5f, By = SY - 36 * U;
+				const bool bLo = O2 < 0.25f, bF8 = bLo && FMath::Fmod(Time * 8.f, 2.f) < 1.f;
+				const FLinearColor Oc = bLo ? (bF8 ? FLinearColor::White : Red) : Cyan;
+				Txt(TEXT("OXYGENE"), SX * 0.5f, By - 11 * U, Oc, U / 4.f, true);
+				Rect(Bx - U, By - U, Bw + 2 * U, 6 * U, Ink);
+				Rect(Bx, By, Bw, 4 * U, FLinearColor(FColor(26, 24, 56)));
+				Rect(Bx, By, Bw * O2, 4 * U, Oc);
+				if (O2 <= 0.f) { Txt(TEXT("ASPHYXIE"), SX * 0.5f, By + 8 * U, bF8 ? FLinearColor::White : Red, U / 4.f, true); }
+				else if (bOn) { Txt(TEXT("CONFINEMENT PRET"), SX * 0.5f, By + 8 * U, Grn, U / 4.f, true); }
+				// Repère de bord d'écran : la console hors champ, flèche qui pulse et distance (px du proto).
+				const bool bOff = !bConfVis || Cs.X < 24 * U || Cs.X > SX - 24 * U || Cs.Y < 30 * U || Cs.Y > SY - 30 * U;
+				if (bOff)
+				{
+					const FVector2D Ctr(SX * 0.5f, SY * 0.5f);
+					FVector2D Dv = Cs - Ctr;
+					if (!bConfVis)
+					{
+						// Derrière la caméra : direction au sol de Jira vers la console.
+						const FVector D3 = ConfW - (GetOwningPawn() ? GetOwningPawn()->GetActorLocation() : ConfW);
+						Dv = FVector2D(D3.Y, -D3.X);
+					}
+					const FVector2D Ud = Dv.GetSafeNormal();
+					const float Mx = SX * 0.5f - 44 * U, My = SY * 0.5f - 52 * U;
+					const float K = FMath::Min(FMath::Abs(Ud.X) > 0.001f ? Mx / FMath::Abs(Ud.X) : 1e9f, FMath::Abs(Ud.Y) > 0.001f ? My / FMath::Abs(Ud.Y) : 1e9f);
+					const float Pl = 0.5f + 0.5f * FMath::Sin(Time * (bOn ? 9.f : 5.f));
+					const FVector2D Ep = Ctr + Ud * K + Ud * Pl * 4 * U;
+					const FLinearColor Ac = bOn ? Cyan : Yel;
+					const float Rr = (17.f + Pl * 6.f) * U;
+					Rect(Ep.X - Rr * 0.7f, Ep.Y - Rr * 0.7f, Rr * 1.4f, Rr * 1.4f, FLinearColor(Ac.R, Ac.G, Ac.B, 0.12f + 0.15f * Pl));
+					const FVector2D Nn(-Ud.Y, Ud.X);
+					const FVector2D Tip = Ep + Ud * 17 * U, B1 = Ep - Ud * 13 * U;
+					Canvas->K2_DrawLine(B1, Tip, 4 * U, Ac);
+					Canvas->K2_DrawLine(Tip, Ep + Ud * 3 * U + Nn * 11 * U, 4 * U, Ac);
+					Canvas->K2_DrawLine(Tip, Ep + Ud * 3 * U - Nn * 11 * U, 4 * U, Ac);
+					const float Dpx = FVector2D::Distance(FR->GetRoom()->WorldToRoomPx(GetOwningPawn() ? GetOwningPawn()->GetActorLocation() : ConfW), Cc->ConfPx);
+					Txt(FString::Printf(TEXT("%s%dM"), bOn ? TEXT("CONFINEMENT ") : TEXT("CONSOLE "), FMath::RoundToInt(Dpx)), Ep.X, Ep.Y + 19 * U, Ac, U / 4.f, true);
+				}
+			}
+		}
+	}
+
 	// --- Gardien : carton-titre (nom lettre par lettre, sous-titre, 2,6 s) et barre de vie en bas au centre, encoches aux seuils de phase.
 	if (const AEONBoss* Bs = AEONBoss::GetActive(this))
 	{

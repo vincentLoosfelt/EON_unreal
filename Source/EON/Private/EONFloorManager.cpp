@@ -10,6 +10,7 @@
 #include "EONUI.h"
 #include "EONPedestal.h"
 #include "EONPickup.h"
+#include "EONSfx.h"
 #include "EONSlidingDoor.h"
 #include "EONTrainingDummy.h"
 #include "EONWakePod.h"
@@ -105,6 +106,23 @@ namespace
 			AEONFloorManager* F = AEONFloorManager::Get(World);
 			if (F && Args.Num() && !F->GoToRole(FName(*Args[0].ToUpper()))) { UE_LOG(LogEON, Warning, TEXT("eon.salle : pas de salle %s sur cet étage"), *Args[0]); }
 		}));
+	FAutoConsoleCommandWithWorldAndArgs GEONCmdPlace(TEXT("eon.place"), TEXT("eon.place X Y : pose Jira en (X, Y) px de la salle ; eon.place console : sur la console de confinement de la Faille (tests)"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			AEONFloorManager* F = AEONFloorManager::Get(World);
+			AEONCharacter* J = Cast<AEONCharacter>(UGameplayStatics::GetPlayerPawn(World, 0));
+			if (!F || !J || !F->GetRoom() || !Args.Num()) { return; }
+			FVector2D Px;
+			if (Args[0].Equals(TEXT("console"), ESearchCase::IgnoreCase))
+			{
+				const FEONFloorCell* C = F->GetCells().Find(F->GetCurrentCell());
+				if (!C || !C->RiftTiles.Num()) { return; }
+				Px = C->ConfPx;
+			}
+			else if (Args.Num() >= 2) { Px = FVector2D(FCString::Atof(*Args[0]), FCString::Atof(*Args[1])); }
+			else { return; }
+			J->SetActorLocation(F->GetRoom()->RoomPxToWorld(Px, J->GetSimpleCollisionHalfHeight() + 2.f), false, nullptr, ETeleportType::TeleportPhysics);
+		}));
 	FAutoConsoleCommandWithWorldAndArgs GEONCmdForme(TEXT("eon.forme"), TEXT("eon.forme FORME : va dans la première salle de cette forme (std, carree, large, small, corH, corV) ; s'il n'y en a pas, une salle Combat ou Tension prend cette forme"),
 		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
 		{
@@ -199,6 +217,14 @@ AEONFloorManager::AEONFloorManager()
 	CardMesh->SetWorldScale3D(FVector(0.32f, 0.22f, 0.06f));
 	CardMaterial = MCard.Object;
 	CardMesh->SetVisibility(false);
+	// Console de confinement de la Faille (14 x 14 px dans le proto : 0,9 m de côté, 1 m de haut).
+	ConfMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ConsoleConfinement"));
+	ConfMesh->SetupAttachment(RootComponent);
+	ConfMesh->SetStaticMesh(Cube.Object);
+	ConfMesh->SetMobility(EComponentMobility::Movable);
+	ConfMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	ConfMesh->SetWorldScale3D(FVector(0.875f, 0.875f, 1.f));
+	ConfMesh->SetVisibility(false);
 }
 
 AEONFloorManager* AEONFloorManager::Get(const UObject* WorldContext)
@@ -217,6 +243,11 @@ void AEONFloorManager::BeginPlay()
 		M->SetVectorParameterValue(TEXT("BC1"), FLinearColor(1.f, 0.24f, 0.33f));
 		M->SetVectorParameterValue(TEXT("EmisAdd"), FLinearColor(3.f, 0.2f, 0.35f));
 		CardMesh->SetMaterial(0, M);
+	}
+	if (ConfMesh && CardMaterial)
+	{
+		ConfMID = UMaterialInstanceDynamic::Create(CardMaterial, this);
+		ConfMesh->SetMaterial(0, ConfMID);
 	}
 	Super::BeginPlay();
 	Rng.Initialize(FPlatformTime::Cycles());
@@ -333,6 +364,7 @@ void AEONFloorManager::BeginKibo()
 	AEONPickup::ClearAll(GetWorld(), true);
 	AEONPedestal::ClearAll(GetWorld());
 	if (CardMesh) { CardMesh->SetVisibility(false); }
+	if (ConfMesh) { ConfMesh->SetVisibility(false); }
 	RoomWaves = 0; RoomStartT = 0.f;
 	if (Room) { Room->SetLocked(false); }
 	if (AEONCharacter* J = GetJira()) { J->RefillShield(); }
@@ -379,6 +411,7 @@ void AEONFloorManager::LoadKiboGrid(const FEONTileGrid& G, uint8 Entry, const FV
 	AEONPickup::ClearAll(GetWorld(), true);
 	AEONPedestal::ClearAll(GetWorld());
 	if (CardMesh) { CardMesh->SetVisibility(false); }
+	if (ConfMesh) { ConfMesh->SetVisibility(false); }
 	if (Room->GetClass() != AEONTileRoom::StaticClass())
 	{
 		const FTransform Xf = Room->GetActorTransform();
@@ -980,6 +1013,7 @@ void AEONFloorManager::EnterCell(FIntPoint P, uint8 FromDir, bool bFromCom)
 				C->bStock = true;   // butin « stock » (10 scrap + disquette) ; sinon « carnage » (ADN et énergie)
 			}
 		}
+		if (R == TEXT("FAILLE")) { BuildRift(*C); }
 		C->bCleared = R == TEXT("DEPART") || R == TEXT("CALME") || R == TEXT("OPPORTUNITE") || R == TEXT("MARCHAND") || R == TEXT("TRESOR")
 			|| R == TEXT("SECURITE");   // la carte rouge et son embuscade : jalon 5
 		C->bBuilt = true;
@@ -996,6 +1030,7 @@ void AEONFloorManager::LoadRoom(FEONFloorCell& C, uint8 Entry, bool bFromCom)
 	{
 		AEONPedestal::ClearAll(GetWorld());
 		if (CardMesh) { CardMesh->SetVisibility(false); }
+	if (ConfMesh) { ConfMesh->SetVisibility(false); }
 		RoomWaves = 0; RoomStartT = 0.f; AmbushT = -1.f;
 		Room->SetLocked(false);
 		LoadHub(Entry, bFromCom);
@@ -1019,12 +1054,13 @@ void AEONFloorManager::LoadRoom(FEONFloorCell& C, uint8 Entry, bool bFromCom)
 	RoomStartT = 0.f;
 	bool bLocked = false;
 	const FName R = C.Role;
+	RiftT = -1.f; RiftStage = 0; RiftO2 = 1.f; bConfOn = false;
 	if (!C.bCleared)
 	{
 		if (R == TEXT("COMBAT")) { bLocked = true; RoomWaves = (CombatN < 2 || FloorN == 4) ? 1 : 2; RoomStartT = 0.6f; }
 		else if (R == TEXT("TENSION")) { RoomWaves = 1; RoomStartT = 0.4f; }
 		else if (R == TEXT("CORRIDOR")) { bLocked = true; RoomWaves = 3; RoomStartT = 0.9f; }
-		else if (R == TEXT("FAILLE")) { bLocked = true; RoomWaves = 1; RoomStartT = 0.7f; }   // la brèche et l'oxygène : jalon 9
+		else if (R == TEXT("FAILLE")) { bLocked = true; RoomWaves = 1; RoomStartT = 0.7f; RiftT = C.RiftTiles.Num() ? 0.f : -1.f; RiftAlarmT = 0.f; RiftHurtT = 0.f; }
 		else if (R == TEXT("ASCENSEUR")) { bLocked = true; }    // gardien : la salle se verrouille, il sort de sa cuve (AEONBoss)
 		else if (R == TEXT("EVENEMENT") || R == TEXT("CARTO") || R == TEXT("IRRUPTION")) { C.bCleared = true; }   // events : jalons 8–9
 		if (!C.bCounted && !C.bCleared) { ++CombatN; C.bCounted = true; }
@@ -1065,6 +1101,14 @@ void AEONFloorManager::LoadRoom(FEONFloorCell& C, uint8 Entry, bool bFromCom)
 		const bool bCard = R == TEXT("SECURITE") && !C.bCardTaken;
 		CardMesh->SetVisibility(bCard);
 		if (bCard) { CardMesh->SetWorldLocation(Room->RoomPxToWorld(FVector2D(C.Grid.W * 8.f, C.Grid.H * 8.f), 40.f)); }
+	}
+	// Console de confinement : visible dès l'entrée (éteinte pendant le combat), sans quoi on ne sait pas où aller.
+	if (ConfMesh)
+	{
+		const bool bConf = R == TEXT("FAILLE") && !C.bRiftDone && C.RiftTiles.Num() > 0;
+		ConfMesh->SetVisibility(bConf);
+		if (bConf) { ConfMesh->SetWorldLocation(Room->RoomPxToWorld(C.ConfPx, 50.f)); }
+		if (ConfMID) { ConfMID->SetVectorParameterValue(TEXT("BC1"), FLinearColor(0.16f, 0.15f, 0.31f)); ConfMID->SetVectorParameterValue(TEXT("EmisAdd"), FLinearColor(0.f, 0.f, 0.f)); }
 	}
 
 	// Entrée : par le C.O.M (centre + 40 px), sinon devant la porte d'arrivée, sinon la première porte.
@@ -1217,6 +1261,7 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 	if (!J || !CM || !Room || J->IsDead()) { return; }
 	if (bHub && Cur == Start) { TickHub(DeltaSeconds, J); return; }
 	const FVector2D P = Room->WorldToRoomPx(J->GetActorLocation());
+	if (CM->Role == TEXT("FAILLE") && RiftT >= 0.f && !CM->bRiftDone) { TickRift(DeltaSeconds, J, P, *CM); }
 	// Carte rouge : ramassage à moins de 10 px, puis embuscade (la salle se verrouille, 2 vagues).
 	if (CM->Role == TEXT("SECURITE") && !CM->bCardTaken && !J->IsFallingIntoVoid() && FVector2D::Distance(P, GetCardPx()) < 10.f)
 	{
@@ -1224,6 +1269,7 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 		bRedCard = true;
 		Room->SetRedDoor(0);
 		if (CardMesh) { CardMesh->SetVisibility(false); }
+	if (ConfMesh) { ConfMesh->SetVisibility(false); }
 		ShowBanner(TEXT("Carte rouge"), FLinearColor(FColor(255, 61, 85)));
 		// Dialogue « card », puis l'embuscade.
 		if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->Say(TEXT("card"), [this]() { AmbushT = 0.05f; }); }
@@ -1720,4 +1766,166 @@ FVector AEONFloorManager::HubSafeDir() const
 {
 	const FIntPoint Dv = EONDoor::Dir(HubSafeDoor());
 	return FVector(Dv.X, Dv.Y, 0.f);
+}
+
+// ---------------------------------------------------------------- la Faille (buildRoom, riftOpen, updateRift)
+
+void AEONFloorManager::BuildRift(FEONFloorCell& C)
+{
+	// Une paroi extérieure va céder : un pan de mur sans porte (sinon on décale la brèche pour ne jamais crever une porte).
+	const FEONTileGrid& G = C.Grid;
+	const int32 W = G.W, H = G.H;
+	TArray<uint8> Free;
+	for (uint8 D : DoorOrder) { if (!(C.Doors & D)) { Free.Add(D); } }
+	const uint8 Side = Free.Num() ? Free[Rng.RandRange(0, Free.Num() - 1)] : DoorOrder[Rng.RandRange(0, 3)];
+	const bool bNS = Side == EONDoor::N || Side == EONDoor::S;
+	const int32 Cxr = W >> 1, Cyr = H >> 1, Len = bNS ? 6 : 4;
+	const int32 Off = (C.Doors & Side) ? (Rng.GetFraction() < 0.5f ? -1 : 1) * ((bNS ? Cxr : Cyr) - Len) : 0;
+	const int32 C0 = (bNS ? Cxr : Cyr) + Off;
+	C.RiftTiles.Reset();
+	auto Add = [&](int32 X, int32 Y) { C.RiftTiles.Add(Y * W + X); };
+	for (int32 K = -(Len >> 1); K < Len - (Len >> 1); ++K)
+	{
+		const int32 Cc = FMath::Clamp(C0 + K, 1, (bNS ? W : H) - 2);
+		if (Side == EONDoor::N) { Add(Cc, 0); Add(Cc, 1); }
+		else if (Side == EONDoor::S) { Add(Cc, H - 1); Add(Cc, H - 2); }
+		else if (Side == EONDoor::W) { Add(0, Cc); Add(1, Cc); }
+		else { Add(W - 1, Cc); Add(W - 2, Cc); }
+	}
+	C.RiftPx = FVector2D(Side == EONDoor::W ? 0.f : Side == EONDoor::E ? W * 16.f : C0 * 16.f,
+		Side == EONDoor::N ? 0.f : Side == EONDoor::S ? H * 16.f : C0 * 16.f);
+	// Console de confinement : la tuile de sol (entourée de sol) la plus éloignée de la brèche, pour forcer la traversée.
+	FIntPoint Best(Cxr, Cyr);
+	float Bd = -1.f;
+	const uint8 Fl = (uint8)EEONTile::Floor;
+	for (int32 I = 0; I < W * H; ++I)
+	{
+		if (G.T[I] != Fl) { continue; }
+		const int32 X = I % W, Y = I / W;
+		if (X < 2 || Y < 2 || X > W - 3 || Y > H - 3) { continue; }
+		if (G.T[I + 1] != Fl || G.T[I - 1] != Fl || G.T[I + W] != Fl || G.T[I - W] != Fl) { continue; }
+		const float D = FVector2D::Distance(FVector2D(X * 16.f + 8.f, Y * 16.f + 8.f), C.RiftPx);
+		if (D > Bd) { Bd = D; Best = FIntPoint(X, Y); }
+	}
+	C.ConfPx = FVector2D(Best.X * 16.f + 8.f, Best.Y * 16.f + 8.f);
+	C.RiftSide = Side;
+	C.bRiftDone = false;
+	UE_LOG(LogEON, Display, TEXT("EON Faille : brèche côté %d (%d tuiles), console en (%d,%d)"), Side, C.RiftTiles.Num(), Best.X, Best.Y);
+}
+
+void AEONFloorManager::RiftOpen(FEONFloorCell& C, int32 N)
+{
+	// Stade 1 : le bord extérieur de la paroi devient du vide ; stade 2 : le rang intérieur aussi.
+	if (!Room) { return; }
+	FEONTileGrid G = Room->GetGrid();
+	bool bChanged = false;
+	for (int32 I = 0; I < C.RiftTiles.Num(); ++I)
+	{
+		if (I % 2 != (N >= 2 ? 1 : 0)) { continue; }
+		const int32 Ti = C.RiftTiles[I];
+		if (G.T.IsValidIndex(Ti) && G.T[Ti] != (uint8)EEONTile::Pit) { G.T[Ti] = (uint8)EEONTile::Pit; bChanged = true; }
+	}
+	if (!bChanged) { return; }
+	const uint8 Red = Room->GetRedDoor();
+	Room->SetGrid(G);
+	Room->SetRedDoor(Red);
+	Room->SetInfest(C.Infest, C.InfestK);
+	if (AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld())) { D->Shake(0.6f); }
+	EONSfx::Play(this, TEXT("SFX_Proto_explode"), 0.9f);
+}
+
+void AEONFloorManager::TickRift(float Dt, AEONCharacter* J, const FVector2D& P, FEONFloorCell& C)
+{
+	RiftT += Dt;
+	if (RiftStage == 0 && RiftT > 1.2f)
+	{
+		RiftStage = 1;
+		RiftOpen(C, 1);
+		ShowBanner(TEXT("Rupture de paroi"), FLinearColor(FColor(62, 242, 224)));
+		if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->Say(TEXT("rift")); }
+	}
+	else if (RiftStage == 1 && RiftT > 6.f)
+	{
+		RiftStage = 2;
+		RiftOpen(C, 2);
+		ShowBanner(TEXT("La breche s'elargit"), FLinearColor(FColor(255, 61, 85)));
+	}
+	if (RiftStage == 0) { return; }
+	// Alarme de la station : elle se resserre quand la brèche s'élargit, puis quand l'oxygène tombe.
+	if ((RiftAlarmT -= Dt) <= 0.f)
+	{
+		RiftAlarmT = RiftO2 <= 0.f ? 1.2f : RiftStage > 1 ? 2.1f : 3.f;
+		EONSfx::Play(this, TEXT("SFX_Proto_alarm"), 0.8f);
+	}
+	// Aspiration vers la brèche (70 px/s par stade) : Jira dérive vraiment (x 0,45), les ennemis (x 0,6 x 0,5), les ramassables (x 0,5 x 0,5).
+	const float Fz = 70.f * RiftStage;
+	auto Pull = [&](const FVector2D& O) { const FVector2D D = C.RiftPx - O; const float L = FMath::Max(1.f, D.Size()); return D / L * Fz; };
+	if (!J->IsFallingIntoVoid())
+	{
+		const FVector2D Step = Pull(P) * Dt * 0.45f;
+		const FVector W0 = Room->RoomPxToWorld(P), W1 = Room->RoomPxToWorld(P + Step);
+		J->AddActorWorldOffset(FVector(W1.X - W0.X, W1.Y - W0.Y, 0.f), true);
+	}
+	AEONCombatDirector* Dir = AEONCombatDirector::Get(GetWorld());
+	if (Dir)
+	{
+		for (AEONEnemy* E : Dir->GetEnemies())
+		{
+			if (!E || E->bDead || E->Falling > 0.f || E->IsBoss()) { continue; }
+			E->Pos += Pull(E->Pos) * 0.6f * Dt * 0.5f;
+		}
+	}
+	AEONPickup::PullAll(GetWorld(), C.RiftPx, Fz * 0.5f * 0.5f, Dt);
+	// Oxygène : 32 s ; à zéro, 1 PV toutes les 2 s.
+	RiftO2 = FMath::Max(0.f, RiftO2 - Dt / 32.f);
+	if (RiftO2 <= 0.f && (RiftHurtT -= Dt) <= 0.f)
+	{
+		RiftHurtT = 2.f;
+		if (Dir) { Dir->HurtJira(1, P + FVector2D(0.f, 40.f)); }
+	}
+	// Console : disponible une fois la salle vide (toutes les vagues parties, plus d'ennemi).
+	if (!bConfOn && Dir && Dir->IsFightOver())
+	{
+		bConfOn = true;
+		ShowBanner(TEXT("Confinement disponible"), FLinearColor(FColor(62, 242, 224)));
+		EONSfx::Play(this, TEXT("SFX_Proto_card"), 0.8f);
+		if (ConfMID) { ConfMID->SetVectorParameterValue(TEXT("BC1"), FLinearColor(0.24f, 0.95f, 0.88f)); ConfMID->SetVectorParameterValue(TEXT("EmisAdd"), FLinearColor(0.4f, 3.f, 2.8f)); }
+	}
+	if (bConfOn && !J->IsFallingIntoVoid() && FVector2D::Distance(P, C.ConfPx) < 12.f)
+	{
+		// Confinement : la paroi se referme (les deux rangs deviennent du mur), la salle est libérée, l'oxygène revient.
+		C.bRiftDone = true;
+		for (const int32 I : C.RiftTiles) { if (C.Grid.T.IsValidIndex(I)) { C.Grid.T[I] = (uint8)EEONTile::Wall; } }
+		const uint8 Red = Room->GetRedDoor();
+		Room->SetGrid(C.Grid);
+		Room->SetRedDoor(Red);
+		Room->SetInfest(C.Infest, C.InfestK);
+		MarkCurrentRoomCleared();
+		RiftO2 = 1.f;
+		RiftT = -1.f;
+		RiftStage = 0;
+		bConfOn = false;
+		if (ConfMesh) { ConfMesh->SetVisibility(false); }
+		EONSfx::Play(this, TEXT("SFX_Proto_door"), 0.8f);
+		if (Dir) { Dir->Shake(0.3f); }
+		ShowBanner(TEXT("Paroi confinee"), FLinearColor(FColor(138, 240, 122)));
+	}
+}
+
+bool AEONFloorManager::IsRiftActive() const
+{
+	const FEONFloorCell* C = Cells.Find(Cur);
+	return C && C->Role == TEXT("FAILLE") && !C->bRiftDone && RiftT >= 0.f && RiftStage > 0;
+}
+
+bool AEONFloorManager::HoldsRoomClear() const
+{
+	const FEONFloorCell* C = Cells.Find(Cur);
+	return C && C->Role == TEXT("FAILLE") && !C->bRiftDone && C->RiftTiles.Num() > 0 && RiftT >= 0.f;
+}
+
+FVector AEONFloorManager::GetConfWorld() const
+{
+	const FEONFloorCell* C = Cells.Find(Cur);
+	return C && Room ? Room->RoomPxToWorld(C->ConfPx, 50.f) : FVector::ZeroVector;
 }

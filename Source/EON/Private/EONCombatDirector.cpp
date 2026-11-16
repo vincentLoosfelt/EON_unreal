@@ -571,7 +571,12 @@ void AEONCombatDirector::UpdateWaves(float Dt)
 	for (const AEONEnemy* E : Enemies) { if (E && !E->bDead) { ++Alive; } }
 	if (Spawns.Num() || Alive > (Cur.Wave < Cur.Waves ? 1 : 0)) { return; }
 	if (Cur.Wave < Cur.Waves) { SpawnWave(RoleMul(false)); return; }
-	// La faille ne se libère qu'au confinement (jalon 9) : ici elle se libère à la dernière mort.
+	// La faille ne se libère qu'au confinement, pas à la mort du dernier ennemi (la console le fait, sans bannière ni énergie).
+	if (AEONFloorManager* F = GetFloor())
+	{
+		if (F->HoldsRoomClear()) { return; }
+		if (F->GetCurrentRole() == TEXT("FAILLE") && F->IsCurrentRoomCleared()) { Cur.bCleared = true; Cur.bLocked = false; return; }
+	}
 	Cur.bCleared = true;
 	const bool bWasLocked = Cur.bLocked;
 	Cur.bLocked = false;
@@ -858,4 +863,11 @@ int32 AEONCombatDirector::ClearBullets(TFunctionRef<bool(const FVector2D&)> Pred
 		if (B && Pred(B->Pos)) { B->Destroy(); Bullets.RemoveAt(I); ++N; }
 	}
 	return N;
+}
+
+bool AEONCombatDirector::IsFightOver() const
+{
+	if (Cur.Waves <= 0 || Cur.StartT > 0.f || Cur.Wave < Cur.Waves || Spawns.Num()) { return false; }
+	for (const AEONEnemy* E : Enemies) { if (E && !E->bDead) { return false; } }
+	return true;
 }

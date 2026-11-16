@@ -36,6 +36,8 @@ public:
 	static bool AnyAdn(UWorld* World);
 	/** Changement de salle : l'ADN encore en vol est crédité, le reste disparaît. */
 	static void ClearAll(UWorld* World, bool bCreditAdn);
+	/** Faille : tous les ramassables dérivent vers ToPx à SpeedPx px/s. */
+	static void PullAll(UWorld* World, const FVector2D& ToPx, float SpeedPx, float Dt);
 
 	virtual void Tick(float DeltaSeconds) override;
 

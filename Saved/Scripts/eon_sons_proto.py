@@ -44,8 +44,16 @@ SONS = {
     "hiss": lambda: mix([(0, noise(1.2, 0.22, "bandpass", 2400, 700)), (0, osc("sine", 90, 60, 0.8, 0.12))]),
     "door": lambda: mix([(0, osc("triangle", 220, 440, 0.2, 0.15))]),
     "lift": lambda: mix([(i * 0.07, osc("triangle", f, f, 0.12, 0.1)) for i, f in enumerate([262, 330, 392, 523, 659])]),
+    "explode": lambda: mix([(0, noise(0.4, 0.4, "lowpass", 1800, 60)), (0, osc("sine", 120, 35, 0.35, 0.3))]),
+    "card": lambda: mix([(i * 0.08, osc("square", f, f, 0.1, 0.1)) for i, f in enumerate([392, 523, 784])] + [(0.24, osc("square", 1046, 1046, 0.3, 0.1))]),
+    "alarm": lambda: mix([(0, osc("sawtooth", 660, 638, 0.30, 0.065)), (0, osc("square", 330, 320, 0.30, 0.040)),
+                          (0.28, osc("sawtooth", 496, 480, 0.30, 0.060)), (0.28, osc("square", 248, 240, 0.30, 0.036)),
+                          (0, noise(0.62, 0.025, "bandpass", 420, 260))]),
+    "roar": lambda: mix([(0, osc("sawtooth", 110, 45, 0.9, 0.25)), (0, noise(0.8, 0.25, "lowpass", 900, 80)), (0, osc("square", 70, 40, 0.8, 0.12))]),
 }
+import sys
 for k, fn in SONS.items():
+    if len(sys.argv) > 1 and k not in sys.argv[1:]: continue
     x = fn(); x = x / max(1e-6, np.abs(x).max()) * 0.9
     p = os.path.join(OUT, "SFX_Proto_%s.wav" % k)
     with wave.open(p, "wb") as w:
