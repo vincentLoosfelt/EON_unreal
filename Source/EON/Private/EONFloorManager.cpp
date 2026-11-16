@@ -483,10 +483,28 @@ void AEONFloorManager::TickKibo(float DeltaSeconds, AEONCharacter* J)
 		AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld());
 		if (T0 < 1.7f && WakeT >= 1.7f && D) { D->Shake(0.3f); }
 		// Le tube est descendu (2,15 s) : Jira est relâchée et saute hors de la cuve, vers l'avant (+Y, côté caméra).
-		if (T0 < 2.2f && WakeT >= 2.2f) { SetJiraFrozen(false); if (J) { J->LaunchCharacter(FVector(0.f, 480.f, 220.f), true, true); } }
-		if (WakeLift > 0.f && WakeT >= 2.2f) { if (J) { WakeLift = FMath::Max(0.f, J->GetActorLocation().Z - WakeGroundZ); } }
-		if (WakeT >= 2.6f)
+		if (T0 < 2.2f && WakeT >= 2.2f)
 		{
+			SetJiraFrozen(false);
+			if (J)
+			{
+				// La contrainte de plan (sol plat des salles) annule la vitesse verticale : Jira restait à 130 cm, « flottante ».
+				// Elle n'était active qu'une partie sur deux, selon l'ordre de BeginPlay (Vincent 16/11).
+				bWakePlaneWas = J->GetCharacterMovement()->bConstrainToPlane;
+				bWakePlaneOff = true;
+				J->GetCharacterMovement()->SetPlaneConstraintEnabled(false);
+				J->LaunchCharacter(FVector(0.f, 480.f, 220.f), true, true);
+			}
+		}
+		if (WakeLift > 0.f && WakeT >= 2.2f) { if (J) { WakeLift = FMath::Max(0.f, J->GetActorLocation().Z - WakeGroundZ); } }
+		// Le dialogue wake met le jeu en pause : il attend que Jira ait atterri, sinon elle restait figée en l'air
+		// (« Jira flotte au démarrage », Vincent 16/11). Au plus 1,5 s d'attente.
+		const bool bInAir = J && J->GetCharacterMovement()->IsFalling();
+		if (WakeT >= 2.6f && (!bInAir || WakeT >= 4.1f))
+		{
+			if (bWakePlaneOff && J) { J->GetCharacterMovement()->SetPlaneConstraintEnabled(bWakePlaneWas); }
+			bWakePlaneOff = false;
+			UE_LOG(LogEON, Display, TEXT("EON_WAKE dialogue : Jira à %.0f cm du sol, en l'air=%d"), J ? J->GetActorLocation().Z - WakeGroundZ : -1.f, bInAir ? 1 : 0);
 			WakeT = -1.f;
 			WakeLift = 0.f;
 			if (D) { D->Shake(0.25f); }

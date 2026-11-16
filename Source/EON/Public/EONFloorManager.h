@@ -220,6 +220,9 @@ private:
 	// Réveil : hauteur de Jira au-dessus du sol (dans le tube, puis pendant sa chute) ; la caméra reste au sol.
 	float WakeLift = 0.f;
 	float WakeGroundZ = 0.f;
+	// Contrainte de plan de Jira coupée pendant sa sortie de cuve (sinon elle ne retombe pas des 130 cm), remise au sol.
+	bool bWakePlaneOff = false;
+	bool bWakePlaneWas = false;
 	FEONTileGrid KiboGrid;
 	UPROPERTY(Transient) TArray<TObjectPtr<AActor>> KiboActors;
 	UPROPERTY(Transient) TObjectPtr<class AEONWakePod> JiraPod;
