@@ -38,6 +38,9 @@ struct EON_API FEONFloorCell
 	/** Trésor : son butin a été posé (une seule fois). */
 	bool bLootDone = false;
 	bool bStock = false;
+	/** Trésor « stock » piégé (4 fois sur 10) : prendre la disquette réveille le Dormeur des pièces et verrouille la salle. */
+	bool bTrap = false;
+	bool bSprung = false;
 	/** Faille (buildRoom) : tuiles de la brèche par paires (bord extérieur, puis rang intérieur), point de la brèche
 	 *  et console de confinement (px), paroi refermée. */
 	UPROPERTY() TArray<int32> RiftTiles;

@@ -298,3 +298,5 @@ Provisoire ou manquant :
   - le vacillement avant la coupure est global (−1,5 EV par à-coups), le proto éteint des lampes une par une ;
   - la chose utilise le modèle du Kama élite ; le proto n'a pas de sprite à part non plus ;
   - les traînées de particules de la charge : Niagara (jalon 10).
+- **Trésor piégé** (`eventsUpdate`) : fait. 4 stocks sur 10 sont piégés : prendre la disquette verrouille la salle et réveille le « Dormeur des pieces » (Brainless élite, 18 PV × (1 + 0,3 × (étage − 1)), rayon 7, masse ×2), bannière « Quelque chose dormait sous les pieces ». Mort, la salle se déverrouille. Le stock pose aussi ses 2 Données (oubliées jusqu'ici). Test : `eon.tresor 1` (stocks piégés) ou `2` (carnages), puis `eon.salle TRESOR`. Capture `Docs/J9_tresor_dormeur.png`.
+- **Trésor, provisoire** : le tas de pièces (stock, avec deux yeux rouges qui clignotent quand il est piégé) et les corps du carnage (`drawTresor`) ne sont pas dessinés ; il n'y a que le butin au sol. Modèles à produire.

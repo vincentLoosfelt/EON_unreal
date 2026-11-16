@@ -179,6 +179,7 @@ namespace
 			UE_LOG(LogEON, Display, TEXT("eon.cache %s %d : %d composant(s)"), *Args[0], bShow ? 1 : 0, N);
 		}));
 	TAutoConsoleVariable<FString> CVarEONDebut(TEXT("eon.debut"), TEXT(""), TEXT("eon.debut \"cmd1;cmd2\" : commandes lancées 2 s après le début (tests, ExecCmds trop tôt)"));
+	TAutoConsoleVariable<int32> CVarEONTresor(TEXT("eon.tresor"), 0, TEXT("eon.tresor 1 : les trésors sont des stocks piégés (le Dormeur des pièces) ; 2 : des carnages ; 0 : au hasard (tests)"));
 	TAutoConsoleVariable<int32> CVarEONTrace(TEXT("eon.trace"), 0, TEXT("eon.trace 1 : eon.ou toutes les 2 s"));
 	FAutoConsoleCommandWithWorldAndArgs GEONCmdOu(TEXT("eon.ou"), TEXT("eon.ou : position de Jira, de son mesh et de la caméra dans le log"),
 		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>&, UWorld* World)
@@ -1020,13 +1021,14 @@ void AEONFloorManager::EnterCell(FIntPoint P, uint8 FromDir, bool bFromCom)
 				const TArray<FName> It = EONItems::Roll(3, J, false);
 				for (int32 I = 0; I < It.Num(); ++I) { C->PedItems.Add(It[I]); C->PedPrice.Add(EONItems::Price(*EONItems::Find(It[I]))); C->PedPx.Add(FVector2D(Cx + (I - 1) * 44.f, 4 * 16.f + 10.f)); }
 			}
-			else if (R == TEXT("TRESOR") && Rng.GetFraction() < 0.5f)
+			else if (R == TEXT("TRESOR") && (CVarEONTresor.GetValueOnGameThread() == 1 || (CVarEONTresor.GetValueOnGameThread() == 0 && Rng.GetFraction() < 0.5f)))
 			{
 				FName Pick = NAME_None;
 				for (const FName& Id : EONItems::Roll(4, J, false)) { if (EONItems::Find(Id)->Cat == TEXT("DISQUETTE")) { Pick = Id; break; } }
 				if (Pick.IsNone()) { const TArray<FName> One = EONItems::Roll(1, J, false); if (One.Num()) { Pick = One[0]; } }
 				if (!Pick.IsNone()) { C->PedItems.Add(Pick); C->PedPrice.Add(0); C->PedPx.Add(FVector2D(Cx, Cy - 18.f)); }
-				C->bStock = true;   // butin « stock » (10 scrap + disquette) ; sinon « carnage » (ADN et énergie)
+				C->bStock = true;   // butin « stock » (10 scrap, 2 Données, disquette) ; sinon « carnage » (ADN et énergie)
+				C->bTrap = CVarEONTresor.GetValueOnGameThread() == 1 || Rng.GetFraction() < 0.4f;
 			}
 		}
 		if (R == TEXT("FAILLE")) { BuildRift(*C); }
@@ -1123,6 +1125,7 @@ void AEONFloorManager::LoadRoom(FEONFloorCell& C, uint8 Entry, bool bFromCom)
 		if (C.bStock)
 		{
 			for (int32 K = 0; K < 10; ++K) { AEONPickup::Spawn(GetWorld(), Room, EEONPickup::Scrap, FVector2D(Cx + FMath::FRandRange(-30.f, 30.f), Cy + 14.f + FMath::FRandRange(-12.f, 12.f)), FVector2D::ZeroVector, 1.f, 1.f); }
+			AEONPickup::Spawn(GetWorld(), Room, EEONPickup::Donnee, FVector2D(Cx + 30.f, Cy + 20.f), FVector2D::ZeroVector, 2.f, 1.f);
 		}
 		else
 		{
@@ -1298,6 +1301,32 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 	const FVector2D P = Room->WorldToRoomPx(J->GetActorLocation());
 	if (CM->Role == TEXT("FAILLE") && RiftT >= 0.f && !CM->bRiftDone) { TickRift(DeltaSeconds, J, P, *CM); }
 	if (CM->Role == TEXT("IRRUPTION") && !CM->bCleared) { TickIrruption(DeltaSeconds, J, P, *CM); }
+	// Trésor piégé : la disquette prise, le Dormeur des pièces (Brainless élite) se réveille et la salle se verrouille.
+	if (CM->Role == TEXT("TRESOR") && CM->bTrap)
+	{
+		AEONCombatDirector* Dir = AEONCombatDirector::Get(GetWorld());
+		if (!CM->bSprung && CM->bLootDone && CM->PedItems.Num() == 0 && Dir)
+		{
+			CM->bSprung = true;
+			Room->SetLocked(true);
+			EONSfx::Play(this, TEXT("SFX_Proto_roar"), 0.9f);
+			Dir->Shake(0.6f);
+			if (AEONEnemy* M = Dir->SpawnEnemyAt(TEXT("brainless"), FVector2D((CM->Grid.W >> 1) * 16.f, (CM->Grid.H >> 1) * 16.f + 10.f), true))
+			{
+				M->DisplayName = TEXT("Dormeur des pieces");
+				M->Hp = M->MaxHp = FMath::RoundToFloat(18.f * (1.f + 0.3f * (FloorN - 1)));
+				M->R = 7.f;
+				M->MassM = 2.f;
+			}
+			ShowBanner(TEXT("Quelque chose dormait sous les pieces"), FLinearColor(FColor(255, 61, 85)));
+		}
+		else if (CM->bSprung && Room->IsLocked() && Dir)
+		{
+			bool bAlive = false;
+			for (const AEONEnemy* E : Dir->GetEnemies()) { if (E && !E->bDead) { bAlive = true; } }
+			if (!bAlive) { Room->SetLocked(false); EONSfx::Play(this, TEXT("SFX_Proto_door"), 0.8f); }
+		}
+	}
 	else if (ExpBias != 0.f || LampLight->IsVisible()) { ExpBias = 0.f; LampLight->SetVisibility(false); EyeLight->SetVisibility(false); }
 	// Carte rouge : ramassage à moins de 10 px, puis embuscade (la salle se verrouille, 2 vagues).
 	if (CM->Role == TEXT("SECURITE") && !CM->bCardTaken && !J->IsFallingIntoVoid() && FVector2D::Distance(P, GetCardPx()) < 10.f)
