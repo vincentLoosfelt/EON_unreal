@@ -241,6 +241,9 @@ private:
 	/** Arrivée du C.O.M à l'étage suivant : il descend d'en haut et se cale à hauteur des passerelles. */
 	float ComArrT = -1.f;
 	bool bComArrive = false;
+	// Position de Jira sur le C.O.M au départ du voyage (par rapport au centre) : reprise à l'arrivée.
+	bool bComKeepPos = false;
+	FVector2D ComJiraOff = FVector2D::ZeroVector;
 	/** Décalage vertical courant du C.O.M (cm, négatif = plus bas) ; ce qui bouge avec lui : COMv1 et le champ de force. */
 	float ComDz = 0.f;
 	UPROPERTY(Transient) TArray<TObjectPtr<AActor>> ComMovers;

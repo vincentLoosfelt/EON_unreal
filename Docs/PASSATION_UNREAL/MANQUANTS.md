@@ -198,6 +198,7 @@ Fait : ADN aspiré et barre de niveau, écran de niveau à 3 cartes (jeu en paus
 - Pas encore de cadre de porte du HUB : les meshes porte et walldooreno sont importés retournés.
 - 16/11, vu par Vincent : les façades WallA320 des salles étaient retournées (face travaillée vers l'extérieur). Corrigé dans `AEONTileRoom::BuildHubWalls`.
 - 16/11, écart au proto voulu par Vincent : les salles de combat générées n'ont plus de piliers 2×2 au milieu (variantes « pillars » et piliers de « mix » retirées de `EONTileGrid.cpp`). Les salles en Blueprint gardent leur plan tel quel.
+- 16/11, écart au proto voulu par Vincent : à l'arrivée du C.O.M sur un nouvel étage, Jira garde la place qu'elle avait sur le C.O.M au départ du voyage (le proto la repose au centre + 40 px). `LoadHub`, `ComJiraOff` dans `EONFloorManager`.
 
 ## Menus de test F6 (Tweak) et F7 (Triche) — 15/11
 

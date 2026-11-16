@@ -1352,6 +1352,8 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 			bComGo = true;
 			ComTravelT = -1.f;
 			bComArrive = true;
+			// Écart au proto (Vincent, 16/11) : Jira garde sa place sur le C.O.M au lieu d'être reposée au centre.
+			if (const AEONCharacter* J = GetJira()) { ComJiraOff = FVector2D(J->GetActorLocation() - HubCentre); bComKeepPos = true; }
 			StartFloor();
 			ComDz = 0.f;          // Jira et le terminal viennent d'être reposés à hauteur des passerelles
 			SetComDz(ComDropIn);  // le C.O.M (et Jira) repartent d'en haut
@@ -1819,7 +1821,11 @@ void AEONFloorManager::LoadHub(uint8 Entry, bool bFromCom)
 	}
 	// Par le C.O.M : 3 m du centre ; sinon 3,5 m en dedans du sas d'arrivée.
 	FVector Pos;
-	if (bFromCom || !Entry || !HubCube)
+	if (bFromCom && bComKeepPos)
+	{
+		Pos = HubCentre + FVector(ComJiraOff, 0.f);   // même place sur le C.O.M qu'au départ du voyage
+	}
+	else if (bFromCom || !Entry || !HubCube)
 	{
 		Pos = HubCentre + HubSafeDir() * 300.f;   // à 3 m du centre du C.O.M, côté passerelle libre
 	}
@@ -1830,6 +1836,7 @@ void AEONFloorManager::LoadHub(uint8 Entry, bool bFromCom)
 	}
 	Pos.Z = HubCentre.Z + J->GetSimpleCollisionHalfHeight() + 2.f;
 	J->ResetForRoom(Pos);
+	bComKeepPos = false;
 	if (APlayerController* PC = Cast<APlayerController>(J->GetController())) { if (PC->PlayerCameraManager) { PC->PlayerCameraManager->SetGameCameraCutThisFrame(); } }
 	BuildHubFlesh();
 	ShowBanner(bFromCom ? FString::Printf(TEXT("C.O.M - gardien : %s"), *GuardDir()) : RoleName(TEXT("DEPART")), FLinearColor(FColor(62, 242, 224)));
