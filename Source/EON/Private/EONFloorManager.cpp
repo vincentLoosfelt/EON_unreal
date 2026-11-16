@@ -14,6 +14,7 @@
 #include "EONSlidingDoor.h"
 #include "EONTrainingDummy.h"
 #include "EONWakePod.h"
+#include "EONNpc.h"
 #include "EONChampForce.h"
 #include "EONElectricArc.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -725,6 +726,7 @@ void AEONFloorManager::SayFloorIntro()
 
 void AEONFloorManager::GenFloor()
 {
+	bMapped = false;
 	TSet<uint64> E;
 	TArray<FIntPoint> Path, Dead;
 	auto Nbr = [this](FIntPoint C)
@@ -1080,6 +1082,20 @@ void AEONFloorManager::LoadRoom(FEONFloorCell& C, uint8 Entry, bool bFromCom)
 	const FName R = C.Role;
 	RiftT = -1.f; RiftStage = 0; RiftO2 = 1.f; bConfOn = false;
 	ClearRoomActors();
+	if (C.Role == TEXT("CARTO") && C.KidSt < 5)
+	{
+		FActorSpawnParameters Sp;
+		Sp.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		if (AEONNpc* N = GetWorld()->SpawnActor<AEONNpc>(AEONNpc::StaticClass(), Room->RoomPxToWorld(KidPxOf(C), 0.f), FRotator::ZeroRotator, Sp))
+		{
+			// cartographe.png : 16 × 22, veste verte (#5a7a4a), visage (#e0c4ac) sous une casquette ambre.
+			N->Setup(20.f, 7.f, FLinearColor(FColor(90, 122, 74)), FLinearColor(FColor(224, 196, 172)));
+			N->SetDown(C.KidSt == 3);
+			RoomActors.Add(N);
+			KidNpc = N;
+		}
+		KidHurtT = 0.f;
+	}
 	for (int32 I = 0; I < C.Pods.Num(); ++I)
 	{
 		FActorSpawnParameters Sp;
@@ -1099,7 +1115,8 @@ void AEONFloorManager::LoadRoom(FEONFloorCell& C, uint8 Entry, bool bFromCom)
 		else if (R == TEXT("FAILLE")) { bLocked = true; RoomWaves = 1; RoomStartT = 0.7f; RiftT = C.RiftTiles.Num() ? 0.f : -1.f; RiftAlarmT = 0.f; RiftHurtT = 0.f; }
 		else if (R == TEXT("ASCENSEUR")) { bLocked = true; }    // gardien : la salle se verrouille, il sort de sa cuve (AEONBoss)
 		else if (R == TEXT("IRRUPTION")) { bLocked = true; C.IrrSt = 0; IrrT = 0.f; FlickT = 0.f; }
-		else if (R == TEXT("EVENEMENT") || R == TEXT("CARTO")) { C.bCleared = true; }   // events : jalon 9, à suivre
+		else if (R == TEXT("CARTO")) { if (C.KidSt == 1) { C.KidSt = 0; } bLocked = C.KidSt == 2; }   // ouvert tant que le gamin n'a pas parlé
+		else if (R == TEXT("EVENEMENT")) { C.bCleared = true; }   // Ulysse, l'équipage, la gamine : jalon 9, à suivre
 		if (!C.bCounted && !C.bCleared) { ++CombatN; C.bCounted = true; }
 	}
 	Room->SetLocked(bLocked);
@@ -1301,6 +1318,7 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 	const FVector2D P = Room->WorldToRoomPx(J->GetActorLocation());
 	if (CM->Role == TEXT("FAILLE") && RiftT >= 0.f && !CM->bRiftDone) { TickRift(DeltaSeconds, J, P, *CM); }
 	if (CM->Role == TEXT("IRRUPTION") && !CM->bCleared) { TickIrruption(DeltaSeconds, J, P, *CM); }
+	if (CM->Role == TEXT("CARTO")) { TickCarto(DeltaSeconds, J, P, *CM); }
 	// Trésor piégé : la disquette prise, le Dormeur des pièces (Brainless élite) se réveille et la salle se verrouille.
 	if (CM->Role == TEXT("TRESOR") && CM->bTrap)
 	{
@@ -1566,7 +1584,7 @@ bool AEONFloorManager::GoToRole(FName InRole)
 		if (KV.Value.Role == InRole) { EnterCell(KV.Key, 0, false); return true; }
 	}
 	// Events tirés au hasard (Irruption 50 %) : s'il n'y en a pas, une salle Combat ou Tension pas encore construite le devient (test).
-	if (InRole == TEXT("IRRUPTION"))
+	if (InRole == TEXT("IRRUPTION") || InRole == TEXT("CARTO"))
 	{
 		for (TPair<FIntPoint, FEONFloorCell>& KV : Cells)
 		{
@@ -2166,4 +2184,120 @@ void AEONFloorManager::TickIrruption(float Dt, AEONCharacter* J, const FVector2D
 			AEONPickup::Spawn(GetWorld(), Room, EEONPickup::Donnee, Ctr + FVector2D(24.f, 10.f), FVector2D::ZeroVector, 3.f, 1.f);
 		}
 	}
+}
+
+// ---------------------------------------------------------------- le Cartographe (eventsUpdate)
+
+void AEONFloorManager::TickCarto(float Dt, AEONCharacter* J, const FVector2D& P, FEONFloorCell& C)
+{
+	if (C.KidSt >= 5)
+	{
+		// Reparti dans les conduits : il s'efface en 1,2 s.
+		if (AEONNpc* N = KidNpc.Get()) { KidT += Dt; if (KidT > 1.2f) { N->Destroy(); KidNpc = nullptr; } }
+		return;
+	}
+	KidHurtT -= Dt;
+	const FVector2D K = KidPxOf(C);
+	// Il est solide : Jira ne passe pas à moins de 8 px.
+	const float D = FVector2D::Distance(P, K);
+	if (D < 8.f && !J->IsFallingIntoVoid())
+	{
+		const FVector2D To = K + (P - K) / FMath::Max(D, 0.01f) * 8.f;
+		const FVector W0 = Room->RoomPxToWorld(P), W1 = Room->RoomPxToWorld(To);
+		J->AddActorWorldOffset(FVector(W1.X - W0.X, W1.Y - W0.Y, 0.f), true);
+	}
+	UEONUISubsystem* UI = UEONUISubsystem::Get(this);
+	AEONCombatDirector* Dir = AEONCombatDirector::Get(GetWorld());
+	if (C.KidSt == 0 && D < 70.f && UI && !UI->IsBlocking() && !UI->HasPendingDialog() && !J->IsFallingIntoVoid())
+	{
+		// « Ils me suivent depuis les conduits ! » : à la fin du dialogue, la salle se verrouille, 2 vagues.
+		C.KidSt = 1;
+		const FIntPoint Cell = Cur;
+		UI->Say(TEXT("cartoStart"), [this, Cell]()
+		{
+			FEONFloorCell* Cc = CellAt(Cell);
+			if (!Cc || Cur != Cell) { return; }
+			Cc->KidSt = 2;
+			Cc->bCleared = false;
+			Room->SetLocked(true);
+			RoomWaves = 2;
+			if (AEONCombatDirector* Dd = AEONCombatDirector::Get(GetWorld())) { Dd->StartRoomWaves(2, 0.8f); }
+			EONSfx::Play(this, TEXT("SFX_Proto_door"), 0.8f);
+		});
+	}
+	if (C.KidSt == 2 && Dir)
+	{
+		// Chaque contact d'ennemi lui retire 1 PV, au plus un toutes les 0,8 s.
+		if (KidHurtT <= 0.f)
+		{
+			for (const AEONEnemy* E : Dir->GetEnemies())
+			{
+				if (!E || E->bDead || E->Falling > 0.f) { continue; }
+				if (FVector2D::Distance(E->Pos, K) < E->R + 7.f)
+				{
+					--C.KidHp;
+					KidHurtT = 0.8f;
+					if (AEONNpc* N = KidNpc.Get()) { N->Flash(0.15f); }
+					EONSfx::Play(this, TEXT("SFX_Proto_hurt"), 0.7f);
+					if (C.KidHp <= 0)
+					{
+						C.KidSt = 3;
+						if (AEONNpc* N = KidNpc.Get()) { N->SetDown(true); }
+						if (UI) { UI->Say(TEXT("cartoLost")); }
+					}
+					break;
+				}
+			}
+		}
+		// La salle nettoyée et lui vivant : il donne sa carte (toutes les salles de l'étage et leur rôle).
+		if (C.KidSt == 2 && C.bCleared)
+		{
+			C.KidSt = 4;
+			const FIntPoint Cell = Cur;
+			if (UI)
+			{
+				UI->Say(TEXT("cartoWin"), [this, Cell]()
+				{
+					bMapped = true;
+					for (TPair<FIntPoint, FEONFloorCell>& KV : Cells) { KV.Value.bSeen = true; }
+					if (FEONFloorCell* Cc = CellAt(Cell)) { Cc->KidSt = 5; }
+					KidT = 0.f;
+					EONSfx::Play(this, TEXT("SFX_Proto_item"), 0.8f);
+					ShowBanner(TEXT("Carte de l'etage completee"), FLinearColor(FColor(62, 242, 224)));
+				});
+			}
+		}
+	}
+}
+
+bool AEONFloorManager::IsKidDefending() const
+{
+	const FEONFloorCell* C = Cells.Find(Cur);
+	return C && C->Role == TEXT("CARTO") && C->KidSt == 2;
+}
+
+bool AEONFloorManager::GetKidTarget(FVector2D& OutPx) const
+{
+	const FEONFloorCell* C = Cells.Find(Cur);
+	if (!C || C->Role != TEXT("CARTO") || C->KidSt != 2) { return false; }
+	OutPx = KidPxOf(*C);
+	return true;
+}
+
+bool AEONFloorManager::GetKidHud(FVector& OutWorld, uint8& OutSt, int32& OutHp) const
+{
+	const FEONFloorCell* C = Cells.Find(Cur);
+	if (!C || C->Role != TEXT("CARTO") || C->KidSt >= 5 || !Room || !KidNpc.IsValid()) { return false; }
+	OutWorld = Room->RoomPxToWorld(KidPxOf(*C), EON::PxToCm(26.f));
+	OutSt = C->KidSt;
+	OutHp = C->KidHp;
+	return true;
+}
+
+bool AEONFloorManager::GetAutoNpcPx(FVector2D& OutPx) const
+{
+	const FEONFloorCell* C = Cells.Find(Cur);
+	if (!C || C->Role != TEXT("CARTO") || C->KidSt != 0) { return false; }
+	OutPx = KidPxOf(*C) + FVector2D(0.f, 20.f);
+	return true;
 }

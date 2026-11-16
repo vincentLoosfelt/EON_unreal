@@ -825,6 +825,13 @@ void AEONCharacter::AutoPilot(float Dt)
 		ToTarget = W;
 		bAutoSeek = true;
 	}
+	else if (AEONFloorManager* FK = AEONFloorManager::Get(this); FK && Room && FK->GetAutoNpcPx(W))
+	{
+		// Un PNJ d'event qui attend (le Cartographe) : on va lui parler, comme un joueur.
+		W = (W - Room->WorldToRoomPx(L)).GetSafeNormal();
+		ToTarget = W;
+		bAutoSeek = true;
+	}
 	else if (Room && !Room->IsLocked())
 	{
 		// Salle calme : on laisse 2 s aux vagues pour arriver, puis on passe une porte.

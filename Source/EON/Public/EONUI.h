@@ -37,6 +37,7 @@ public:
 	void Say(FName Key, TFunction<void()> OnEnd = nullptr);
 	void SayLines(const TArray<FEONDlgLine>& L, TFunction<void()> OnEnd = nullptr);
 	bool IsDialogOpen() const { return Dlg.Num() > 0; }
+	bool HasPendingDialog() const { return Pending.Num() > 0; }
 	const FEONDlgLine* DlgLine() const { return Dlg.IsValidIndex(DlgI) ? &Dlg[DlgI] : nullptr; }
 	int32 DlgShown() const { return FMath::FloorToInt(DlgShownF); }
 

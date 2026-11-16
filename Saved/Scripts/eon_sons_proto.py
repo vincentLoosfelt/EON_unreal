@@ -49,6 +49,8 @@ SONS = {
     "alarm": lambda: mix([(0, osc("sawtooth", 660, 638, 0.30, 0.065)), (0, osc("square", 330, 320, 0.30, 0.040)),
                           (0.28, osc("sawtooth", 496, 480, 0.30, 0.060)), (0.28, osc("square", 248, 240, 0.30, 0.036)),
                           (0, noise(0.62, 0.025, "bandpass", 420, 260))]),
+    "hurt": lambda: mix([(0, osc("square", 320, 70, 0.25, 0.22)), (0, noise(0.15, 0.2, "lowpass", 1500, 200))]),
+    "item": lambda: mix([(i * 0.06, osc("square", f, f, 0.08, 0.08)) for i, f in enumerate([523, 659, 784, 1046])]),
     "roar": lambda: mix([(0, osc("sawtooth", 110, 45, 0.9, 0.25)), (0, noise(0.8, 0.25, "lowpass", 900, 80)), (0, osc("square", 70, 40, 0.8, 0.12))]),
 }
 import sys

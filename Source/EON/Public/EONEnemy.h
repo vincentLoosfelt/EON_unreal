@@ -72,6 +72,8 @@ public:
 	FString DisplayName;
 	/** Irruption, « la chose » (stalk du proto) : rôde autour de Jira, s'arrête (yeux rouges, 0,65 s), puis charge à 240 px/s
 	 *  pendant 0,75 s. Un contact (hors rôde) tue. StalkSt : 0 rôde, 1 arrêt, 2 charge. */
+	/** Cartographe : la moitié des ennemis apparus pendant sa défense le visent, lui (kidT du proto). */
+	bool bKidT = false;
 	bool bStalk = false;
 	uint8 StalkSt = 0;
 	float StalkT = 0.f;

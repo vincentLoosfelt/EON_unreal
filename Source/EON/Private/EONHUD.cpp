@@ -267,6 +267,23 @@ void AEONHUD::DrawHUD()
 		}
 	}
 
+	// --- Cartographe : « ! » au-dessus de lui tant qu'il attend, sa barre de PV pendant la défense.
+	if (const AEONFloorManager* FK = AEONFloorManager::Get(this))
+	{
+		FVector Kw; uint8 Ks = 0; int32 Kh = 0; FVector2D Ks2;
+		if (FK->GetKidHud(Kw, Ks, Kh) && GetOwningPlayerController() && GetOwningPlayerController()->ProjectWorldLocationToScreen(Kw, Ks2))
+		{
+			const FLinearColor Kc(FColor(122, 255, 176));
+			if (Ks == 0) { Txt(TEXT("!"), Ks2.X, Ks2.Y - 4 * U + FMath::Sin(Time * 4.f) * U, Kc, U / 2.5f, true); }
+			if (Ks == 2)
+			{
+				Rect(Ks2.X - 9 * U, Ks2.Y, 18 * U, 4 * U, Ink);
+				Rect(Ks2.X - 8 * U, Ks2.Y + U, 16 * U, 2 * U, FLinearColor(FColor(31, 90, 58)));
+				Rect(Ks2.X - 8 * U, Ks2.Y + U, 16 * U * FMath::Clamp(Kh / 6.f, 0.f, 1.f), 2 * U, Kc);
+			}
+		}
+	}
+
 	// --- Gardien : carton-titre (nom lettre par lettre, sous-titre, 2,6 s) et barre de vie en bas au centre, encoches aux seuils de phase.
 	if (const AEONBoss* Bs = AEONBoss::GetActive(this))
 	{
@@ -787,6 +804,8 @@ void AEONHUD::DrawMinimap(float S)
 		const float X = X0 + C.Pos.X * (CW + Gap), Y = Y0 + C.Pos.Y * (CH + Gap);
 		const bool bCur = C.Pos == F->GetCurrentCell();
 		FLinearColor Col = C.bVisited ? FLinearColor(FColor(70, 66, 100)) : FLinearColor(FColor(36, 34, 54));
+		// Carte du Cartographe : les salles pas encore visitées prennent la couleur de leur rôle (atténuée).
+		if (!C.bVisited && F->IsMapped()) { Col = RoleColor(C.Role); Col.A = 0.55f; }
 		if (bCur && FMath::Fmod(Time, 0.6f) < 0.4f) { Col = FLinearColor(FColor(216, 212, 240)); }
 		Rect(X, Y, CW, CH, Col);
 		// Points : Opportunité ambre, gardien rouge, Événement violet, hostile entamée magenta.

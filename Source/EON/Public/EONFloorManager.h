@@ -53,6 +53,9 @@ struct EON_API FEONFloorCell
 	UPROPERTY() TArray<bool> PodBroken;
 	/** Irruption : 0 calme, 1 noir (la chose rôde), 2 lumière revenue. */
 	uint8 IrrSt = 0;
+	/** Cartographe : 0 attend (« ! »), 1 parle, 2 défendu (2 vagues), 3 mort, 4 sauvé (dialogue), 5 reparti. 6 PV. */
+	uint8 KidSt = 0;
+	int32 KidHp = 6;
 	UPROPERTY() FEONTileGrid Grid;
 	/** Salle dessinée (Blueprint) tirée pour cette case ; vide = salle générée. */
 	UPROPERTY() TSubclassOf<AEONTileRoom> RoomClass;
@@ -147,6 +150,14 @@ public:
 	FVector GetConfWorld() const;
 	/** Irruption : compensation d'exposition (EV) appliquée par la caméra ; 0 hors Irruption, négative dans le noir. */
 	float GetExposureBias() const { return ExpBias; }
+	/** Cartographe : défendu en ce moment (les ennemis peuvent le viser), sa position (px) ; état et PV pour le HUD. */
+	bool IsKidDefending() const;
+	bool GetKidTarget(FVector2D& OutPx) const;
+	bool GetKidHud(FVector& OutWorld, uint8& OutSt, int32& OutHp) const;
+	/** Carte de l'étage révélée par le Cartographe (floor.mapped) : toutes les salles et leur rôle. */
+	bool IsMapped() const { return bMapped; }
+	/** Pilote automatique (eon.auto) : un PNJ d'event qui attend qu'on vienne lui parler. */
+	bool GetAutoNpcPx(FVector2D& OutPx) const;
 	/** C.O.M à quai au Kibo : début de run, avant le premier levier (FloorN = 0). */
 	bool IsDockedMode() const { return bDocked; }
 	/** Salle du Kibo où se trouve Jira : 0 aucune (étage), 1 salle de réveil, 2 passerelle, 3 C.O.M à quai. */
@@ -305,4 +316,10 @@ private:
 	float ExpBias = 0.f;
 	float FlickT = 0.f;
 	TWeakObjectPtr<class AEONEnemy> Stalker;
+	void TickCarto(float Dt, AEONCharacter* J, const FVector2D& P, FEONFloorCell& C);
+	static FVector2D KidPxOf(const FEONFloorCell& C) { return FVector2D((C.Grid.W >> 1) * 16.f, (C.Grid.H >> 1) * 16.f - 8.f); }
+	TWeakObjectPtr<class AEONNpc> KidNpc;
+	float KidHurtT = 0.f;
+	float KidT = 0.f;
+	bool bMapped = false;
 };

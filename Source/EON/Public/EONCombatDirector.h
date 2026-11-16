@@ -82,6 +82,8 @@ public:
 	bool IsFightOver() const;
 	/** Fait apparaître un ennemi tout de suite (events : la chose, le dormeur des pièces…). */
 	AEONEnemy* SpawnEnemyAt(FName Type, const FVector2D& Px, bool bElite);
+	/** Lance des vagues dans la salle en cours (Cartographe : 2 vagues après son dialogue). */
+	void StartRoomWaves(int32 Waves, float StartT);
 	AEONTileRoom* GetRoom() const { return CurRoom.Get(); }
 	FVector2D GetJiraPx() const { return JiraPx; }
 	AEONCharacter* GetJira() const;

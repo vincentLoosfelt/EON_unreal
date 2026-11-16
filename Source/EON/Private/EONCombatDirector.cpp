@@ -399,6 +399,7 @@ void AEONCombatDirector::SpawnEnemyNow(const FSpawn& S)
 	if (!E) { return; }
 	if (!E->Init(this, Rm, S.Type, S.Pos, GetCombatN())) { E->Destroy(); return; }
 	if (S.bElite) { E->MakeElite(); }
+	if (const AEONFloorManager* F = GetFloor(); F && F->IsKidDefending() && FMath::FRand() < 0.5f) { E->bKidT = true; }
 	Enemies.Add(E);
 }
 
@@ -790,6 +791,9 @@ void AEONCombatDirector::Tick(float Dt)
 		if (!E) { continue; }
 		// Cible : l'hologramme s'il est à moins de 240 px de l'ennemi, sinon Jira. Au contact, l'ennemi l'use (5 PV/s mêlée, 2 sinon).
 		const bool bOnDecoy = bDecoy && FVector2D::Distance(DecoyPx, E->Pos) < 240.f;
+		FVector2D KidPx;
+		const AEONFloorManager* Fk = E->bKidT ? GetFloor() : nullptr;
+		if (Fk && Fk->GetKidTarget(KidPx)) { E->UpdateEnemy(Dt, KidPx); continue; }
 		E->UpdateEnemy(Dt, bOnDecoy ? DecoyPx : JiraPx);
 		if (bOnDecoy && FVector2D::Distance(DecoyPx, E->Pos) < E->R + 8.f) { J->DamageDecoy(Dt * (E->bContact ? 5.f : 2.f)); }
 	}
@@ -881,4 +885,13 @@ AEONEnemy* AEONCombatDirector::SpawnEnemyAt(FName Type, const FVector2D& Px, boo
 	const int32 N = Enemies.Num();
 	SpawnEnemyNow(S);
 	return Enemies.Num() > N ? Enemies.Last().Get() : nullptr;
+}
+
+void AEONCombatDirector::StartRoomWaves(int32 Waves, float StartT)
+{
+	Cur.Waves = Waves;
+	Cur.Wave = 0;
+	Cur.StartT = StartT;
+	Cur.bCleared = false;
+	Cur.bLocked = true;
 }

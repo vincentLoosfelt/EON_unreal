@@ -300,3 +300,11 @@ Provisoire ou manquant :
   - les traînées de particules de la charge : Niagara (jalon 10).
 - **Trésor piégé** (`eventsUpdate`) : fait. 4 stocks sur 10 sont piégés : prendre la disquette verrouille la salle et réveille le « Dormeur des pieces » (Brainless élite, 18 PV × (1 + 0,3 × (étage − 1)), rayon 7, masse ×2), bannière « Quelque chose dormait sous les pieces ». Mort, la salle se déverrouille. Le stock pose aussi ses 2 Données (oubliées jusqu'ici). Test : `eon.tresor 1` (stocks piégés) ou `2` (carnages), puis `eon.salle TRESOR`. Capture `Docs/J9_tresor_dormeur.png`.
 - **Trésor, provisoire** : le tas de pièces (stock, avec deux yeux rouges qui clignotent quand il est piégé) et les corps du carnage (`drawTresor`) ne sont pas dessinés ; il n'y a que le butin au sol. Modèles à produire.
+- **Le Cartographe** (`eventsUpdate`, `cartoStart` / `cartoWin` / `cartoLost`) : fait.
+  - Le gamin attend au centre de la salle (« ! » au-dessus de lui). Jira ne passe pas à moins de 8 px de lui. À 70 px, dialogue `cartoStart` ; à la fin, la salle se verrouille et 2 vagues arrivent (son `door`).
+  - La moitié des ennemis apparus pendant la défense le visent, lui. Chaque contact lui retire 1 PV (6 PV, au plus un toutes les 0,8 s, flash blanc, son `hurt`) ; barre de PV sous lui.
+  - À 0 PV : il tombe, dialogue `cartoLost`, la salle continue. Salle nettoyée et lui vivant : dialogue `cartoWin`, puis toutes les salles de l'étage sont révélées sur la mini-carte (colorées par rôle), bannière « Carte de l'etage completee », son `item`, et il repart (disparaît en 1,2 s).
+  - Si Jira sort pendant son premier dialogue, il se remet à attendre.
+  - Test : `eon.salle CARTO` (si l'étage n'en a pas, une salle Combat ou Tension pas encore visitée en devient une).
+  - Le pilote automatique (`eon.auto`) va lui parler. Capture `Docs/J9_carto_defense.png`, vidéo `Docs/J9_carto.mp4`.
+- **Cartographe, provisoire** : le gamin est un cylindre vert (veste) et une sphère (visage), 20 × 7 px ; le proto a un sprite `cartographe.png` (16 × 22, casquette ambre). Modèle à produire (`AEONNpc`, réutilisable pour la gamine, Ulysse et l'équipage).
