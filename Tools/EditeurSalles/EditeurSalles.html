@@ -1,0 +1,1159 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EON · Éditeur de salles</title>
+<!--
+  EON — Éditeur de salles. Un seul fichier, hors ligne, Mac et PC (Chrome, Edge, Safari, Firefox).
+  Ouvre et enregistre des fichiers .eonsalle (JSON). Unreal les importe en Blueprint de salle
+  (/Game/EON/Salles/BP_<nom>) avec Content/Python/eon_salles.py, et sait les réécrire depuis un Blueprint.
+-->
+<style>
+:root {
+  --bg: #121417; --bg2: #181b1f; --panel: #1d2126; --panel2: #23282e; --line: #2e343b; --line2: #3a424a;
+  --txt: #d9dee3; --txt2: #9aa4ad; --txt3: #6b757e; --acc: #3ec7b8; --acc2: #2a8f85; --warn: #e8b23a; --err: #ef5a5a; --ok: #58c27d;
+  --door: #ff9a3d; --door-in: #4fb6ff;
+  --t-mur: #4a5f5a; --t-mur-top: #6c8a83; --t-sol: #a7aea6; --t-sol2: #9aa199; --t-vide: #07080a; --t-fosse: #2a1838;
+  --t-caisse: #b07a3a; --t-cuve: #3fb6b0;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--txt); font: 13px/1.4 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
+button, input, select { font: inherit; color: inherit; }
+.app { display: grid; grid-template-columns: 220px 1fr 300px; grid-template-rows: 46px 34px 1fr 26px; height: 100vh; }
+header { grid-column: 1 / 4; display: flex; align-items: center; gap: 6px; padding: 0 10px; background: var(--bg2); border-bottom: 1px solid var(--line); }
+.logo { display: flex; align-items: center; gap: 8px; font-weight: 700; letter-spacing: .08em; margin-right: 10px; }
+.logo b { color: var(--acc); }
+.logo span { font-weight: 500; letter-spacing: 0; color: var(--txt2); }
+.sep { width: 1px; height: 22px; background: var(--line2); margin: 0 4px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid var(--line2); background: var(--panel); border-radius: 6px; cursor: pointer; white-space: nowrap; }
+.btn:hover { background: var(--panel2); border-color: #4a535c; }
+.btn:disabled { opacity: .4; cursor: default; }
+.btn.primary { background: var(--acc2); border-color: var(--acc); color: #fff; }
+.btn.primary:hover { background: #33a397; }
+.btn.icon { width: 30px; padding: 0; justify-content: center; }
+.btn svg, .tool svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.title { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--txt2); max-width: 40%; overflow: hidden; }
+.title strong { color: var(--txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dirty { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); display: none; }
+.dirty.on { display: inline-block; }
+.optbar { grid-column: 2 / 3; display: flex; align-items: center; gap: 12px; padding: 0 12px; background: var(--bg2); border-bottom: 1px solid var(--line); color: var(--txt2); white-space: nowrap; overflow: hidden; }
+.optbar label { display: inline-flex; align-items: center; gap: 6px; }
+.optbar input[type=range] { width: 90px; accent-color: var(--acc); }
+.optbar input[type=checkbox] { accent-color: var(--acc); }
+.optbar .hint { color: var(--txt3); overflow: hidden; text-overflow: ellipsis; }
+aside { background: var(--panel); overflow-y: auto; }
+aside.left { grid-row: 2 / 4; border-right: 1px solid var(--line); padding: 10px; }
+aside.right { grid-row: 2 / 4; border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
+h3 { margin: 14px 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--txt3); font-weight: 600; }
+h3:first-child { margin-top: 2px; }
+.tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.tool { height: 40px; border: 1px solid transparent; border-radius: 6px; background: var(--panel2); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; color: var(--txt2); }
+.tool:hover { border-color: var(--line2); color: var(--txt); }
+.tool.on { background: #24413e; border-color: var(--acc); color: #fff; }
+.tool kbd { position: absolute; right: 3px; bottom: 1px; font-size: 9px; color: var(--txt3); font-family: inherit; }
+.tiles { display: flex; flex-direction: column; gap: 4px; }
+.tile { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; background: var(--panel2); }
+.tile:hover { border-color: var(--line2); }
+.tile canvas { width: 28px; height: 28px; border-radius: 4px; flex: none; }
+.tile .nm { flex: 1; }
+.tile .nm small { display: block; color: var(--txt3); font-size: 11px; }
+.tile kbd { color: var(--txt3); font-family: inherit; font-size: 11px; }
+.tile .badge { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; display: none; }
+.tile.p .badge.bp { display: inline-block; background: var(--acc); color: #062; }
+.tile.s .badge.bs { display: inline-block; background: #5a6672; color: #fff; }
+.tile.p { border-color: var(--acc); }
+.swap { display: flex; gap: 6px; align-items: center; color: var(--txt3); font-size: 11px; margin-top: 6px; }
+.row { display: flex; gap: 6px; }
+.row > * { flex: 1; }
+.toggle { display: flex; align-items: center; justify-content: center; gap: 6px; height: 30px; border-radius: 6px; background: var(--panel2); border: 1px solid transparent; cursor: pointer; color: var(--txt2); }
+.toggle.on { border-color: var(--acc); color: #fff; background: #24413e; }
+main { grid-row: 3 / 4; position: relative; overflow: hidden; background: #0d0f12; }
+main canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+footer { grid-column: 1 / 4; display: flex; align-items: center; gap: 18px; padding: 0 12px; background: var(--bg2); border-top: 1px solid var(--line); color: var(--txt3); font-size: 12px; }
+footer b { color: var(--txt2); font-weight: 500; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); flex: none; }
+.tabs button { flex: 1; height: 34px; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--txt2); cursor: pointer; }
+.tabs button.on { color: var(--txt); border-bottom-color: var(--acc); }
+.pane { display: none; padding: 12px; overflow-y: auto; flex: 1; min-height: 0; }
+.pane.on { display: block; }
+.field { margin-bottom: 10px; }
+.field > label { display: block; color: var(--txt2); margin-bottom: 4px; font-size: 12px; }
+.inp { width: 100%; height: 30px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--line2); background: var(--bg2); outline: none; }
+.inp:focus { border-color: var(--acc); }
+select.inp { padding: 0 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { padding: 3px 8px; border-radius: 12px; background: var(--panel2); border: 1px solid var(--line2); cursor: pointer; font-size: 11px; color: var(--txt2); }
+.chip.on { background: #24413e; border-color: var(--acc); color: #fff; }
+.chip.dis { opacity: .35; cursor: default; }
+.size { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.size .inp { width: 64px; }
+.anchor { display: grid; grid-template-columns: repeat(3, 18px); gap: 2px; }
+.anchor i { width: 18px; height: 18px; border-radius: 3px; background: var(--panel2); border: 1px solid var(--line2); cursor: pointer; }
+.anchor i.on { background: var(--acc); border-color: var(--acc); }
+.issues { flex: none; border-top: 1px solid var(--line); max-height: 38%; overflow-y: auto; padding: 8px 12px 12px; }
+.issue { display: flex; gap: 8px; padding: 6px 8px; border-radius: 6px; margin-bottom: 4px; background: var(--panel2); cursor: default; align-items: flex-start; }
+.issue.click { cursor: pointer; }
+.issue.click:hover { background: #2b3138; }
+.issue .ic { flex: none; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #111; margin-top: 1px; }
+.issue.err .ic { background: var(--err); } .issue.warn .ic { background: var(--warn); } .issue.ok .ic { background: var(--ok); } .issue.info .ic { background: #6aa0d8; }
+.lib { display: flex; flex-direction: column; gap: 6px; }
+.libitem { display: flex; gap: 10px; align-items: center; padding: 6px; border-radius: 6px; background: var(--panel2); cursor: pointer; border: 1px solid transparent; }
+.libitem:hover { border-color: var(--line2); }
+.libitem.cur { border-color: var(--acc); }
+.libitem canvas { width: 72px; height: 48px; flex: none; image-rendering: pixelated; background: #0d0f12; border-radius: 4px; }
+.libitem .meta { min-width: 0; }
+.libitem .meta b { display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.libitem .meta small { color: var(--txt3); }
+.muted { color: var(--txt3); }
+#iso { width: 100%; height: 260px; background: #0d0f12; border-radius: 8px; display: block; }
+.isobar { display: flex; gap: 6px; margin-top: 8px; }
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none; align-items: center; justify-content: center; z-index: 50; }
+.modal-bg.on { display: flex; }
+.modal { width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow-y: auto; background: var(--panel); border: 1px solid var(--line2); border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.5); padding: 20px; }
+.modal h2 { margin: 0 0 14px; font-size: 17px; }
+.modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.preset { padding: 8px; border-radius: 8px; background: var(--panel2); border: 1px solid var(--line2); cursor: pointer; text-align: center; }
+.preset.on { border-color: var(--acc); background: #24413e; }
+.preset small { display: block; color: var(--txt3); }
+.keys { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; }
+.keys kbd { background: var(--bg2); border: 1px solid var(--line2); border-radius: 4px; padding: 1px 6px; font-family: inherit; font-size: 12px; white-space: nowrap; justify-self: start; }
+.toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); background: #2b3138; border: 1px solid var(--line2); border-radius: 8px; padding: 9px 14px; box-shadow: 0 8px 30px rgba(0,0,0,.4); display: none; align-items: center; gap: 10px; z-index: 60; }
+.toast.on { display: flex; }
+.drop { position: fixed; inset: 0; border: 3px dashed var(--acc); background: rgba(62,199,184,.08); display: none; align-items: center; justify-content: center; font-size: 20px; z-index: 70; pointer-events: none; }
+.drop.on { display: flex; }
+@media (max-width: 900px) { .app { grid-template-columns: 180px 1fr 0; } aside.right { display: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo"><b>EON</b><span>Éditeur de salles</span></div>
+    <button class="btn" id="bNew" title="Nouvelle salle (Ctrl+N)"><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 12v6M9 15h6"/></svg>Nouvelle</button>
+    <button class="btn" id="bOpen" title="Ouvrir un fichier .eonsalle (Ctrl+O)"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Ouvrir</button>
+    <button class="btn" id="bDir" title="Ouvrir le dossier des salles (bibliothèque)"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dossier</button>
+    <button class="btn primary" id="bSave" title="Enregistrer (Ctrl+S)"><svg viewBox="0 0 24 24"><path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v6h8V3M7 21v-7h10v7"/></svg>Enregistrer</button>
+    <button class="btn" id="bSaveAs" title="Enregistrer sous (Ctrl+Maj+S)">Enregistrer sous…</button>
+    <div class="sep"></div>
+    <button class="btn icon" id="bUndo" title="Annuler (Ctrl+Z)"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
+    <button class="btn icon" id="bRedo" title="Refaire (Ctrl+Y / Ctrl+Maj+Z)"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button>
+    <div class="sep"></div>
+    <button class="btn icon" id="bFit" title="Cadrer la salle (F)"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+    <button class="btn" id="bPng" title="Exporter une image PNG du plan"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>PNG</button>
+    <button class="btn icon" id="bHelp" title="Aide et raccourcis (?)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.5V14M12 17.5v.01"/></svg></button>
+    <div class="title"><span class="dirty" id="dirty" title="Modifications non enregistrées"></span><strong id="docName">Sans titre</strong><span id="docWhere" class="muted"></span></div>
+  </header>
+
+  <aside class="left">
+    <h3>Outils</h3>
+    <div class="tools" id="tools"></div>
+    <h3>Tuiles</h3>
+    <div class="tiles" id="tiles"></div>
+    <div class="swap"><span><b style="color:var(--acc)">G</b> clic gauche · <b>D</b> clic droit (clic droit sur une tuile pour la choisir) · <b>X</b> échange</span></div>
+    <h3>Symétrie</h3>
+    <div class="row">
+      <div class="toggle" id="symX" title="Miroir gauche / droite"><svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;fill:none;stroke-width:1.7"><path d="M12 3v18M8 7 4 12l4 5M16 7l4 5-4 5"/></svg>Gauche/droite</div>
+    </div>
+    <div class="row" style="margin-top:4px">
+      <div class="toggle" id="symY" title="Miroir haut / bas"><svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;fill:none;stroke-width:1.7"><path d="M3 12h18M7 8l5-4 5 4M7 16l5 4 5-4"/></svg>Haut/bas</div>
+    </div>
+    <h3>Affichage</h3>
+    <div class="row"><div class="toggle on" id="vGrid">Grille</div><div class="toggle on" id="vCoords">Règles</div></div>
+    <div class="row" style="margin-top:4px"><div class="toggle on" id="vReach" title="Surligner en rouge le sol qu'on ne peut pas atteindre depuis une porte">Sol isolé</div><div class="toggle on" id="vAuto" title="Montrer les portes que le jeu pose tout seul au milieu des côtés">Portes auto</div></div>
+  </aside>
+
+  <div class="optbar" id="optbar"></div>
+
+  <main id="main"><canvas id="cv"></canvas></main>
+
+  <aside class="right">
+    <div class="tabs">
+      <button data-tab="props" class="on">Salle</button>
+      <button data-tab="lib">Bibliothèque</button>
+      <button data-tab="iso">Aperçu 3D</button>
+    </div>
+    <div class="pane on" id="pane-props">
+      <div class="field"><label>Nom (fichier et Blueprint BP_<i>nom</i>)</label><input class="inp" id="pNom" spellcheck="false"></div>
+      <div class="field"><label>Rôle dans l'étage</label><select class="inp" id="pRole"></select></div>
+      <div class="field"><label>Peut aussi servir de</label><div class="chips" id="pRoles"></div></div>
+      <div class="field"><label>Forme de case demandée</label><select class="inp" id="pForme"></select></div>
+      <div class="field"><label>Poids du tirage <span class="muted">(0 = jamais tirée)</span></label><input class="inp" id="pPoids" type="number" min="0" step="0.5"></div>
+      <div class="field"><label>Taille (tuiles de 1 m) et ancrage</label>
+        <div class="size"><input class="inp" id="pW" type="number" min="8" max="999"> × <input class="inp" id="pH" type="number" min="6" max="999">
+          <div class="anchor" id="anchor" title="Ancrage : le côté qui reste en place quand la taille change"></div></div>
+        <div class="row" style="margin-top:6px"><button class="btn" id="bResize">Appliquer la taille</button><button class="btn" id="bFitForme">Taille de la forme</button></div>
+      </div>
+      <div class="field"><label>Portes</label><div class="muted" id="pDoors" style="font-size:12px"></div></div>
+    </div>
+    <div class="pane" id="pane-lib">
+      <div class="row" style="margin-bottom:10px"><button class="btn" id="bDir2">Ouvrir un dossier…</button><button class="btn icon" id="bRefresh" title="Relire le dossier"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></button></div>
+      <div class="muted" id="libInfo" style="margin-bottom:8px;font-size:12px">Ouvre le dossier <b>Salles</b> du projet EON pour voir toutes les salles ici. (Chrome ou Edge : enregistrement direct dans le dossier. Safari et Firefox : ouvre des fichiers un par un, l'enregistrement les télécharge.)</div>
+      <div class="lib" id="lib"></div>
+    </div>
+    <div class="pane" id="pane-iso">
+      <canvas id="iso"></canvas>
+      <div class="isobar"><button class="btn" id="isoL">⟲ Tourner</button><button class="btn" id="isoR">Tourner ⟳</button></div>
+      <p class="muted" style="font-size:12px">Aperçu volumique simplifié : murs 1,6 m, caisses et cuves. Le rendu réel est celui d'Unreal.</p>
+    </div>
+    <div class="issues" id="issues"></div>
+  </aside>
+
+  <footer><span>Case <b id="sPos">–</b></span><span>Tuile <b id="sTile">–</b></span><span>Taille <b id="sSize">–</b></span><span>Sol <b id="sFloor">–</b></span><span>Zoom <b id="sZoom">–</b></span><span style="margin-left:auto" id="sMsg"></span></footer>
+</div>
+
+<div class="modal-bg" id="mNew"><div class="modal">
+  <h2>Nouvelle salle</h2>
+  <div class="field"><label>Nom</label><input class="inp" id="nNom" spellcheck="false" value="Salle_Nouvelle"></div>
+  <div class="field"><label>Forme</label><div class="presets" id="nPresets"></div></div>
+  <div class="field"><label>Taille</label><div class="size"><input class="inp" id="nW" type="number" min="8" max="999" value="32"> × <input class="inp" id="nH" type="number" min="6" max="999" value="20"> <span class="muted">tuiles</span></div></div>
+  <div class="field"><label>Rôle</label><select class="inp" id="nRole"></select></div>
+  <div class="field"><label>Départ</label><select class="inp" id="nFill"><option value="room">Sol entouré de murs</option><option value="wall">Tout en murs (on creuse)</option><option value="floor">Tout en sol</option></select></div>
+  <div class="actions"><button class="btn" data-close>Annuler</button><button class="btn primary" id="nOk">Créer</button></div>
+</div></div>
+
+<div class="modal-bg" id="mHelp"><div class="modal">
+  <h2>Éditeur de salles EON</h2>
+  <p class="muted" style="margin-top:0">Une salle = un fichier <b>.eonsalle</b>. Dans Unreal, menu <b>EON Salles</b> : « Importer les salles » crée ou met à jour le Blueprint <b>BP_nom</b> dans /Game/EON/Salles, que le générateur d'étage tire tout seul. Avec le réimport automatique, chaque Ctrl+S ici met à jour Unreal.</p>
+  <div class="keys">
+    <kbd>B</kbd><span>Pinceau (<kbd>[</kbd> <kbd>]</kbd> taille)</span>
+    <kbd>R</kbd><span>Rectangle (option contour)</span>
+    <kbd>L</kbd><span>Ligne (Maj = droite)</span>
+    <kbd>G</kbd><span>Remplissage</span>
+    <kbd>E</kbd><span>Gomme (pose du sol)</span>
+    <kbd>I</kbd><span>Pipette (ou Alt + clic)</span>
+    <kbd>M</kbd><span>Sélection : Ctrl+C, Ctrl+X, Ctrl+V, Suppr ; dans un collage, <kbd>H</kbd> <kbd>V</kbd> miroir, <kbd>T</kbd> tourner</span>
+    <kbd>P</kbd><span>Porte extérieure : clic sur un bord (2 tuiles, une par côté)</span>
+    <kbd>O</kbd><span>Porte intérieure : glisser une ligne de 1 à 8 tuiles</span>
+    <kbd>Espace</kbd><span>Main (déplacer la vue), aussi clic molette</span>
+    <kbd>1</kbd>–<kbd>6</kbd><span>Choisir une tuile · <kbd>X</kbd> échanger gauche / droite</span>
+    <kbd>Molette</kbd><span>Zoom · <kbd>F</kbd> cadrer</span>
+    <kbd>Ctrl+Z</kbd><span>Annuler · <kbd>Ctrl+Y</kbd> refaire</span>
+    <kbd>Ctrl+S</kbd><span>Enregistrer · <kbd>Ctrl+O</kbd> ouvrir · <kbd>Ctrl+N</kbd> nouvelle</span>
+    <kbd>Clic droit</kbd><span>Peint la tuile de droite ; sur une porte, la supprime</span>
+  </div>
+  <p class="muted">Règles du jeu vérifiées en direct : au moins 8 × 6 tuiles et 12 tuiles de sol, une porte extérieure au plus par côté. Sans porte posée, le jeu met une porte au milieu de chaque côté. Avec des portes posées, la salle n'est tirée que pour des cases dont les portes sont parmi celles-là.</p>
+  <div class="actions"><button class="btn primary" data-close>Fermer</button></div>
+</div></div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span><button class="btn" id="toastBtn" style="display:none"></button></div>
+<div class="drop" id="drop">Dépose un fichier .eonsalle</div>
+<input type="file" id="fileIn" accept=".eonsalle,.json,application/json" multiple hidden>
+
+<script>
+"use strict";
+// ======================================================================= données
+const FORMAT = "eonsalle", VERSION = 1;
+const ROLES = ["COMBAT", "TENSION", "CALME", "CORRIDOR", "DEPART", "OPPORTUNITE", "ASCENSEUR", "SECURITE", "MARCHAND", "FAILLE", "EVENEMENT"];
+const ROLE_FR = { COMBAT: "Combat", TENSION: "Tension", CALME: "Calme (aussi Trésor, Irruption)", CORRIDOR: "Corridor", DEPART: "Départ", OPPORTUNITE: "Opportunité",
+  ASCENSEUR: "Ascenseur (gardien)", SECURITE: "Sécurité", MARCHAND: "Marchand", FAILLE: "Faille", EVENEMENT: "Événement (aussi Cartographe)" };
+const FORMES = { "": [0, 0, "Libre (toutes les cases)"], std: [32, 20, "Standard"], carree: [32, 32, "Carrée"], large: [40, 26, "Large"],
+  small: [24, 16, "Petite"], corH: [50, 9, "Couloir horizontal"], corV: [12, 32, "Couloir vertical"] };
+const TILES = [
+  { c: "#", nm: "Mur", d: "Bloque tout", k: "1" },
+  { c: ".", nm: "Sol", d: "On marche dessus", k: "2" },
+  { c: "_", nm: "Vide", d: "Trou : chute", k: "3" },
+  { c: "=", nm: "Fossé", d: "Vide franchissable au dash", k: "4" },
+  { c: "X", nm: "Caisse", d: "Décor solide", k: "5" },
+  { c: "K", nm: "Cuve", d: "Décor solide", k: "6" },
+];
+const TILE_BY = Object.fromEntries(TILES.map(t => [t.c, t]));
+
+let room = null;           // { nom, role, rolesEnPlus, forme, poids, W, H, g: string[] (W*H), portes: [] }
+let fileHandle = null, fileName = null, dirHandle = null, dirty = false;
+let primary = "#", secondary = ".";
+let tool = "brush", brush = 1, rectOutline = false, fillAll = false;
+let symX = false, symY = false;
+const view = { ox: 0, oy: 0, z: 24 };
+const show = { grid: true, coords: true, reach: true, auto: true };
+let undo = [], redo = [];
+let clip = null, paste = null;      // clip: {w,h,g}; paste: true quand le collage suit la souris
+let sel = null;                     // {x0,y0,x1,y1}
+let hover = null, drag = null, spaceDown = false, isoRot = 0;
+let analysis = { unreachable: new Set(), issues: [] };
+
+const $ = id => document.getElementById(id);
+const cv = $("cv"), ctx = cv.getContext("2d");
+
+function blankRoom(nom, W, H, fill, role, forme) {
+  const g = new Array(W * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const border = x === 0 || y === 0 || x === W - 1 || y === H - 1;
+    g[y * W + x] = fill === "wall" ? "#" : fill === "floor" ? "." : (border ? "#" : ".");
+  }
+  return { nom, role: role || "COMBAT", rolesEnPlus: [], forme: forme || "", poids: 1, W, H, g, portes: [] };
+}
+
+function clone(r) { return JSON.parse(JSON.stringify(r)); }
+const at = (x, y) => (x >= 0 && y >= 0 && x < room.W && y < room.H) ? room.g[y * room.W + x] : null;
+
+// ======================================================================= fichier
+function toFileText(r) {
+  const plan = [];
+  for (let y = 0; y < r.H; y++) plan.push(r.g.slice(y * r.W, (y + 1) * r.W).join(""));
+  const head = { format: FORMAT, version: VERSION, nom: r.nom, role: r.role, rolesEnPlus: r.rolesEnPlus, forme: r.forme,
+    poids: Number(r.poids) || 0, portes: r.portes.map(p => p.type === "exterieure" ? { type: p.type, cote: p.cote, pos: p.pos }
+      : { type: p.type, x: p.x, y: p.y, largeur: p.largeur, sens: p.sens }) };
+  let t = JSON.stringify(head, null, 2);
+  t = t.replace(/("poids": )(-?\d+)(,?\n)/, "$1$2.0$3");
+  t = t.slice(0, -2) + ',\n  "plan": [\n' + plan.map(s => "    " + JSON.stringify(s)).join(",\n") + "\n  ]\n}\n";
+  return t;
+}
+
+function fromFileText(txt) {
+  const d = JSON.parse(txt);
+  if (d.format !== FORMAT) throw new Error("ce n'est pas un fichier .eonsalle");
+  if ((d.version | 0) > VERSION) throw new Error("fichier d'une version plus récente (" + d.version + ")");
+  const rows = (d.plan || []).map(s => String(s).replace(/ /g, "_").replace(/D/g, "#").replace(/x/g, "X").replace(/k/g, "K"));
+  const W = Math.max(1, ...rows.map(s => s.length)), H = Math.max(1, rows.length);
+  const g = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const c = (rows[y] || "")[x] || "#"; g.push(TILE_BY[c] ? c : "#"); }
+  return { nom: d.nom || "Salle", role: d.role || "COMBAT", rolesEnPlus: Array.isArray(d.rolesEnPlus) ? d.rolesEnPlus.slice() : [],
+    forme: d.forme || "", poids: d.poids ?? 1, W, H, g, portes: Array.isArray(d.portes) ? d.portes.map(p => ({ ...p })) : [] };
+}
+
+const hasFS = "showOpenFilePicker" in window;
+
+async function openFiles() {
+  if (!confirmLose()) return;
+  if (hasFS) {
+    try {
+      const [h] = await window.showOpenFilePicker({ types: [{ description: "Salle EON", accept: { "application/json": [".eonsalle"] } }] });
+      await openHandle(h);
+    } catch (e) { if (e.name !== "AbortError") toast("Ouverture impossible : " + e.message); }
+  } else $("fileIn").click();
+}
+
+async function openHandle(h) {
+  const f = await h.getFile();
+  loadText(await f.text(), f.name, h);
+}
+
+function loadText(txt, name, handle) {
+  try {
+    room = fromFileText(txt);
+  } catch (e) { toast("« " + name + " » : " + e.message); return; }
+  fileHandle = handle || null; fileName = name;
+  undo = []; redo = []; sel = null; paste = null;
+  setDirty(false); syncProps(); fit(); changed(false);
+  toast("Ouvert : " + name);
+  renderLib();
+}
+
+async function save(as) {
+  const txt = toFileText(room);
+  const name = room.nom + ".eonsalle";
+  try {
+    if (!as && fileHandle && fileName === name) { await writeHandle(fileHandle, txt); }
+    else if (!as && dirHandle) {
+      const h = await dirHandle.getFileHandle(name, { create: true });
+      if (fileName && fileName !== name && fileHandle) {
+        if (!confirm("Le nom a changé : enregistrer sous « " + name + " » ? (l'ancien fichier « " + fileName + " » est gardé)")) return;
+      }
+      await writeHandle(h, txt); fileHandle = h; fileName = name;
+    } else if (hasFS && "showSaveFilePicker" in window) {
+      const h = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: "Salle EON", accept: { "application/json": [".eonsalle"] } }] });
+      await writeHandle(h, txt); fileHandle = h; fileName = h.name;
+    } else {
+      download(name, txt, "application/json"); fileName = name;
+    }
+    setDirty(false);
+    try { localStorage.removeItem("eonsalle.brouillon"); } catch (e) {}
+    toast("Enregistré : " + fileName + (analysis.issues.some(i => i.lvl === "err") ? " — attention, la salle a des erreurs : Unreal la refusera" : ""));
+    if (dirHandle) refreshLib();
+  } catch (e) { if (e.name !== "AbortError") toast("Enregistrement impossible : " + e.message); }
+}
+
+async function writeHandle(h, txt) {
+  if (h.requestPermission && (await h.requestPermission({ mode: "readwrite" })) !== "granted") throw new Error("permission refusée");
+  const w = await h.createWritable(); await w.write(txt); await w.close();
+}
+
+function download(name, data, type) {
+  const url = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type }));
+  const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+// ======================================================================= bibliothèque (dossier)
+let libItems = [];
+async function openDir() {
+  if (!("showDirectoryPicker" in window)) { toast("Ce navigateur n'ouvre pas de dossier : utilise Chrome ou Edge, ou « Ouvrir » fichier par fichier."); return; }
+  try {
+    dirHandle = await window.showDirectoryPicker({ id: "eon-salles", mode: "readwrite" });
+    await refreshLib(); showTab("lib");
+  } catch (e) { if (e.name !== "AbortError") toast("Dossier : " + e.message); }
+}
+async function refreshLib() {
+  if (!dirHandle) return;
+  libItems = [];
+  for await (const [name, h] of dirHandle.entries()) {
+    if (h.kind !== "file" || !name.toLowerCase().endsWith(".eonsalle")) continue;
+    try { const r = fromFileText(await (await h.getFile()).text()); libItems.push({ name, h, r }); }
+    catch (e) { libItems.push({ name, h, r: null, err: e.message }); }
+  }
+  libItems.sort((a, b) => a.name.localeCompare(b.name));
+  $("libInfo").innerHTML = "<b>" + dirHandle.name + "</b> · " + libItems.length + " salle(s)";
+  $("docWhere").textContent = "· " + dirHandle.name;
+  renderLib();
+}
+function renderLib() {
+  const L = $("lib"); L.innerHTML = "";
+  for (const it of libItems) {
+    const d = document.createElement("div"); d.className = "libitem" + (it.name === fileName ? " cur" : "");
+    const c = document.createElement("canvas");
+    if (it.r) { c.width = it.r.W; c.height = it.r.H; drawThumb(c, it.r); }
+    const m = document.createElement("div"); m.className = "meta";
+    m.innerHTML = "<b></b><small></small>";
+    m.querySelector("b").textContent = it.name.replace(/\.eonsalle$/i, "");
+    m.querySelector("small").textContent = it.r ? (ROLE_FR[it.r.role] ? it.r.role : it.r.role) + " · " + it.r.W + "×" + it.r.H + (it.r.forme ? " · " + it.r.forme : "") : "illisible : " + it.err;
+    d.append(c, m);
+    d.onclick = async () => { if (it.name === fileName || !confirmLose()) return; await openHandle(it.h); };
+    L.appendChild(d);
+  }
+}
+function drawThumb(c, r) {
+  const x = c.getContext("2d"), im = x.createImageData(r.W, r.H);
+  const col = { "#": [74, 95, 90], ".": [167, 174, 166], "_": [7, 8, 10], "=": [70, 35, 90], "X": [176, 122, 58], "K": [63, 182, 176] };
+  r.g.forEach((ch, i) => { const k = col[ch] || col["#"]; im.data.set([k[0], k[1], k[2], 255], i * 4); });
+  x.putImageData(im, 0, 0);
+}
+
+// ======================================================================= historique
+function snapshot() { return JSON.stringify(room); }
+function pushUndo() { undo.push(snapshot()); if (undo.length > 300) undo.shift(); redo = []; }
+function doUndo() { if (!undo.length) return; redo.push(snapshot()); room = JSON.parse(undo.pop()); syncProps(); changed(); }
+function doRedo() { if (!redo.length) return; undo.push(snapshot()); room = JSON.parse(redo.pop()); syncProps(); changed(); }
+
+function setDirty(v) { dirty = v; $("dirty").classList.toggle("on", v); document.title = (v ? "● " : "") + (room ? room.nom : "") + " · EON salles"; }
+function confirmLose() { return !dirty || confirm("La salle en cours a des modifications non enregistrées. Continuer quand même ?"); }
+
+let draftTimer = 0;
+function changed(mark = true) {
+  if (mark) setDirty(true);
+  analyse(); updateStatus(); renderIssues(); renderDoorsInfo(); draw(); drawIso();
+  $("bUndo").disabled = !undo.length; $("bRedo").disabled = !redo.length;
+  $("docName").textContent = (fileName || room.nom + ".eonsalle");
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => { try { if (dirty) localStorage.setItem("eonsalle.brouillon", JSON.stringify({ room, fileName })); } catch (e) {} }, 400);
+}
+
+// ======================================================================= édition
+function setTile(x, y, c) {
+  const pts = [[x, y]];
+  if (symX) pts.push([room.W - 1 - x, y]);
+  if (symY) pts.push([x, room.H - 1 - y]);
+  if (symX && symY) pts.push([room.W - 1 - x, room.H - 1 - y]);
+  for (const [a, b] of pts) if (a >= 0 && b >= 0 && a < room.W && b < room.H) room.g[b * room.W + a] = c;
+}
+function stamp(x, y, c) {
+  const r0 = Math.floor((brush - 1) / 2), r1 = brush - 1 - r0;
+  for (let j = -r0; j <= r1; j++) for (let i = -r0; i <= r1; i++) setTile(x + i, y + j, c);
+}
+function line(x0, y0, x1, y1, f) {
+  let dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, e = dx + dy;
+  for (;;) { f(x0, y0); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } }
+}
+function rectCells(a, b, outline, f) {
+  const x0 = Math.min(a.x, b.x), x1 = Math.max(a.x, b.x), y0 = Math.min(a.y, b.y), y1 = Math.max(a.y, b.y);
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (!outline || x === x0 || x === x1 || y === y0 || y === y1) f(x, y);
+}
+function flood(x, y, c) {
+  const from = at(x, y); if (from === null) return;
+  if (fillAll) { for (let i = 0; i < room.g.length; i++) if (room.g[i] === from) room.g[i] = c; return; }
+  if (from === c) return;
+  const st = [[x, y]];
+  while (st.length) {
+    const [a, b] = st.pop();
+    if (at(a, b) !== from) continue;
+    room.g[b * room.W + a] = c;
+    st.push([a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]);
+  }
+}
+
+// --- portes
+function extDoorFromCell(x, y) {
+  const W = room.W, H = room.H;
+  const d = [[y, "N"], [H - 1 - y, "S"], [x, "W"], [W - 1 - x, "E"]].sort((p, q) => p[0] - q[0])[0];
+  const cote = d[1];
+  const along = cote === "N" || cote === "S" ? x : y;
+  const len = cote === "N" || cote === "S" ? W : H;
+  // pos = première des deux tuiles, comme FEONTileGrid::DoorAt (bornée à 1 .. len-3)
+  return { type: "exterieure", cote, pos: Math.max(1, Math.min(len - 3, along)) };
+}
+function extDoorTiles(p) {
+  const W = room.W, H = room.H, q = p.pos;
+  return p.cote === "N" ? [[q, 0], [q + 1, 0]] : p.cote === "S" ? [[q, H - 1], [q + 1, H - 1]] : p.cote === "W" ? [[0, q], [0, q + 1]] : [[W - 1, q], [W - 1, q + 1]];
+}
+function autoDoorTiles(cote) {
+  const W = room.W, H = room.H, cx = W >> 1, cy = H >> 1;
+  return cote === "N" ? [[cx - 1, 0], [cx, 0]] : cote === "S" ? [[cx - 1, H - 1], [cx, H - 1]] : cote === "W" ? [[0, cy - 1], [0, cy]] : [[W - 1, cy - 1], [W - 1, cy]];
+}
+function inDoorTiles(p) {
+  const out = [];
+  for (let k = 0; k < p.largeur; k++) out.push(p.sens === "vertical" ? [p.x, p.y + k] : [p.x + k, p.y]);
+  return out;
+}
+function inDoorFromDrag(a, b) {
+  const W = room.W, H = room.H;
+  const horiz = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y);
+  let L = Math.min(8, Math.max(1, (horiz ? Math.abs(b.x - a.x) : Math.abs(b.y - a.y)) + 1));
+  let x = horiz ? Math.min(a.x, b.x) : a.x, y = horiz ? a.y : Math.min(a.y, b.y);
+  if (horiz) { L = Math.min(L, W - 2); x = Math.max(1, Math.min(W - 1 - L, x)); y = Math.max(1, Math.min(H - 2, y)); }
+  else { L = Math.min(L, H - 2); y = Math.max(1, Math.min(H - 1 - L, y)); x = Math.max(1, Math.min(W - 2, x)); }
+  return { type: "interieure", x, y, largeur: L, sens: horiz ? "horizontal" : "vertical" };
+}
+function doorAt(x, y) {
+  for (let i = room.portes.length - 1; i >= 0; i--) {
+    const p = room.portes[i];
+    const t = p.type === "exterieure" ? extDoorTiles(p) : inDoorTiles(p);
+    if (t.some(([a, b]) => a === x && b === y)) return i;
+  }
+  return -1;
+}
+function shiftDoors(dx, dy, W, H) {
+  const out = [];
+  for (const p of room.portes) {
+    if (p.type === "exterieure") {
+      const n = { ...p }; n.pos += (p.cote === "N" || p.cote === "S") ? dx : dy;
+      const len = (p.cote === "N" || p.cote === "S") ? W : H;
+      if (n.pos >= 1 && n.pos <= len - 3) out.push(n);
+    } else {
+      const n = { ...p, x: p.x + dx, y: p.y + dy };
+      const ok = n.sens === "vertical" ? (n.x >= 1 && n.x <= W - 2 && n.y >= 1 && n.y + n.largeur <= H - 1) : (n.y >= 1 && n.y <= H - 2 && n.x >= 1 && n.x + n.largeur <= W - 1);
+      if (ok) out.push(n);
+    }
+  }
+  return out;
+}
+
+// --- redimensionner
+let anchor = 4;
+function resize(W, H, anc) {
+  W = Math.max(8, W | 0); H = Math.max(6, H | 0);
+  if (W === room.W && H === room.H) return;
+  const ax = anc % 3, ay = (anc / 3) | 0;
+  const dx = Math.round((W - room.W) * ax / 2), dy = Math.round((H - room.H) * ay / 2);
+  pushUndo();
+  const g = new Array(W * H).fill("#");
+  for (let y = 0; y < room.H; y++) for (let x = 0; x < room.W; x++) {
+    const nx = x + dx, ny = y + dy;
+    if (nx >= 0 && ny >= 0 && nx < W && ny < H) g[ny * W + nx] = room.g[y * room.W + x];
+  }
+  const before = room.portes.length;
+  room.portes = shiftDoors(dx, dy, W, H);
+  room.g = g; room.W = W; room.H = H;
+  syncProps(); fit(); changed();
+  if (room.portes.length < before) toast((before - room.portes.length) + " porte(s) hors de la nouvelle taille ont été retirées");
+}
+
+// --- sélection, copier, coller
+function selRect() { if (!sel) return null; return { x0: Math.min(sel.x0, sel.x1), y0: Math.min(sel.y0, sel.y1), x1: Math.max(sel.x0, sel.x1), y1: Math.max(sel.y0, sel.y1) }; }
+function copySel(cut) {
+  const r = selRect(); if (!r) return;
+  const w = r.x1 - r.x0 + 1, h = r.y1 - r.y0 + 1, g = [];
+  for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) g.push(at(x, y));
+  clip = { w, h, g };
+  if (cut) { pushUndo(); for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) room.g[y * room.W + x] = secondary; changed(); }
+  toast((cut ? "Coupé : " : "Copié : ") + w + " × " + h);
+}
+function clearSel() { const r = selRect(); if (!r) return; pushUndo(); for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) room.g[y * room.W + x] = secondary; changed(); }
+function startPaste() { if (!clip) { toast("Rien à coller : sélectionne (M) puis Ctrl+C"); return; } paste = true; setTool("select"); draw(); }
+function clipFlip(h) { if (!clip) return; const { w, h: hh, g } = clip, n = []; for (let y = 0; y < hh; y++) for (let x = 0; x < w; x++) n.push(h ? g[y * w + (w - 1 - x)] : g[(hh - 1 - y) * w + x]); clip.g = n; draw(); }
+function clipRot() { if (!clip) return; const { w, h, g } = clip, n = []; for (let y = 0; y < w; y++) for (let x = 0; x < h; x++) n.push(g[(h - 1 - x) * w + y]); clip = { w: h, h: w, g: n }; draw(); }
+function dropPaste(cx, cy) {
+  pushUndo();
+  const ox = cx - (clip.w >> 1), oy = cy - (clip.h >> 1);
+  for (let y = 0; y < clip.h; y++) for (let x = 0; x < clip.w; x++) { const a = ox + x, b = oy + y; if (at(a, b) !== null) room.g[b * room.W + a] = clip.g[y * clip.w + x]; }
+  changed();
+}
+
+// ======================================================================= analyse (règles du jeu)
+function analyse() {
+  const W = room.W, H = room.H, iss = [];
+  const nFloor = room.g.filter(c => c === ".").length;
+  if (W < 8 || H < 6) iss.push({ lvl: "err", t: "Taille " + W + " × " + H + " : il faut au moins 8 × 6." });
+  if (nFloor < 12) iss.push({ lvl: "err", t: "Seulement " + nFloor + " tuile(s) de sol : il en faut au moins 12." });
+  if (!room.nom || /[\s\/\\.:*?"<>|]/.test(room.nom)) iss.push({ lvl: "err", t: "Le nom ne doit contenir ni espace, ni point, ni / \\ : * ? \" < > |" });
+  const ext = room.portes.filter(p => p.type === "exterieure");
+  for (const c of "NSEW") if (ext.filter(p => p.cote === c).length > 1) iss.push({ lvl: "err", t: "Deux portes extérieures côté " + c + "." });
+  const f = FORMES[room.forme];
+  if (room.forme && f && (f[0] !== W || f[1] !== H)) iss.push({ lvl: "warn", t: "La forme « " + room.forme + " » fait " + f[0] + " × " + f[1] + ", la salle fait " + W + " × " + H + ".", fix: "forme" });
+  if (!(Number(room.poids) > 0)) iss.push({ lvl: "warn", t: "Poids 0 : le générateur ne tirera jamais cette salle." });
+
+  // Portes : celles posées, sinon les 4 du milieu (comme le jeu).
+  const sides = ext.length ? ext.map(p => [p.cote, extDoorTiles(p)]) : "NSEW".split("").map(c => [c, autoDoorTiles(c)]);
+  const passable = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) passable[i] = room.g[i] === "." || room.g[i] === "=" ? 1 : 0;
+  for (const p of room.portes) if (p.type === "interieure") for (const [a, b] of inDoorTiles(p)) passable[b * W + a] = 1;
+  const seen = new Uint8Array(W * H), st = [], cleared = new Set();
+  const inward = { N: [0, 1], S: [0, -1], W: [1, 0], E: [-1, 0] };
+  for (const [c, tl] of sides) for (const [a, b] of tl) {
+    const [ix, iy] = inward[c], fx = a + ix, fy = b + iy;
+    const front = at(fx, fy);
+    // Le jeu dégage la tuile devant la porte si c'est un mur.
+    if (front === "#" || front === ".") { st.push([fx, fy]); if (front === "#") cleared.add(fy * W + fx); }
+    else if (front && ext.length) iss.push({ lvl: "warn", t: "La porte " + c + " donne sur " + TILE_BY[front].nm.toLowerCase() + ".", cells: [[fx, fy]] });
+  }
+  while (st.length) {
+    const [a, b] = st.pop();
+    if (a < 0 || b < 0 || a >= W || b >= H) continue;
+    const i = b * W + a;
+    if (seen[i]) continue;
+    if (!passable[i] && !cleared.has(i)) continue; // tuile devant une porte : le jeu la dégage
+    seen[i] = 1;
+    st.push([a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]);
+  }
+  const un = new Set();
+  for (let i = 0; i < W * H; i++) if (room.g[i] === "." && !seen[i]) un.add(i);
+  if (un.size) iss.push({ lvl: "warn", t: un.size + " tuile(s) de sol inaccessibles depuis les portes (en rouge).", cells: [...un].slice(0, 1).map(i => [i % W, (i / W) | 0]) });
+  if (!ext.length) iss.push({ lvl: "info", t: "Aucune porte extérieure posée : le jeu en met une au milieu de chaque côté qui a un voisin." });
+  else iss.push({ lvl: "info", t: "Portes posées " + ext.map(p => p.cote).join(", ") + " : la salle ne sera tirée que pour des cases dont les portes sont parmi celles-là." });
+  if (!iss.some(i => i.lvl === "err" || i.lvl === "warn")) iss.unshift({ lvl: "ok", t: "Salle valide : Unreal peut l'importer telle quelle." });
+  analysis = { unreachable: un, issues: iss, nFloor };
+}
+
+function renderIssues() {
+  const box = $("issues"); box.innerHTML = '<h3 style="margin-top:4px">Vérification</h3>';
+  for (const it of analysis.issues) {
+    const d = document.createElement("div"); d.className = "issue " + it.lvl + (it.cells || it.fix ? " click" : "");
+    d.innerHTML = '<span class="ic">' + ({ err: "!", warn: "!", ok: "✓", info: "i" })[it.lvl] + "</span><span></span>";
+    d.lastChild.textContent = it.t + (it.fix === "forme" ? " (clic : mettre à la taille de la forme)" : "");
+    if (it.cells) d.onclick = () => centerOn(it.cells[0][0], it.cells[0][1]);
+    if (it.fix === "forme") d.onclick = fitForme;
+    box.appendChild(d);
+  }
+}
+
+function renderDoorsInfo() {
+  const ext = room.portes.filter(p => p.type === "exterieure"), inn = room.portes.filter(p => p.type === "interieure");
+  $("pDoors").innerHTML = (ext.length ? "Extérieures : " + ext.map(p => p.cote + " (tuile " + p.pos + ")").join(", ") : "Extérieures : automatiques (milieu des côtés)") +
+    "<br>Intérieures : " + (inn.length ? inn.length + " (" + inn.map(p => p.largeur + " t. " + (p.sens === "vertical" ? "vert." : "horiz.")).join(", ") + ")" : "aucune") +
+    '<br><span class="muted">Outil P ou O ; clic droit sur une porte pour la supprimer.</span>';
+}
+
+// ======================================================================= dessin
+const DPR = () => window.devicePixelRatio || 1;
+function resizeCanvas() {
+  const r = $("main").getBoundingClientRect(), d = DPR();
+  cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d);
+  draw();
+}
+function fit() {
+  const r = $("main").getBoundingClientRect();
+  const m = 50;
+  view.z = Math.max(2, Math.min(64, Math.floor(Math.min((r.width - m * 2) / room.W, (r.height - m * 2) / room.H))));
+  view.ox = (r.width - room.W * view.z) / 2; view.oy = (r.height - room.H * view.z) / 2;
+  draw();
+}
+function centerOn(x, y) {
+  const r = $("main").getBoundingClientRect();
+  view.z = Math.max(view.z, 20);
+  view.ox = r.width / 2 - (x + .5) * view.z; view.oy = r.height / 2 - (y + .5) * view.z;
+  draw();
+}
+function cellAt(ev) {
+  const r = cv.getBoundingClientRect();
+  return { x: Math.floor((ev.clientX - r.left - view.ox) / view.z), y: Math.floor((ev.clientY - r.top - view.oy) / view.z) };
+}
+
+function drawTile(g, c, px, py, z, x, y) {
+  switch (c) {
+    case "#": {
+      g.fillStyle = "#3e524d"; g.fillRect(px, py, z, z);
+      // dessus éclairé si le voisin du dessous n'est pas un mur (lecture du volume)
+      const below = room && g === ctx ? at(x, y + 1) : null;
+      g.fillStyle = "#56706a"; g.fillRect(px, py, z, z * (below && below !== "#" ? .72 : 1));
+      if (z >= 10) { g.fillStyle = "rgba(255,255,255,.06)"; g.fillRect(px, py, z, Math.max(1, z * .08)); }
+      break;
+    }
+    case ".": g.fillStyle = ((x + y) & 1) ? "#a2a99f" : "#a9b0a6"; g.fillRect(px, py, z, z); break;
+    case "_": g.fillStyle = "#06070a"; g.fillRect(px, py, z, z);
+      if (z >= 12) { g.strokeStyle = "rgba(255,255,255,.05)"; g.lineWidth = 1; g.beginPath(); g.moveTo(px, py + z); g.lineTo(px + z, py); g.stroke(); }
+      break;
+    case "=": g.fillStyle = "#1c1027"; g.fillRect(px, py, z, z);
+      if (z >= 6) { g.strokeStyle = "rgba(214,90,255,.55)"; g.lineWidth = Math.max(1, z / 14); g.beginPath();
+        for (let k = -z; k < z; k += Math.max(4, z / 3)) { g.moveTo(px + k, py + z); g.lineTo(px + k + z, py); } g.save(); g.beginPath(); g.rect(px, py, z, z); g.clip();
+        g.beginPath(); for (let k = -z; k < z; k += Math.max(4, z / 3)) { g.moveTo(px + k, py + z); g.lineTo(px + k + z, py); } g.stroke(); g.restore(); }
+      break;
+    case "X": drawTile(g, ".", px, py, z, x, y); g.fillStyle = "#a8722f"; g.fillRect(px + z * .08, py + z * .08, z * .84, z * .84);
+      if (z >= 8) { g.strokeStyle = "#5e3c14"; g.lineWidth = Math.max(1, z / 12); g.strokeRect(px + z * .14, py + z * .14, z * .72, z * .72);
+        g.beginPath(); g.moveTo(px + z * .14, py + z * .14); g.lineTo(px + z * .86, py + z * .86); g.moveTo(px + z * .86, py + z * .14); g.lineTo(px + z * .14, py + z * .86); g.stroke(); }
+      break;
+    case "K": drawTile(g, ".", px, py, z, x, y); g.fillStyle = "#24605c"; g.beginPath(); g.arc(px + z / 2, py + z / 2, z * .44, 0, 7); g.fill();
+      g.fillStyle = "#43c6bd"; g.beginPath(); g.arc(px + z / 2, py + z / 2, z * .3, 0, 7); g.fill();
+      if (z >= 10) { g.fillStyle = "rgba(255,255,255,.45)"; g.beginPath(); g.arc(px + z * .4, py + z * .4, z * .08, 0, 7); g.fill(); }
+      break;
+  }
+}
+
+function draw() {
+  if (!room) return;
+  const d = DPR(), W = room.W, H = room.H, z = view.z;
+  ctx.setTransform(d, 0, 0, d, 0, 0);
+  const cw = cv.width / d, ch = cv.height / d;
+  ctx.fillStyle = "#0d0f12"; ctx.fillRect(0, 0, cw, ch);
+  // fond quadrillé
+  ctx.strokeStyle = "#14171b"; ctx.lineWidth = 1; ctx.beginPath();
+  for (let x = ((view.ox % 32) + 32) % 32; x < cw; x += 32) { ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, ch); }
+  for (let y = ((view.oy % 32) + 32) % 32; y < ch; y += 32) { ctx.moveTo(0, y + .5); ctx.lineTo(cw, y + .5); }
+  ctx.stroke();
+  ctx.save(); ctx.translate(view.ox, view.oy);
+  ctx.shadowColor = "rgba(0,0,0,.6)"; ctx.shadowBlur = 24; ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W * z, H * z); ctx.shadowBlur = 0;
+  const x0 = Math.max(0, Math.floor(-view.ox / z)), y0 = Math.max(0, Math.floor(-view.oy / z));
+  const x1 = Math.min(W - 1, Math.ceil((cw - view.ox) / z)), y1 = Math.min(H - 1, Math.ceil((ch - view.oy) / z));
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) drawTile(ctx, room.g[y * W + x], x * z, y * z, z, x, y);
+  // sol inaccessible
+  if (show.reach && analysis.unreachable.size) {
+    ctx.fillStyle = "rgba(239,90,90,.38)";
+    for (const i of analysis.unreachable) { const x = i % W, y = (i / W) | 0; if (x >= x0 && x <= x1 && y >= y0 && y <= y1) ctx.fillRect(x * z, y * z, z, z); }
+  }
+  // grille
+  if (show.grid && z >= 6) {
+    ctx.strokeStyle = "rgba(0,0,0,.18)"; ctx.lineWidth = 1; ctx.beginPath();
+    for (let x = x0; x <= x1 + 1; x++) { ctx.moveTo(x * z + .5, y0 * z); ctx.lineTo(x * z + .5, (y1 + 1) * z); }
+    for (let y = y0; y <= y1 + 1; y++) { ctx.moveTo(x0 * z, y * z + .5); ctx.lineTo((x1 + 1) * z, y * z + .5); }
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.beginPath();
+    for (let x = Math.ceil(x0 / 4) * 4; x <= x1 + 1; x += 4) { ctx.moveTo(x * z + .5, y0 * z); ctx.lineTo(x * z + .5, (y1 + 1) * z); }
+    for (let y = Math.ceil(y0 / 4) * 4; y <= y1 + 1; y += 4) { ctx.moveTo(x0 * z, y * z + .5); ctx.lineTo((x1 + 1) * z, y * z + .5); }
+    ctx.stroke();
+  }
+  // axes de symétrie
+  if (symX) { ctx.strokeStyle = "rgba(62,199,184,.8)"; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(W * z / 2, -10); ctx.lineTo(W * z / 2, H * z + 10); ctx.stroke(); ctx.setLineDash([]); }
+  if (symY) { ctx.strokeStyle = "rgba(62,199,184,.8)"; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(-10, H * z / 2); ctx.lineTo(W * z + 10, H * z / 2); ctx.stroke(); ctx.setLineDash([]); }
+  // portes
+  const ext = room.portes.filter(p => p.type === "exterieure");
+  if (!ext.length && show.auto) for (const c of "NSEW") drawExtDoor(autoDoorTiles(c), c, true);
+  for (const p of room.portes) {
+    if (p.type === "exterieure") drawExtDoor(extDoorTiles(p), p.cote, false);
+    else drawInDoor(p, false);
+  }
+  // aperçus d'outil
+  drawPreview();
+  // cadre
+  ctx.strokeStyle = "#3ec7b8"; ctx.globalAlpha = .35; ctx.lineWidth = 1; ctx.strokeRect(-.5, -.5, W * z + 1, H * z + 1); ctx.globalAlpha = 1;
+  ctx.restore();
+  if (show.coords) drawRulers(cw, ch);
+}
+
+function drawExtDoor(tl, cote, ghost) {
+  const z = view.z;
+  const xs = tl.map(t => t[0]), ys = tl.map(t => t[1]);
+  const x = Math.min(...xs) * z, y = Math.min(...ys) * z, w = (Math.max(...xs) - Math.min(...xs) + 1) * z, h = (Math.max(...ys) - Math.min(...ys) + 1) * z;
+  ctx.save();
+  if (ghost) { ctx.globalAlpha = .55; ctx.setLineDash([4, 3]); }
+  ctx.fillStyle = ghost ? "rgba(255,154,61,.18)" : "rgba(255,154,61,.85)"; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = "#ff9a3d"; ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+  // flèche vers l'extérieur
+  const cx = x + w / 2, cy = y + h / 2, a = Math.max(5, z * .45), v = { N: [0, -1], S: [0, 1], E: [1, 0], W: [-1, 0] }[cote];
+  ctx.fillStyle = ghost ? "#ff9a3d" : "#2a1500"; ctx.beginPath();
+  ctx.moveTo(cx + v[0] * a, cy + v[1] * a); ctx.lineTo(cx - v[1] * a * .7 - v[0] * a * .2, cy + v[0] * a * .7 - v[1] * a * .2); ctx.lineTo(cx + v[1] * a * .7 - v[0] * a * .2, cy - v[0] * a * .7 - v[1] * a * .2); ctx.fill();
+  if (z >= 14) { ctx.fillStyle = ghost ? "#ffb878" : "#fff"; ctx.font = "600 " + Math.min(14, z * .5) + "px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const off = z * 1.1; ctx.fillText(cote + (ghost ? " auto" : ""), cx - v[0] * off * (ghost ? 1.6 : 1), cy - v[1] * off); }
+  ctx.restore();
+}
+function drawInDoor(p, ghost) {
+  const z = view.z, tl = inDoorTiles(p);
+  const x = tl[0][0] * z, y = tl[0][1] * z, w = (p.sens === "vertical" ? 1 : p.largeur) * z, h = (p.sens === "vertical" ? p.largeur : 1) * z;
+  ctx.save(); if (ghost) ctx.globalAlpha = .6;
+  ctx.fillStyle = "rgba(79,182,255,.75)"; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = "#bfe4ff"; ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+  ctx.strokeStyle = "#0c3555"; ctx.lineWidth = Math.max(1, z / 10); ctx.beginPath();
+  if (p.sens === "vertical") { ctx.moveTo(x + w / 2, y + z * .2); ctx.lineTo(x + w / 2, y + h - z * .2); } else { ctx.moveTo(x + z * .2, y + h / 2); ctx.lineTo(x + w - z * .2, y + h / 2); }
+  ctx.stroke(); ctx.restore();
+}
+
+function drawPreview() {
+  const z = view.z;
+  const cells = [];
+  if (drag && drag.kind === "rect") rectCells(drag.a, drag.b, rectOutline, (x, y) => cells.push([x, y]));
+  else if (drag && drag.kind === "line") line(drag.a.x, drag.a.y, drag.b.x, drag.b.y, (x, y) => cells.push([x, y]));
+  if (cells.length) {
+    const c = drag.btn === 2 ? secondary : primary;
+    ctx.globalAlpha = .75;
+    for (const [x, y] of cells) for (const [a, b] of mirrored(x, y)) if (at(a, b) !== null) drawTile(ctx, c, a * z, b * z, z, a, b);
+    ctx.globalAlpha = 1;
+  }
+  if (drag && drag.kind === "indoor") drawInDoor(inDoorFromDrag(drag.a, drag.b), true);
+  if (hover && !drag && at(hover.x, hover.y) !== null && !spaceDown) {
+    if (paste && clip) {
+      const ox = hover.x - (clip.w >> 1), oy = hover.y - (clip.h >> 1);
+      ctx.globalAlpha = .7;
+      for (let y = 0; y < clip.h; y++) for (let x = 0; x < clip.w; x++) if (at(ox + x, oy + y) !== null) drawTile(ctx, clip.g[y * clip.w + x], (ox + x) * z, (oy + y) * z, z, ox + x, oy + y);
+      ctx.globalAlpha = 1; ctx.strokeStyle = "#fff"; ctx.setLineDash([4, 3]); ctx.strokeRect(ox * z, oy * z, clip.w * z, clip.h * z); ctx.setLineDash([]);
+    } else if (tool === "brush" || tool === "erase") {
+      const r0 = Math.floor((brush - 1) / 2), sx = hover.x - r0, sy = hover.y - r0, W = room.W, H = room.H;
+      const org = [[sx, sy]];
+      if (symX) org.push([W - sx - brush, sy]);
+      if (symY) org.push([sx, H - sy - brush]);
+      if (symX && symY) org.push([W - sx - brush, H - sy - brush]);
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5;
+      for (const [a, b] of org) ctx.strokeRect(a * z + .5, b * z + .5, brush * z - 1, brush * z - 1);
+    } else if (tool === "extdoor") {
+      const p = extDoorFromCell(hover.x, hover.y); drawExtDoor(extDoorTiles(p), p.cote, true);
+    } else {
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.strokeRect(hover.x * z + .5, hover.y * z + .5, z - 1, z - 1);
+    }
+  }
+  const r = selRect();
+  if (r) {
+    ctx.save(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.lineDashOffset = -(performance.now() / 60 % 9);
+    ctx.strokeRect(r.x0 * z, r.y0 * z, (r.x1 - r.x0 + 1) * z, (r.y1 - r.y0 + 1) * z);
+    ctx.fillStyle = "rgba(62,199,184,.12)"; ctx.fillRect(r.x0 * z, r.y0 * z, (r.x1 - r.x0 + 1) * z, (r.y1 - r.y0 + 1) * z); ctx.restore();
+    if (z >= 10) { ctx.fillStyle = "#fff"; ctx.font = "12px system-ui"; ctx.fillText((r.x1 - r.x0 + 1) + " × " + (r.y1 - r.y0 + 1), r.x0 * z, r.y0 * z - 5); }
+  }
+}
+function mirrored(x, y) {
+  const W = room.W, H = room.H, out = [[x, y]];
+  if (symX) out.push([W - 1 - x, y]);
+  if (symY) out.push([x, H - 1 - y]);
+  if (symX && symY) out.push([W - 1 - x, H - 1 - y]);
+  return out;
+}
+function drawRulers(cw, ch) {
+  const z = view.z, step = z >= 20 ? 1 : z >= 10 ? 2 : z >= 5 ? 5 : 10;
+  ctx.fillStyle = "rgba(18,20,23,.92)"; ctx.fillRect(0, 0, cw, 18); ctx.fillRect(0, 0, 26, ch);
+  ctx.fillStyle = "#6b757e"; ctx.font = "10px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  for (let x = 0; x < room.W; x += step) { const px = view.ox + (x + .5) * z; if (px > 26 && px < cw) ctx.fillText(x, px, 9); }
+  for (let y = 0; y < room.H; y += step) { const py = view.oy + (y + .5) * z; if (py > 18 && py < ch) ctx.fillText(y, 13, py); }
+  if (hover && at(hover.x, hover.y) !== null) {
+    ctx.fillStyle = "rgba(62,199,184,.35)";
+    ctx.fillRect(view.ox + hover.x * z, 0, z, 18); ctx.fillRect(0, view.oy + hover.y * z, 26, z);
+  }
+}
+
+// ======================================================================= aperçu volumique
+function drawIso() {
+  const c = $("iso"); if (!c || !room || !$("pane-iso").classList.contains("on")) return;
+  const d = DPR(), r = c.getBoundingClientRect(); c.width = r.width * d; c.height = r.height * d;
+  const g = c.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, r.width, r.height);
+  let W = room.W, H = room.H;
+  const rot = ((isoRot % 4) + 4) % 4;
+  const get = (x, y) => { // tuile vue après rotation
+    let a = x, b = y;
+    if (rot === 1) { a = y; b = H - 1 - x; } else if (rot === 2) { a = W - 1 - x; b = H - 1 - y; } else if (rot === 3) { a = W - 1 - y; b = x; }
+    return at(a, b);
+  };
+  const RW = rot & 1 ? H : W, RH = rot & 1 ? W : H;
+  const s = Math.min((r.width - 20) / (RW + RH), (r.height - 40) / ((RW + RH) / 2 + 3));
+  const hw = s, hh = s / 2, wallH = s * 1.6, ox = r.width / 2 - (RW - RH) * hw / 2, oy = 30 + 1.6 * s;
+  const P = (x, y, z) => [ox + (x - y) * hw, oy + (x + y) * hh - z];
+  const poly = (pts, f, st) => { g.beginPath(); g.moveTo(...pts[0]); for (const p of pts.slice(1)) g.lineTo(...p); g.closePath(); g.fillStyle = f; g.fill(); if (st) { g.strokeStyle = st; g.lineWidth = .5; g.stroke(); } };
+  const box = (x, y, h, top, left, right, inset = 0) => {
+    const a = x + inset, b = y + inset, e = 1 - 2 * inset;
+    poly([P(a, b + e, 0), P(a + e, b + e, 0), P(a + e, b + e, h), P(a, b + e, h)], left);
+    poly([P(a + e, b, 0), P(a + e, b + e, 0), P(a + e, b + e, h), P(a + e, b, h)], right);
+    poly([P(a, b, h), P(a + e, b, h), P(a + e, b + e, h), P(a, b + e, h)], top);
+  };
+  for (let s2 = 0; s2 < RW + RH; s2++) for (let x = 0; x < RW; x++) {
+    const y = s2 - x; if (y < 0 || y >= RH) continue;
+    const t = get(x, y);
+    if (t === "_" || t === "=") { poly([P(x, y, -s * .4), P(x + 1, y, -s * .4), P(x + 1, y + 1, -s * .4), P(x, y + 1, -s * .4)], t === "=" ? "#2a1838" : "#050608"); continue; }
+    poly([P(x, y, 0), P(x + 1, y, 0), P(x + 1, y + 1, 0), P(x, y + 1, 0)], ((x + y) & 1) ? "#9da49a" : "#a6ada3", "rgba(0,0,0,.08)");
+    if (t === "#") box(x, y, wallH, "#6c8a83", "#3c4f4a", "#4a5f5a");
+    else if (t === "X") box(x, y, s * .8, "#c08a46", "#7a5122", "#93652e", .08);
+    else if (t === "K") { box(x, y, s * 1.1, "#4fd0c6", "#1f5e59", "#2a7a74", .14); }
+  }
+}
+
+// ======================================================================= souris
+function onDown(ev) {
+  if (!room) return;
+  cv.setPointerCapture(ev.pointerId);
+  const c = cellAt(ev), btn = ev.button;
+  if (btn === 1 || spaceDown || tool === "pan") { drag = { kind: "pan", sx: ev.clientX, sy: ev.clientY, ox: view.ox, oy: view.oy }; return; }
+  const inside = at(c.x, c.y) !== null;
+  if (ev.altKey || tool === "pick") { if (inside) { if (btn === 2) secondary = at(c.x, c.y); else primary = at(c.x, c.y); renderTiles(); } return; }
+  if (paste && clip) { if (btn === 2) { paste = false; draw(); return; } if (inside) dropPaste(c.x, c.y); return; }
+  const col = btn === 2 ? secondary : primary;
+  if (tool === "brush" || tool === "erase") {
+    if (!inside) return;
+    pushUndo(); const t = tool === "erase" ? "." : col; stamp(c.x, c.y, t); drag = { kind: "brush", last: c, t }; changed(); return;
+  }
+  if (tool === "rect") { if (inside) drag = { kind: "rect", a: c, b: c, btn }; draw(); return; }
+  if (tool === "line") { if (inside) drag = { kind: "line", a: c, b: c, btn }; draw(); return; }
+  if (tool === "fill") { if (inside) { pushUndo(); flood(c.x, c.y, col); changed(); } return; }
+  if (tool === "select") { if (btn === 2) { sel = null; draw(); return; } sel = { x0: clampX(c.x), y0: clampY(c.y), x1: clampX(c.x), y1: clampY(c.y) }; drag = { kind: "sel" }; draw(); return; }
+  if (tool === "extdoor") {
+    if (!inside) return;
+    const i = doorAt(c.x, c.y);
+    if (btn === 2) { if (i >= 0) { pushUndo(); room.portes.splice(i, 1); changed(); } return; }
+    const p = extDoorFromCell(c.x, c.y);
+    pushUndo();
+    room.portes = room.portes.filter(q => !(q.type === "exterieure" && q.cote === p.cote));
+    room.portes.push(p); changed(); return;
+  }
+  if (tool === "indoor") {
+    if (btn === 2) { const i = doorAt(c.x, c.y); if (i >= 0) { pushUndo(); room.portes.splice(i, 1); changed(); } return; }
+    if (inside) drag = { kind: "indoor", a: c, b: c }; draw(); return;
+  }
+}
+const clampX = x => Math.max(0, Math.min(room.W - 1, x)), clampY = y => Math.max(0, Math.min(room.H - 1, y));
+function onMove(ev) {
+  if (!room) return;
+  const c = cellAt(ev);
+  hover = c; updateStatus();
+  if (!drag) { draw(); return; }
+  if (drag.kind === "pan") { view.ox = drag.ox + ev.clientX - drag.sx; view.oy = drag.oy + ev.clientY - drag.sy; draw(); return; }
+  if (drag.kind === "brush") { line(drag.last.x, drag.last.y, c.x, c.y, (x, y) => stamp(x, y, drag.t)); drag.last = c; changed(); return; }
+  if (drag.kind === "rect" || drag.kind === "indoor") { drag.b = { x: clampX(c.x), y: clampY(c.y) }; draw(); return; }
+  if (drag.kind === "line") {
+    let b = { x: clampX(c.x), y: clampY(c.y) };
+    if (ev.shiftKey) { if (Math.abs(b.x - drag.a.x) > Math.abs(b.y - drag.a.y)) b.y = drag.a.y; else b.x = drag.a.x; }
+    drag.b = b; draw(); return;
+  }
+  if (drag.kind === "sel") { sel.x1 = clampX(c.x); sel.y1 = clampY(c.y); draw(); }
+}
+function onUp() {
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (d.kind === "rect") { pushUndo(); const col = d.btn === 2 ? secondary : primary; rectCells(d.a, d.b, rectOutline, (x, y) => setTile(x, y, col)); changed(); }
+  else if (d.kind === "line") { pushUndo(); const col = d.btn === 2 ? secondary : primary; line(d.a.x, d.a.y, d.b.x, d.b.y, (x, y) => setTile(x, y, col)); changed(); }
+  else if (d.kind === "indoor") { pushUndo(); room.portes.push(inDoorFromDrag(d.a, d.b)); changed(); }
+  else draw();
+}
+function onWheel(ev) {
+  ev.preventDefault();
+  const r = cv.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
+  const k = Math.exp(-ev.deltaY * (ev.ctrlKey ? .01 : .0015));
+  const nz = Math.max(2, Math.min(96, view.z * k));
+  view.ox = mx - (mx - view.ox) * nz / view.z; view.oy = my - (my - view.oy) * nz / view.z; view.z = nz;
+  updateStatus(); draw();
+}
+
+// ======================================================================= interface
+const TOOLS = [
+  { id: "brush", k: "B", t: "Pinceau", svg: '<path d="M4 20c2 0 4-1 4-3a2 2 0 0 0-4 0M8 16 19 5a2 2 0 0 0-3-3L5 13"/>' },
+  { id: "rect", k: "R", t: "Rectangle", svg: '<rect x="4" y="6" width="16" height="12" rx="1"/>' },
+  { id: "line", k: "L", t: "Ligne", svg: '<path d="M5 19 19 5"/><circle cx="5" cy="19" r="1.5"/><circle cx="19" cy="5" r="1.5"/>' },
+  { id: "fill", k: "G", t: "Remplissage", svg: '<path d="m5 11 7-7 7 7-7 7z"/><path d="M19 15s2 2.5 2 4a2 2 0 0 1-4 0c0-1.5 2-4 2-4"/>' },
+  { id: "erase", k: "E", t: "Gomme (pose du sol)", svg: '<path d="m7 21-4-4L14 6l5 5-8 10zM9 21h11"/>' },
+  { id: "pick", k: "I", t: "Pipette", svg: '<path d="m14 6 4 4M4 20l2-1 9-9-2-2-9 9z"/><path d="m15 5 2-2 4 4-2 2"/>' },
+  { id: "select", k: "M", t: "Sélection / copier-coller", svg: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/>' },
+  { id: "pan", k: "Esp", t: "Main (déplacer la vue)", svg: '<path d="M8 13V5a1.5 1.5 0 0 1 3 0v6M11 10V4a1.5 1.5 0 0 1 3 0v6M14 10V5.5a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-3l-2-4a1.5 1.5 0 0 1 2.5-1.5L8 13"/>' },
+  { id: "extdoor", k: "P", t: "Porte extérieure (sortie)", svg: '<path d="M4 20V4h9v16M13 12h7M17 9l3 3-3 3"/>' },
+  { id: "indoor", k: "O", t: "Porte intérieure (s'ouvre avec Interagir)", svg: '<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M15 12h.01"/>' },
+];
+function renderTools() {
+  const T = $("tools"); T.innerHTML = "";
+  for (const t of TOOLS) {
+    const b = document.createElement("div"); b.className = "tool" + (t.id === tool ? " on" : ""); b.title = t.t + " (" + t.k + ")";
+    b.innerHTML = '<svg viewBox="0 0 24 24">' + t.svg + "</svg><kbd>" + t.k + "</kbd>";
+    b.onclick = () => setTool(t.id); T.appendChild(b);
+  }
+}
+function setTool(id) {
+  tool = id; if (id !== "select") paste = false;
+  renderTools(); renderOptbar(); draw();
+}
+function renderOptbar() {
+  const o = $("optbar"), t = TOOLS.find(t => t.id === tool);
+  let h = '<b style="color:var(--txt)">' + t.t + "</b>";
+  if (tool === "brush" || tool === "erase") h += '<label>Taille <input type="range" id="oBrush" min="1" max="9" value="' + brush + '"><span id="oBrushV">' + brush + "</span></label>";
+  if (tool === "rect") h += '<label><input type="checkbox" id="oOutline"' + (rectOutline ? " checked" : "") + "> Contour seulement</label>";
+  if (tool === "fill") h += '<label><input type="checkbox" id="oFillAll"' + (fillAll ? " checked" : "") + "> Toutes les tuiles de ce type</label>";
+  if (tool === "select") h += '<button class="btn" id="oCopy">Copier</button><button class="btn" id="oCut">Couper</button><button class="btn" id="oPaste">Coller</button><button class="btn" id="oFH" title="H">↔</button><button class="btn" id="oFV" title="V">↕</button><button class="btn" id="oRot" title="T">⟳</button>';
+  const hints = { brush: "Clic gauche / droit : tuiles G / D · Alt + clic : pipette", rect: "Glisser pour tracer", line: "Maj : ligne droite", fill: "Remplit la zone de même tuile",
+    erase: "Remet du sol", pick: "Clic gauche → tuile G, clic droit → tuile D", select: paste ? "Clic : poser le collage · clic droit : annuler" : "Glisser pour sélectionner · Suppr efface",
+    pan: "Glisser pour déplacer la vue", extdoor: "Clic près d'un bord : la porte s'y place (2 tuiles). Une seule par côté.", indoor: "Glisser une ligne de 1 à 8 tuiles en travers du passage" };
+  h += '<span class="hint">' + (hints[tool] || "") + "</span>";
+  o.innerHTML = h;
+  const on = (id, ev, f) => { const e = $(id); if (e) e.addEventListener(ev, f); };
+  on("oBrush", "input", e => { brush = +e.target.value; $("oBrushV").textContent = brush; });
+  on("oOutline", "change", e => { rectOutline = e.target.checked; });
+  on("oFillAll", "change", e => { fillAll = e.target.checked; });
+  on("oCopy", "click", () => copySel(false)); on("oCut", "click", () => copySel(true)); on("oPaste", "click", startPaste);
+  on("oFH", "click", () => clipFlip(true)); on("oFV", "click", () => clipFlip(false)); on("oRot", "click", clipRot);
+}
+function renderTiles() {
+  const T = $("tiles"); T.innerHTML = "";
+  for (const t of TILES) {
+    const d = document.createElement("div"); d.className = "tile" + (t.c === primary ? " p" : "") + (t.c === secondary ? " s" : "");
+    const c = document.createElement("canvas"); c.width = 56; c.height = 56;
+    drawTile(c.getContext("2d"), t.c, 0, 0, 56, 0, 0);
+    d.appendChild(c);
+    const n = document.createElement("div"); n.className = "nm"; n.innerHTML = t.nm + "<small>" + t.d + "</small>"; d.appendChild(n);
+    d.insertAdjacentHTML("beforeend", '<span class="badge bp">G</span><span class="badge bs">D</span><kbd>' + t.k + "</kbd>");
+    d.onclick = () => { primary = t.c; renderTiles(); if (["pick", "select", "pan", "extdoor", "indoor", "erase"].includes(tool)) setTool("brush"); };
+    d.oncontextmenu = e => { e.preventDefault(); secondary = t.c; renderTiles(); };
+    T.appendChild(d);
+  }
+}
+function syncProps() {
+  $("pNom").value = room.nom;
+  const R = $("pRole"); R.innerHTML = "";
+  const roles = ROLES.includes(room.role) ? ROLES : ROLES.concat([room.role]);
+  for (const r of roles) { const o = document.createElement("option"); o.value = r; o.textContent = (ROLE_FR[r] || r) + "  ·  " + r; R.appendChild(o); }
+  R.value = room.role;
+  const C = $("pRoles"); C.innerHTML = "";
+  // + rôles d'étage servis par une autre salle (Trésor, Irruption -> Calme ; Cartographe -> Événement) et rôles inconnus du fichier
+  const extra = ["TRESOR", "IRRUPTION", "CARTO"];
+  for (const r of ROLES.concat(extra, room.rolesEnPlus.filter(x => !ROLES.includes(x) && !extra.includes(x)))) {
+    const ch =document.createElement("span"); ch.className = "chip" + (room.rolesEnPlus.includes(r) ? " on" : "") + (r === room.role ? " dis" : ""); ch.textContent = r;
+    ch.onclick = () => { if (r === room.role) return; pushUndo(); const i = room.rolesEnPlus.indexOf(r); if (i >= 0) room.rolesEnPlus.splice(i, 1); else room.rolesEnPlus.push(r); syncProps(); changed(); };
+    C.appendChild(ch);
+  }
+  const F = $("pForme"); F.innerHTML = "";
+  for (const [k, v] of Object.entries(FORMES)) { const o = document.createElement("option"); o.value = k; o.textContent = v[2] + (v[0] ? "  ·  " + k + " " + v[0] + " × " + v[1] : ""); F.appendChild(o); }
+  if (!(room.forme in FORMES)) { const o = document.createElement("option"); o.value = room.forme; o.textContent = room.forme; F.appendChild(o); }
+  F.value = room.forme;
+  $("pPoids").value = room.poids;
+  $("pW").value = room.W; $("pH").value = room.H;
+}
+function fitForme() { const f = FORMES[room.forme]; if (f && f[0]) resize(f[0], f[1], anchor); }
+function renderAnchor() {
+  const A = $("anchor"); A.innerHTML = "";
+  for (let i = 0; i < 9; i++) { const e = document.createElement("i"); if (i === anchor) e.className = "on"; e.title = "Ancrage"; e.onclick = () => { anchor = i; renderAnchor(); }; A.appendChild(e); }
+}
+function updateStatus() {
+  if (!room) return;
+  const ok = hover && at(hover.x, hover.y) !== null;
+  $("sPos").textContent = ok ? hover.x + ", " + hover.y : "–";
+  $("sTile").textContent = ok ? TILE_BY[at(hover.x, hover.y)].nm : "–";
+  $("sSize").textContent = room.W + " × " + room.H + " (" + room.W + " m × " + room.H + " m)";
+  $("sFloor").textContent = analysis.nFloor ?? "–";
+  $("sZoom").textContent = Math.round(view.z / 24 * 100) + " %";
+}
+let toastT = 0;
+function toast(msg, btn, fn) {
+  $("toastMsg").textContent = msg; $("toast").classList.add("on");
+  const b = $("toastBtn"); b.style.display = btn ? "" : "none"; if (btn) { b.textContent = btn; b.onclick = () => { fn(); $("toast").classList.remove("on"); }; }
+  clearTimeout(toastT); toastT = setTimeout(() => $("toast").classList.remove("on"), btn ? 9000 : 3500);
+  $("sMsg").textContent = msg;
+}
+function showTab(id) {
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === id));
+  document.querySelectorAll(".pane").forEach(p => p.classList.toggle("on", p.id === "pane-" + id));
+  if (id === "iso") drawIso();
+}
+
+// --- nouvelle salle
+let newForme = "std";
+function openNew() {
+  if (!confirmLose()) return;
+  const P = $("nPresets"); P.innerHTML = "";
+  for (const [k, v] of Object.entries(FORMES)) {
+    const d = document.createElement("div"); d.className = "preset" + (k === newForme ? " on" : "");
+    d.innerHTML = "<b></b><small></small>"; d.querySelector("b").textContent = k ? v[2] : "Libre"; d.querySelector("small").textContent = k ? v[0] + " × " + v[1] : "taille au choix";
+    d.onclick = () => { newForme = k; if (v[0]) { $("nW").value = v[0]; $("nH").value = v[1]; } openNewRefresh(); };
+    P.appendChild(d);
+  }
+  const R = $("nRole"); R.innerHTML = ""; for (const r of ROLES) { const o = document.createElement("option"); o.value = r; o.textContent = (ROLE_FR[r] || r) + "  ·  " + r; R.appendChild(o); }
+  $("mNew").classList.add("on"); $("nNom").focus(); $("nNom").select();
+}
+function openNewRefresh() { [...$("nPresets").children].forEach((d, i) => d.classList.toggle("on", Object.keys(FORMES)[i] === newForme)); }
+function createNew() {
+  const W = Math.max(8, +$("nW").value | 0), H = Math.max(6, +$("nH").value | 0);
+  const f = FORMES[newForme];
+  room = blankRoom($("nNom").value.trim() || "Salle_Nouvelle", W, H, $("nFill").value, $("nRole").value, f && f[0] === W && f[1] === H ? newForme : "");
+  fileHandle = null; fileName = null; undo = []; redo = []; sel = null; paste = false;
+  $("mNew").classList.remove("on");
+  syncProps(); fit(); changed(true); renderLib();
+}
+
+// --- PNG
+function exportPng() {
+  const z = 16, c = document.createElement("canvas"); c.width = room.W * z; c.height = room.H * z;
+  const g = c.getContext("2d");
+  for (let y = 0; y < room.H; y++) for (let x = 0; x < room.W; x++) drawTile(g, room.g[y * room.W + x], x * z, y * z, z, x, y);
+  // portes
+  for (const p of room.portes) {
+    const tl = p.type === "exterieure" ? extDoorTiles(p) : inDoorTiles(p);
+    g.fillStyle = p.type === "exterieure" ? "#ff9a3d" : "#4fb6ff"; for (const [a, b] of tl) g.fillRect(a * z + 2, b * z + 2, z - 4, z - 4);
+  }
+  c.toBlob(b => download(room.nom + ".png", b, "image/png"));
+}
+
+// ======================================================================= clavier
+function isTyping(e) { const t = e.target; return t && (t.tagName === "INPUT" || t.tagName === "SELECT" || t.tagName === "TEXTAREA"); }
+window.addEventListener("keydown", e => {
+  const mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
+  if (mod && k === "s") { e.preventDefault(); save(e.shiftKey); return; }
+  if (mod && k === "o") { e.preventDefault(); openFiles(); return; }
+  if (mod && k === "n") { e.preventDefault(); openNew(); return; }
+  if (isTyping(e)) { if (e.key === "Enter" && $("mNew").classList.contains("on")) createNew(); return; }
+  if (e.key === "Escape") { document.querySelectorAll(".modal-bg").forEach(m => m.classList.remove("on")); paste = false; sel = null; drag = null; draw(); return; }
+  if ($("mNew").classList.contains("on") || $("mHelp").classList.contains("on")) return;
+  if (mod && k === "z") { e.preventDefault(); e.shiftKey ? doRedo() : doUndo(); return; }
+  if (mod && k === "y") { e.preventDefault(); doRedo(); return; }
+  if (mod && k === "c") { e.preventDefault(); copySel(false); return; }
+  if (mod && k === "x") { e.preventDefault(); copySel(true); return; }
+  if (mod && k === "v") { e.preventDefault(); startPaste(); return; }
+  if (mod && k === "a") { e.preventDefault(); setTool("select"); sel = { x0: 0, y0: 0, x1: room.W - 1, y1: room.H - 1 }; draw(); return; }
+  if (mod) return;
+  if (e.key === " ") { e.preventDefault(); if (!spaceDown) { spaceDown = true; cv.style.cursor = "grab"; } return; }
+  if (e.key === "Delete" || e.key === "Backspace") { clearSel(); return; }
+  if (paste && k === "h") { clipFlip(true); return; }
+  if (paste && k === "v") { clipFlip(false); return; }
+  if (paste && k === "t") { clipRot(); return; }
+  const map = { b: "brush", r: "rect", l: "line", g: "fill", e: "erase", i: "pick", m: "select", p: "extdoor", o: "indoor", h: "pan" };
+  if (map[k]) { setTool(map[k]); return; }
+  const t = TILES.find(t => t.k === e.key); if (t) { primary = t.c; renderTiles(); return; }
+  if (k === "x") { [primary, secondary] = [secondary, primary]; renderTiles(); return; }
+  if (e.key === "[") { brush = Math.max(1, brush - 1); renderOptbar(); draw(); return; }
+  if (e.key === "]") { brush = Math.min(9, brush + 1); renderOptbar(); draw(); return; }
+  if (k === "f") { fit(); return; }
+  if (e.key === "?") { $("mHelp").classList.add("on"); return; }
+});
+window.addEventListener("keyup", e => { if (e.key === " ") { spaceDown = false; cv.style.cursor = ""; } });
+
+// ======================================================================= branchements
+cv.addEventListener("pointerdown", onDown);
+cv.addEventListener("pointermove", onMove);
+cv.addEventListener("pointerup", onUp);
+cv.addEventListener("pointercancel", onUp);
+cv.addEventListener("pointerleave", () => { hover = null; updateStatus(); draw(); });
+cv.addEventListener("wheel", onWheel, { passive: false });
+cv.addEventListener("contextmenu", e => e.preventDefault());
+window.addEventListener("resize", () => { resizeCanvas(); drawIso(); });
+window.addEventListener("beforeunload", e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+
+$("bNew").onclick = openNew; $("bOpen").onclick = openFiles; $("bDir").onclick = openDir; $("bDir2").onclick = openDir; $("bRefresh").onclick = refreshLib;
+$("bSave").onclick = () => save(false); $("bSaveAs").onclick = () => save(true);
+$("bUndo").onclick = doUndo; $("bRedo").onclick = doRedo; $("bFit").onclick = fit; $("bPng").onclick = exportPng;
+$("bHelp").onclick = () => $("mHelp").classList.add("on");
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => b.closest(".modal-bg").classList.remove("on"));
+$("nOk").onclick = createNew;
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+$("isoL").onclick = () => { isoRot--; drawIso(); }; $("isoR").onclick = () => { isoRot++; drawIso(); };
+const tog = (id, f) => $(id).onclick = () => { $(id).classList.toggle("on"); f($(id).classList.contains("on")); draw(); };
+tog("symX", v => symX = v); tog("symY", v => symY = v); tog("vGrid", v => show.grid = v); tog("vCoords", v => show.coords = v);
+tog("vReach", v => show.reach = v); tog("vAuto", v => show.auto = v);
+$("pNom").addEventListener("change", e => { pushUndo(); room.nom = e.target.value.trim(); changed(); });
+$("pRole").addEventListener("change", e => { pushUndo(); room.role = e.target.value; room.rolesEnPlus = room.rolesEnPlus.filter(r => r !== room.role); syncProps(); changed(); });
+$("pForme").addEventListener("change", e => {
+  pushUndo(); room.forme = e.target.value; changed();
+  const f = FORMES[room.forme];
+  if (f && f[0] && (f[0] !== room.W || f[1] !== room.H)) toast("La forme fait " + f[0] + " × " + f[1] + ".", "Redimensionner", fitForme);
+});
+$("pPoids").addEventListener("change", e => { pushUndo(); room.poids = Math.max(0, +e.target.value || 0); changed(); });
+$("bResize").onclick = () => resize(+$("pW").value, +$("pH").value, anchor);
+$("bFitForme").onclick = fitForme;
+$("fileIn").addEventListener("change", async e => { const f = e.target.files[0]; if (f) loadText(await f.text(), f.name, null); e.target.value = ""; });
+// glisser-déposer de fichiers
+let dragN = 0;
+window.addEventListener("dragenter", e => { if (e.dataTransfer.types.includes("Files")) { dragN++; $("drop").classList.add("on"); } });
+window.addEventListener("dragleave", () => { if (--dragN <= 0) { dragN = 0; $("drop").classList.remove("on"); } });
+window.addEventListener("dragover", e => e.preventDefault());
+window.addEventListener("drop", async e => {
+  e.preventDefault(); dragN = 0; $("drop").classList.remove("on");
+  const it = e.dataTransfer.items && e.dataTransfer.items[0];
+  if (!confirmLose()) return;
+  if (it && it.getAsFileSystemHandle) { const h = await it.getAsFileSystemHandle(); if (h && h.kind === "file") { await openHandle(h); return; } }
+  const f = e.dataTransfer.files[0]; if (f) loadText(await f.text(), f.name, null);
+});
+// sélection animée
+setInterval(() => { if (sel) draw(); }, 120);
+
+// ======================================================================= démarrage
+renderTools(); renderTiles(); renderAnchor(); renderOptbar();
+room = blankRoom("Salle_Nouvelle", 32, 20, "room", "COMBAT", "std");
+syncProps(); resizeCanvas(); fit(); changed(false);
+try {
+  const b = JSON.parse(localStorage.getItem("eonsalle.brouillon") || "null");
+  if (b && b.room) toast("Un brouillon non enregistré existe (" + b.room.nom + ").", "Le reprendre", () => { room = b.room; fileName = b.fileName; fileHandle = null; syncProps(); fit(); changed(true); });
+} catch (e) {}
+</script>
+</body>
+</html>

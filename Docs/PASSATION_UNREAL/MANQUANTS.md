@@ -338,3 +338,8 @@ Provisoire ou manquant :
 - **Approximations** : en 3D les éclats partent en demi-sphère vers le haut ; la vitesse est tirée entre 25 et 100 % du maximum ; les gerbes à deux couleurs sont deux systèmes lancés ensemble.
 - **Vérifié en jeu** : éclats de mort, anneau du kamikaze, gerbes à deux couleurs (`Docs/J10_eclats_mort.png`, `Docs/J10_anneau_kamikaze.jpg`). Pas encore vu à l'écran : les effets de Jira et ceux des events.
 - **Pas porté** : éclats des balles déviées par la lame et l'onde, ambiance des bouches d'aération et des lampes, traînée de fantômes du dash, marqueurs d'apparition, particules d'infestation, vapeur des cuves du C.O.M (encore des sphères), `swapChara`, effets du Mechakuve et du Chercheur.
+
+## Outil : éditeur de salles (17/11)
+- `Tools/EditeurSalles/EditeurSalles.html` : éditeur hors ligne (Chrome, Edge, Safari ; Mac et PC), fichiers `.eonsalle` (JSON, une rangée du plan par ligne). Le dossier `Salles/` contient les 18 salles du jeu exportées.
+- `Content/Python/eon_salles.py` : import `.eonsalle` -> `/Game/EON/Salles/BP_<nom>` (plan, rôles, forme, poids, portes posées) et export inverse ; aller-retour vérifié identique. Menu « EON Salles » dans l'éditeur (`init_unreal.py`) : pas encore vu dans l'éditeur ouvert.
+- `SourceAssets/FBX/` : copie des FBX d'Unity sans les personnages (`chara`, `xeno`, tentacules du boss), base de la future bibliothèque d'assets (`.eonasset`), pas encore faite.
