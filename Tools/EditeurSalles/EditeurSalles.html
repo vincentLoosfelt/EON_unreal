@@ -1365,10 +1365,21 @@ function v3RoomGeo() {
     tls.forEach(([x, y]) => doorSet.add(y * W + x));
   }
   const isWall = (x, y) => { const t = at(x, y); return t === "#" && !doorSet.has(y * W + x); };
+  const open = (x, y) => { const t = at(x, y); return t !== null && t !== "#"; };   // ni mur ni porte (les portes sont des « # »)
+  const FAC = theme && theme.facade && theme.facade.pieces && theme.facade.pieces.length ? theme.facade : null;
+  V3.facXf = FAC ? v3Facades(FAC, isWall, open, HW) : [];
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const t = at(x, y), X = x * 100, Y = y * 100, k = y * W + x;
     if (doorSet.has(k)) { box("sol", X, Y, -20, X + 100, Y + 100, 0, { t: 1 }); box("porte", X + 1, Y + 1, 0, X + 99, Y + 99, HW * .98, ALL); continue; }
-    if (t === "#") { box("mur", X, Y, 0, X + 100, Y + 100, HW, { t: 1, n: !isWall(x, y - 1) && y > 0, s: !isWall(x, y + 1) && y < H - 1, w: !isWall(x - 1, y) && x > 0, e: !isWall(x + 1, y) && x < W - 1 }); continue; }
+    if (t === "#") {
+      if (FAC) {
+        // Bloc sous une façade (sol voisin, même en diagonale) : réduit à 0,9 et 12 cm plus bas, caché derrière elle.
+        let cov = false;
+        for (let dy = -1; dy <= 1 && !cov; dy++) for (let dx = -1; dx <= 1; dx++) if (open(x + dx, y + dy)) { cov = true; break; }
+        const m = cov ? 5 : 0; box("dessus", X + m, Y + m, 0, X + 100 - m, Y + 100 - m, HW - (cov ? 12 : 6), ALL);
+      } else box("mur", X, Y, 0, X + 100, Y + 100, HW, { t: 1, n: !isWall(x, y - 1) && y > 0, s: !isWall(x, y + 1) && y < H - 1, w: !isWall(x - 1, y) && x > 0, e: !isWall(x + 1, y) && x < W - 1 });
+      continue;
+    }
     if (t === "_") continue;
     if (t === "=") { box("vide", X + 1, Y + 1, -82, X + 99, Y + 99, -78, ALL); continue; }
     box("sol", X, Y, -20, X + 100, Y + 100, 0, { t: 1 });
@@ -1394,6 +1405,46 @@ function v3RoomGeo() {
   }
   return Object.entries(G).map(([k, g]) => ({ k, g: v3Buffer(g.p, g.n, g.u, g.i) }));
 }
+// Façades WallA320 le long des murs qui donnent sur la salle : même calcul que AEONTileRoom::BuildHubWalls
+// (rangées par côté, prolongées d'une tuile dans les coins pour nord/sud, est/ouest 2 cm en retrait et 2 cm plus bas,
+// modules étirés pour remplir la rangée, face travaillée +Y du mesh vers la salle).
+function v3Facades(F, isWall, open, HW) {
+  const mn = F.min_cm, mx = F.max_cm, Sz = [mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]], out = [];
+  if (Sz[0] < 1 || Sz[1] < 1 || Sz[2] < 1) return out;
+  const FACES = [[[0, 1], [1, 0], 0], [[0, -1], [1, 0], 180], [[1, 0], [0, 1], -90], [[-1, 0], [0, 1], 90]];
+  const Sy = 100 / Sz[1];
+  for (const [Fv, Av, yaw] of FACES) {
+    const ns = Fv[1] !== 0, rec = ns ? 0 : 2, Sz2 = (HW - (ns ? 0 : 2)) / Sz[2];
+    const r = yaw * Math.PI / 180, c = Math.round(Math.cos(r)), s2 = Math.round(Math.sin(r));
+    const facing = (x, y) => isWall(x, y) && open(x + Fv[0], y + Fv[1]);
+    for (let y = 0; y < room.H; y++) for (let x = 0; x < room.W; x++) {
+      if (!facing(x, y) || facing(x - Av[0], y - Av[1])) continue;
+      let L = 0; while (facing(x + Av[0] * L, y + Av[1] * L)) L++;
+      let S0 = 0, S1 = L;
+      if (ns && isWall(x - Av[0], y - Av[1])) S0 -= 1;
+      if (ns && isWall(x + Av[0] * L, y + Av[1] * L)) S1 += 1;
+      const len = (S1 - S0) * 100, N = Math.max(1, Math.round(len / Sz[0])), Wm = len / N, Sx = Wm / Sz[0];
+      const e0 = [(x + .5) * 100 + Fv[0] * (50 - rec) - Av[0] * 50 + Av[0] * S0 * 100, (y + .5) * 100 + Fv[1] * (50 - rec) - Av[1] * 50 + Av[1] * S0 * 100];
+      const an = [(mn[0] + mx[0]) * .5 * Sx, mx[1] * Sy, mn[2] * Sz2];
+      for (let i = 0; i < N; i++) {
+        const tg = [e0[0] + Av[0] * (i + .5) * Wm, e0[1] + Av[1] * (i + .5) * Wm];
+        const tx = tg[0] - (c * an[0] - s2 * an[1]), ty = tg[1] - (s2 * an[0] + c * an[1]), tz = -an[2];
+        out.push(new Float32Array([c * Sx, s2 * Sx, 0, 0, -s2 * Sy, c * Sy, 0, 0, 0, 0, Sz2, 0, tx, ty, tz, 1]));
+      }
+    }
+  }
+  return out;
+}
+function v3FacMesh() {
+  if (V3.facMesh) return V3.facMesh;
+  return (V3.facMesh = theme.facade.pieces.map(p => {
+    const uv = p.uv && p.uv.length === p.v.length / 3 * 2 ? p.uv : new Array(p.v.length / 3 * 2).fill(0);
+    return { g: v3Buffer(p.v, v3Normals(p.v, p.t), uv, p.t), m: p };
+  }));
+}
+// Blocs de mur derrière les façades : M_Flat (0.012 linéaire) dans le jeu, mais l'exposition automatique d'Unreal
+// les montre gris bleuté, un peu plus clairs que le sol (capture du 17/11) ; ce gris donne le même rapport ici.
+const V3_DESSUS = "#7a7c86";
 const V3_THEME0 = { sol: { couleur: "#765e4d" }, mur: { couleur: "#83afa8" }, caisse: { couleur: "#c08a46" }, cuve: { couleur: "#7984b7" }, porte: { couleur: "#b5000b" }, vide: { couleur: "#555a60" } };
 function v3SetMat(m, emisExtra) {
   const gl = V3.gl, u = V3.u;
@@ -1451,7 +1502,11 @@ function v3Render() {
   // salle
   const TH = theme || V3_THEME0;
   gl.uniformMatrix4fv(u.uM, false, M_ID);
-  for (const g of V3.roomGeo) { v3SetMat(TH[g.k] || V3_THEME0[g.k]); gl.bindVertexArray(g.g.vao); gl.drawElements(gl.TRIANGLES, g.g.n, gl.UNSIGNED_INT, 0); }
+  for (const g of V3.roomGeo) { v3SetMat(g.k === "dessus" ? { couleur: V3_DESSUS } : TH[g.k] || V3_THEME0[g.k]); gl.bindVertexArray(g.g.vao); gl.drawElements(gl.TRIANGLES, g.g.n, gl.UNSIGNED_INT, 0); }
+  if (V3.facXf && V3.facXf.length) for (const pc of v3FacMesh()) {
+    v3SetMat(pc.m); gl.bindVertexArray(pc.g.vao);
+    for (const M of V3.facXf) { gl.uniformMatrix4fv(u.uM, false, M); gl.drawElements(gl.TRIANGLES, pc.g.n, gl.UNSIGNED_INT, 0); }
+  }
   // objets (opaques puis transparents)
   const late = [];
   for (const o of room.objets) {
@@ -1483,6 +1538,7 @@ function v3Reset() {
   if (!V3.gl) return;
   for (const k in V3.meshes) V3.meshes[k].forEach(p => v3Free(p.g));
   for (const k in V3.meshes) delete V3.meshes[k];
+  if (V3.facMesh) { V3.facMesh.forEach(p => v3Free(p.g)); V3.facMesh = null; }
   for (const k in V3.tex) { if (V3.tex[k]) V3.gl.deleteTexture(V3.tex[k]); delete V3.tex[k]; }
   V3.dirty = true;
 }

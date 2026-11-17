@@ -426,13 +426,41 @@ def _write_pair(base, d, parts, lum):
         fh.write(json.dumps(ap, ensure_ascii=False, separators=(",", ":")) + "\n")
 
 
+# Façades des murs (AEONTileRoom::BuildHubWalls) : module WallA320, emplacement « light » en MI_BG_Room_light,
+# les autres en MI_BG_walll_painted.
+FACADE_MESH = "/Game/EON/Unity/import/fbx/enviro/wall/WallA320"
+FACADE_MATS = {"light": "/Game/EON/Materials/BG/MI_BG_Room_light", "": "/Game/EON/Materials/BG/MI_BG_walll_painted"}
+
+
+def _facade():
+    """Géométrie du module de façade dans le repère du mesh (comme le jeu) et sa boîte, pour l'aperçu de l'éditeur."""
+    sm = unreal.load_asset(FACADE_MESH)
+    if not isinstance(sm, unreal.StaticMesh):
+        return None
+    slots = [str(m.material_slot_name) for m in sm.get_editor_property("static_materials")]
+    infos = {k: mat_info(unreal.load_asset(p)) for k, p in FACADE_MATS.items()}
+    parts = []
+    for sec in range(sm.get_num_sections(0)):
+        res = unreal.ProceduralMeshLibrary.get_section_from_static_mesh(sm, 0, sec)
+        slot = slots[sec] if sec < len(slots) else ""
+        uvs = list(res[3]) if len(res) > 3 else []
+        v = [(p.x, p.y, p.z) for p in res[0]]
+        parts.append({"v": v, "uv": [(u.x, u.y) for u in uvs] if len(uvs) == len(v) else [(0.0, 0.0)] * len(v), "t": list(res[1]),
+                      "mat": dict(infos["light" if slot == "light" else ""], slot=slot)})
+    b = sm.get_bounding_box()
+    return {"mesh": FACADE_MESH, "min_cm": [round(b.min.x, 2), round(b.min.y, 2), round(b.min.z, 2)],
+            "max_cm": [round(b.max.x, 2), round(b.max.y, 2), round(b.max.z, 2)],
+            "pieces": preview(parts)}
+
+
 def generate_theme():
     """SourceAssets/Salle.eontheme : matériaux du sol, des murs, des caisses et des cuves des salles du jeu."""
     th = {"format": "eontheme", "version": 1, "hauteur_mur_cm": 220}
     for k, p in THEME.items():
         th[k] = mat_info(unreal.load_asset(p))
+    th["facade"] = _facade()
     with open(os.path.join(source_dir(), "Salle.eontheme"), "w", encoding="utf-8", newline="\n") as fh:
-        fh.write(json.dumps(th, ensure_ascii=False, indent=2) + "\n")
+        fh.write(json.dumps(th, ensure_ascii=False, separators=(",", ":")) + "\n")
 
 
 def generate_dynamics():
