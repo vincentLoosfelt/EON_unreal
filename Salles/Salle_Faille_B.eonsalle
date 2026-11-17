@@ -7,7 +7,626 @@
   "forme": "large",
   "poids": 1.0,
   "portes": [],
-  "objets": [],
+  "objets": [
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 2,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 4,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "clignote",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 9,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 12,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 13,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 16,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 17,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 18,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "vacille",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 21,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 22,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 25,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 27,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 29,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 31,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 35,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 36,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 37,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 38,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "clignote",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "highttech/Assets_Hitech_small/Hitech_small_V10",
+      "x": 1,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "highttech/Assets_Hitech_small/Hitech_small_V10",
+      "x": 3,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "moniteur/Computer_hitech_V5",
+      "x": 4,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Point_lumineux",
+      "x": 4,
+      "y": 1,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ffc23d",
+        "rayon_px": 26,
+        "intensite": 0.45
+      }
+    },
+    {
+      "asset": "highttech/Assets_Hitech_medium/Hitech_medium_V5",
+      "x": 5,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "highttech/Assets_Hitech_small/Hitech_small_V10",
+      "x": 6,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "moniteur/Computer_hitech_V6",
+      "x": 10,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Point_lumineux",
+      "x": 10,
+      "y": 1,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ffc23d",
+        "rayon_px": 26,
+        "intensite": 0.45
+      }
+    },
+    {
+      "asset": "enviro/Pipe02",
+      "x": 11,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "enviro/Pipe02",
+      "x": 13,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "highttech/Assets_Hitech_small/Hitech_small_V11",
+      "x": 24,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "moniteur/Computer_hitech_V6",
+      "x": 26,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Point_lumineux",
+      "x": 26,
+      "y": 1,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff6a3d",
+        "rayon_px": 26,
+        "intensite": 0.45
+      }
+    },
+    {
+      "asset": "highttech/Assets_Hitech_medium/Hitech_medium_V5",
+      "x": 28,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "enviro/Pipe02",
+      "x": 29,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "highttech/Assets_Hitech_medium/Hitech_medium_V5",
+      "x": 32,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "highttech/Assets_Hitech_small/Hitech_small_V9",
+      "x": 33,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "highttech/Assets_Hitech_small/Hitech_small_V11",
+      "x": 36,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "highttech/Assets_Hitech_medium/Hitech_medium_V5",
+      "x": 38,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 2,
+      "y": 2,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 37,
+      "y": 2,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 37,
+      "y": 3,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 10,
+      "y": 4,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 17,
+      "y": 4,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 10,
+      "y": 5,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 31,
+      "y": 5,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 14,
+      "y": 6,
+      "rot": 0,
+      "lumiere": {
+        "mode": "clignote",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "highttech/Assets_Hitech_small/Hitech_small_V9",
+      "x": 13,
+      "y": 7,
+      "rot": 0
+    },
+    {
+      "asset": "highttech/Assets_Hitech_small/Hitech_small_V11",
+      "x": 14,
+      "y": 7,
+      "rot": 0
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 36,
+      "y": 7,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 14,
+      "y": 11,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 26,
+      "y": 12,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 8,
+      "y": 14,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "highttech/Assets_Hitech_small/Hitech_small_V11",
+      "x": 30,
+      "y": 14,
+      "rot": 0
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 11,
+      "y": 16,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 26,
+      "y": 16,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 6,
+      "y": 18,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 22,
+      "y": 21,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 31,
+      "y": 21,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 38,
+      "y": 22,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 5,
+      "y": 23,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 16,
+      "y": 23,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 7,
+      "y": 24,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ff3d8b",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    }
+  ],
   "plan": [
     "########################################",
     "#......................................#",

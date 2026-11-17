@@ -216,6 +216,7 @@ select.inp { padding: 0 4px; }
         <div class="v3row">Intensité <input type="range" id="lumI" min="0" max="2" step="0.05"><b id="lumIv"></b></div>
         <div class="row"><button class="btn" id="lumReset">Valeurs de l'asset</button></div>
       </div>
+      <div class="row" style="margin-bottom:8px"><button class="btn" id="bHab" title="Pose les néons des murs du haut, les lampes au sol et le matériel au pied du mur du haut, avec les règles du proto (cases libres seulement ; Ctrl+Z pour annuler)">Habiller comme le proto</button></div>
       <input class="inp" id="assetSearch" placeholder="Rechercher un asset…" spellcheck="false" style="margin-bottom:8px">
       <div class="chips" id="assetCats" style="margin-bottom:8px"></div>
       <div class="assets" id="assetGrid"></div>
@@ -802,6 +803,59 @@ function renderAssets() {
     it.onclick = () => { assetSel = id; const R = d.rotations && d.rotations.length ? d.rotations : [0]; if (!R.includes(objRot)) objRot = R[0]; lumSel = -1; lumNext = d.lumiere ? lumClean(d.lumiere) : null; setTool("object"); renderAssets(); renderLum(); };
     G.appendChild(it);
   }
+}
+
+// --- habillage du proto (renderRoom de eon-gunfeel.html, étages 1 et 2 : rien au milieu des salles)
+// Néon sur les murs du haut (tuile de mur dont le sud est ouvert, hors vide) quand h > 0,62 : clignote si h < 0,72, vacille si h > 0,95.
+// Lampe au sol quand 0,805 < h < 0,82. Matériel accroché au pied du mur du haut (cassetteProp) quand k > 0,58, type t de 0 à 4.
+// h, k : même hachage que le proto, la graine vient du nom de la salle (relancer donne le même habillage).
+// Les cases déjà occupées par un objet et les portes sont laissées telles quelles.
+const HAB_PROPS = [
+  ["moniteur/Computer_hitech_V4", "moniteur/Computer_hitech_V5", "moniteur/Computer_hitech_V6", "moniteur/Computer_hitech_V7", "moniteur/Computer_hitech_V8"],   // 0 terminal cathodique (+ sa lueur)
+  ["highttech/Assets_Hitech_medium/Hitech_medium_V5", "highttech/Assets_Hitech_medium/Hitech_medium_V7"],   // 1 faisceau de câbles
+  ["enviro/Pipe02"],                                                                                           // 2 tuyauterie
+  ["highttech/Assets_Hitech_small/Hitech_small_V11"],                                                          // 3 lecteur à bandes
+  ["highttech/Assets_Hitech_small/Hitech_small_V9", "highttech/Assets_Hitech_small/Hitech_small_V10"],       // 4 plaque gravée
+];
+const HAB_ROT = {};          // rotation qui tourne la face de l'asset vers la salle (sud), 0 par défaut
+const HAB_SCR = ["#ffc23d", "#6fbf4a", "#3ef2e0", "#ff6a3d"];   // écrans des terminaux (cassetteProp)
+const HAB_NEONS = ["#ff3d8b", "#ffc23d", "#3ef2e0"];           // floorPal de l'étage 1 : Coursive, Machines, Labo
+function habiller(r) {
+  r = r || room;
+  let seed = 0; for (const ch of r.nom) seed = (seed * 31 + ch.charCodeAt(0)) % 1000;
+  const hs = i => { const v = Math.sin(i * 12.9898 + seed) * 43758.5453; return v - Math.floor(v); };
+  const W = r.W, H = r.H, A = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? null : r.g[y * W + x];
+  const neon = HAB_NEONS[Math.floor(hs(4242) * 3)];
+  const doors = new Set(), occ = new Set();
+  const ext = r.portes.filter(p => p.type === "exterieure");
+  (ext.length ? ext.flatMap(extDoorTiles) : ["N", "S", "E", "W"].flatMap(autoDoorTiles)).forEach(([x, y]) => doors.add(y * W + x));
+  r.portes.filter(p => p.type !== "exterieure").flatMap(inDoorTiles).forEach(([x, y]) => doors.add(y * W + x));
+  r.objets.forEach(o => objTiles(o).forEach(([x, y]) => occ.add(y * W + x)));
+  const add = o => { r.objets.push(o); objTiles(o).forEach(([x, y]) => occ.add(y * W + x)); return o; };
+  const free = (x, y) => A(x, y) === "." && !occ.has(y * W + x) && A(x, y - 1) === "#" && !doors.has((y - 1) * W + x);
+  const n0 = r.objets.length;
+  for (let ty = 0; ty < H; ty++) for (let tx = 0; tx < W; tx++) {
+    const v = A(tx, ty), h = hs(tx * 31 + ty * 7), k = ty * W + tx;
+    if (v === "#") {
+      const s2 = A(tx, ty + 1);
+      if (h > 0.62 && s2 !== null && s2 !== "#" && s2 !== "_" && s2 !== "=" && !doors.has(k) && !occ.has(k))
+        add({ asset: "Dynamiques/Lumieres/Neon_mural", x: tx, y: ty, rot: 0, lumiere: { mode: h < 0.72 ? "clignote" : h > 0.95 ? "vacille" : "fixe", couleur: neon, rayon_px: 52, intensite: 0.8 } });
+      continue;
+    }
+    if (v !== "." || occ.has(k)) continue;
+    if (h > 0.805 && h < 0.82) { add({ asset: "Dynamiques/Lumieres/Lampe_sol", x: tx, y: ty, rot: 0, lumiere: { mode: "fixe", couleur: neon, rayon_px: 24, intensite: 0.5 } }); continue; }
+    if (!free(tx, ty)) continue;
+    const k2 = hs(tx * 3 + ty * 29);
+    if (k2 <= 0.58) continue;
+    const t = ((k2 * 7919 | 0) ^ (tx * 16 * 31 + ty * 16 * 17)) % 5, L = HAB_PROPS[t], id = L[Math.floor(hs(tx * 11 + ty * 5) * L.length)];
+    const d = assets[id] && assets[id].d; if (!d) continue;
+    const rot = HAB_ROT[id] || 0, [w] = rotDims(d, rot);
+    let okAll = true; for (let i = 0; i < w; i++) if (!free(tx + i, ty)) okAll = false;
+    if (!okAll) continue;
+    add({ asset: id, x: tx, y: ty, rot });
+    if (t === 0) add({ asset: "Dynamiques/Lumieres/Point_lumineux", x: tx, y: ty, rot: 0, lumiere: { mode: "fixe", couleur: HAB_SCR[(k2 * 17 | 0) % 4], rayon_px: 26, intensite: 0.45 } });
+  }
+  return r.objets.length - n0;
 }
 
 // --- vérifications des objets (appelée par analyse)
@@ -1852,6 +1906,11 @@ $("bSave").onclick = () => save(false); $("bSaveAs").onclick = () => save(true);
 $("bUndo").onclick = doUndo; $("bRedo").onclick = doRedo; $("bFit").onclick = fit; $("bPng").onclick = exportPng;
 $("bHelp").onclick = () => $("mHelp").classList.add("on");
 $("bAssets").onclick = pickAssetDir;
+$("bHab").onclick = () => {
+  if (!Object.keys(assets).length) { toast("Ouvre d'abord la bibliothèque d'assets"); return; }
+  pushUndo(); const n = habiller(); if (!n) { undo.pop(); toast("Rien à ajouter : les cases sont déjà habillées"); return; }
+  changed(); toast(n + " objet(s) posé(s) comme dans le proto");
+};
 // Actualiser : relit le même dossier (Chrome, Edge), sinon le redemande.
 $("bAssetsRe").onclick = async () => { for (const k in assets) assets[k].sprites = null; if (GAS || !(await reopenAssets(true))) pickAssetDir(); };
 $("assetSearch").addEventListener("input", e => { assetFilter = e.target.value; renderAssets(); });

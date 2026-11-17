@@ -7,7 +7,212 @@
   "forme": "small",
   "poids": 1.0,
   "portes": [],
-  "objets": [],
+  "objets": [
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 1,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ffc23d",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 2,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ffc23d",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 3,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "vacille",
+        "couleur": "#ffc23d",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 4,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "clignote",
+        "couleur": "#ffc23d",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 9,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "vacille",
+        "couleur": "#ffc23d",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 15,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ffc23d",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Neon_mural",
+      "x": 20,
+      "y": 0,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ffc23d",
+        "rayon_px": 52,
+        "intensite": 0.8
+      }
+    },
+    {
+      "asset": "highttech/Assets_Hitech_medium/Hitech_medium_V5",
+      "x": 1,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "enviro/Pipe02",
+      "x": 2,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "moniteur/Computer_hitech_V4",
+      "x": 6,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Point_lumineux",
+      "x": 6,
+      "y": 1,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#6fbf4a",
+        "rayon_px": 26,
+        "intensite": 0.45
+      }
+    },
+    {
+      "asset": "highttech/Assets_Hitech_small/Hitech_small_V10",
+      "x": 7,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 14,
+      "y": 1,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ffc23d",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "highttech/Assets_Hitech_medium/Hitech_medium_V5",
+      "x": 16,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "enviro/Pipe02",
+      "x": 17,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "highttech/Assets_Hitech_small/Hitech_small_V11",
+      "x": 20,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "moniteur/Computer_hitech_V5",
+      "x": 22,
+      "y": 1,
+      "rot": 0
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Point_lumineux",
+      "x": 22,
+      "y": 1,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#6fbf4a",
+        "rayon_px": 26,
+        "intensite": 0.45
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 5,
+      "y": 4,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ffc23d",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 10,
+      "y": 8,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ffc23d",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    },
+    {
+      "asset": "Dynamiques/Lumieres/Lampe_sol",
+      "x": 7,
+      "y": 9,
+      "rot": 0,
+      "lumiere": {
+        "mode": "fixe",
+        "couleur": "#ffc23d",
+        "rayon_px": 24,
+        "intensite": 0.5
+      }
+    }
+  ],
   "plan": [
     "########################",
     "#......................#",
