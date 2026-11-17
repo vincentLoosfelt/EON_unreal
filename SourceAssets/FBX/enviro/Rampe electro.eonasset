@@ -1,0 +1,33 @@
+{
+  "format": "eonasset",
+  "version": 1,
+  "id": "enviro/Rampe electro",
+  "nom": "Rampe electro",
+  "categorie": "Environnement",
+  "tags": [],
+  "collision": "solide",
+  "rotations": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "fbx": "Rampe electro.fbx",
+  "mesh": "/Game/EON/Unity/import/fbx/enviro/Rampe_electro.Rampe_electro",
+  "unreal": "/Game/EON/RoomAssets/enviro/BPA_Rampe_electro.BPA_Rampe_electro_C",
+  "empreinte": [
+    4,
+    7
+  ],
+  "taille_cm": [
+    387.3,
+    627.5,
+    2158.9
+  ],
+  "centre_cm": [
+    19.0,
+    -0.0
+  ],
+  "sol_cm": 34.3,
+  "apercu": "Rampe electro.eonapercu"
+}

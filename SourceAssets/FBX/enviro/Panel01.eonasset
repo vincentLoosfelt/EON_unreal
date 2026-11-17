@@ -1,0 +1,33 @@
+{
+  "format": "eonasset",
+  "version": 1,
+  "id": "enviro/Panel01",
+  "nom": "Panel01",
+  "categorie": "Environnement",
+  "tags": [],
+  "collision": "aucune",
+  "rotations": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "fbx": "Panel01.fbx",
+  "mesh": "/Game/EON/Unity/import/fbx/enviro/Panel01.Panel01",
+  "unreal": "/Game/EON/RoomAssets/enviro/BPA_Panel01.BPA_Panel01_C",
+  "empreinte": [
+    2,
+    2
+  ],
+  "taille_cm": [
+    200.0,
+    200.0,
+    0.0
+  ],
+  "centre_cm": [
+    0.0,
+    0.0
+  ],
+  "sol_cm": 0.0,
+  "apercu": "Panel01.eonapercu"
+}

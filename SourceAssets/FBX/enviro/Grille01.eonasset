@@ -1,0 +1,33 @@
+{
+  "format": "eonasset",
+  "version": 1,
+  "id": "enviro/Grille01",
+  "nom": "Grille01",
+  "categorie": "Environnement",
+  "tags": [],
+  "collision": "aucune",
+  "rotations": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "fbx": "Grille01.fbx",
+  "mesh": "/Game/EON/Unity/import/fbx/enviro/Grille01.Grille01",
+  "unreal": "/Game/EON/RoomAssets/enviro/BPA_Grille01.BPA_Grille01_C",
+  "empreinte": [
+    2,
+    2
+  ],
+  "taille_cm": [
+    200.0,
+    200.0,
+    2.9
+  ],
+  "centre_cm": [
+    -0.1,
+    -0.1
+  ],
+  "sol_cm": 0.5,
+  "apercu": "Grille01.eonapercu"
+}

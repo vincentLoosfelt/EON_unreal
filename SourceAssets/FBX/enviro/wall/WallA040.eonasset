@@ -1,0 +1,33 @@
+{
+  "format": "eonasset",
+  "version": 1,
+  "id": "enviro/wall/WallA040",
+  "nom": "WallA040",
+  "categorie": "Murs",
+  "tags": [],
+  "collision": "solide",
+  "rotations": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "fbx": "WallA040.fbx",
+  "mesh": "/Game/EON/Unity/import/fbx/enviro/wall/WallA040.WallA040",
+  "unreal": "/Game/EON/RoomAssets/enviro/wall/BPA_WallA040.BPA_WallA040_C",
+  "empreinte": [
+    1,
+    1
+  ],
+  "taille_cm": [
+    40.3,
+    97.5,
+    300.0
+  ],
+  "centre_cm": [
+    -1.2,
+    0.0
+  ],
+  "sol_cm": 1.6,
+  "apercu": "WallA040.eonapercu"
+}

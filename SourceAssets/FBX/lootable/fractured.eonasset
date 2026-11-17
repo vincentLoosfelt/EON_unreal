@@ -1,0 +1,33 @@
+{
+  "format": "eonasset",
+  "version": 1,
+  "id": "lootable/fractured",
+  "nom": "fractured",
+  "categorie": "Ramassables",
+  "tags": [],
+  "collision": "solide",
+  "rotations": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "fbx": "fractured.fbx",
+  "mesh": "/Game/EON/Unity/import/fbx/lootable/fractured.fractured",
+  "unreal": "/Game/EON/RoomAssets/lootable/BPA_fractured.BPA_fractured_C",
+  "empreinte": [
+    1,
+    1
+  ],
+  "taille_cm": [
+    100.1,
+    100.1,
+    100.0
+  ],
+  "centre_cm": [
+    -0.2,
+    0.4
+  ],
+  "sol_cm": 0.8,
+  "apercu": "fractured.eonapercu"
+}

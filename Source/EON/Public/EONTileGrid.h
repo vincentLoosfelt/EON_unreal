@@ -16,6 +16,8 @@ enum class EEONTile : uint8
 	Door = 3   UMETA(DisplayName = "Porte (D)"),
 	Crate = 4  UMETA(DisplayName = "Décor solide (X)"),
 	Tank = 5   UMETA(DisplayName = "Cuve (K)"),
+	/** Sous un objet posé par l'éditeur de salles (.eonsalle) : bloque comme une caisse, le décor est le mesh de l'objet. */
+	Prop = 6   UMETA(DisplayName = "Objet posé (O)"),
 };
 
 /** Portes d'une salle, en masque : N = 1, S = 2, E = 4, W = 8 (ordre d'insertion du proto : N, S, E, W). */

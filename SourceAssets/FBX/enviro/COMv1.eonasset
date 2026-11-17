@@ -1,0 +1,33 @@
+{
+  "format": "eonasset",
+  "version": 1,
+  "id": "enviro/COMv1",
+  "nom": "COMv1",
+  "categorie": "Environnement",
+  "tags": [],
+  "collision": "solide",
+  "rotations": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "fbx": "COMv1.fbx",
+  "mesh": "/Game/EON/Unity/import/fbx/enviro/COMv1.COMv1",
+  "unreal": "/Game/EON/RoomAssets/enviro/BPA_COMv1.BPA_COMv1_C",
+  "empreinte": [
+    16,
+    16
+  ],
+  "taille_cm": [
+    1536.2,
+    1553.6,
+    1106.3
+  ],
+  "centre_cm": [
+    0.0,
+    0.0
+  ],
+  "sol_cm": 0.0,
+  "apercu": "COMv1.eonapercu"
+}

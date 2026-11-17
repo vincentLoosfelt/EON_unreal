@@ -1,0 +1,33 @@
+{
+  "format": "eonasset",
+  "version": 1,
+  "id": "enviro/Tube01",
+  "nom": "Tube01",
+  "categorie": "Environnement",
+  "tags": [],
+  "collision": "solide",
+  "rotations": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "fbx": "Tube01.fbx",
+  "mesh": "/Game/EON/Unity/import/fbx/enviro/Tube01.Tube01",
+  "unreal": "/Game/EON/RoomAssets/enviro/BPA_Tube01.BPA_Tube01_C",
+  "empreinte": [
+    2,
+    1
+  ],
+  "taille_cm": [
+    200.6,
+    43.2,
+    71.7
+  ],
+  "centre_cm": [
+    0.2,
+    0.7
+  ],
+  "sol_cm": -0.0,
+  "apercu": "Tube01.eonapercu"
+}

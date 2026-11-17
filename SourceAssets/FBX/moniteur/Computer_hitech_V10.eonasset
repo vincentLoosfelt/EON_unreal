@@ -1,0 +1,33 @@
+{
+  "format": "eonasset",
+  "version": 1,
+  "id": "moniteur/Computer_hitech_V10",
+  "nom": "Computer hitech V10",
+  "categorie": "Moniteurs",
+  "tags": [],
+  "collision": "aucune",
+  "rotations": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "fbx": "Computer_hitech_V10.fbx",
+  "mesh": "/Game/EON/Unity/import/fbx/moniteur/Computer_hitech_V10.Computer_hitech_V10",
+  "unreal": "/Game/EON/RoomAssets/moniteur/BPA_Computer_hitech_V10.BPA_Computer_hitech_V10_C",
+  "empreinte": [
+    1,
+    1
+  ],
+  "taille_cm": [
+    25.6,
+    29.8,
+    42.6
+  ],
+  "centre_cm": [
+    0.0,
+    0.0
+  ],
+  "sol_cm": -0.0,
+  "apercu": "Computer_hitech_V10.eonapercu"
+}

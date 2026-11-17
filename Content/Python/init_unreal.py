@@ -24,6 +24,8 @@ def _menu():
            "import eon_salles; eon_salles.import_all(only_changed=True)")
     _entry(m, "Exporter", "Exporter les Blueprints vers .eonsalle", "Réécrit le dossier Salles depuis les Blueprints de /Game/EON/Salles (après une retouche dans Unreal)",
            "import eon_salles; eon_salles.export_all()")
+    _entry(m, "Assets", "Générer la bibliothèque d'assets (.eonasset)", "Crée les Blueprints BPA_* manquants dans /Game/EON/RoomAssets et réécrit les .eonasset de SourceAssets/FBX",
+           "import eon_assets; eon_assets.generate_all()")
     _entry(m, "Auto", "Réimport automatique (marche / arrêt)", "Toutes les 2 s, réimporte les fichiers .eonsalle enregistrés depuis l'éditeur de salles",
            "import eon_salles; eon_salles.toggle_watch()")
     menus.refresh_all_widgets()

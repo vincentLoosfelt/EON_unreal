@@ -1,0 +1,33 @@
+{
+  "format": "eonasset",
+  "version": 1,
+  "id": "highttech/Assets_Hitech_medium/Hitech_medium_V6",
+  "nom": "Hitech medium V6",
+  "categorie": "High-tech moyens",
+  "tags": [],
+  "collision": "aucune",
+  "rotations": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "fbx": "Hitech_medium_V6.fbx",
+  "mesh": "/Game/EON/Unity/import/fbx/highttech/Assets_Hitech_medium/Hitech_medium_V6.Hitech_medium_V6",
+  "unreal": "/Game/EON/RoomAssets/highttech/Assets_Hitech_medium/BPA_Hitech_medium_V6.BPA_Hitech_medium_V6_C",
+  "empreinte": [
+    1,
+    1
+  ],
+  "taille_cm": [
+    100.0,
+    53.0,
+    22.9
+  ],
+  "centre_cm": [
+    -0.0,
+    0.7
+  ],
+  "sol_cm": 0.0,
+  "apercu": "Hitech_medium_V6.eonapercu"
+}

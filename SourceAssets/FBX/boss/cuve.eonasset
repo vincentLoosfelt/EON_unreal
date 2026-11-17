@@ -1,0 +1,33 @@
+{
+  "format": "eonasset",
+  "version": 1,
+  "id": "boss/cuve",
+  "nom": "cuve",
+  "categorie": "Boss",
+  "tags": [],
+  "collision": "solide",
+  "rotations": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "fbx": "cuve.fbx",
+  "mesh": "/Game/EON/Unity/import/fbx/boss/cuve.cuve",
+  "unreal": "/Game/EON/RoomAssets/boss/BPA_cuve.BPA_cuve_C",
+  "empreinte": [
+    2,
+    2
+  ],
+  "taille_cm": [
+    191.7,
+    156.8,
+    212.8
+  ],
+  "centre_cm": [
+    -0.5,
+    -2.6
+  ],
+  "sol_cm": 5.0,
+  "apercu": "cuve.eonapercu"
+}

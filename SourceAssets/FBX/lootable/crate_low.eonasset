@@ -1,0 +1,33 @@
+{
+  "format": "eonasset",
+  "version": 1,
+  "id": "lootable/crate_low",
+  "nom": "crate low",
+  "categorie": "Ramassables",
+  "tags": [],
+  "collision": "solide",
+  "rotations": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "fbx": "crate_low.fbx",
+  "mesh": "/Game/EON/Unity/import/fbx/lootable/crate_low.crate_low",
+  "unreal": "/Game/EON/RoomAssets/lootable/BPA_crate_low.BPA_crate_low_C",
+  "empreinte": [
+    1,
+    1
+  ],
+  "taille_cm": [
+    100.0,
+    100.0,
+    100.0
+  ],
+  "centre_cm": [
+    0.0,
+    0.0
+  ],
+  "sol_cm": 0.0,
+  "apercu": "crate_low.eonapercu"
+}

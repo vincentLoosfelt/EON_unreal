@@ -1,4 +1,4 @@
-# Manquants — liste vivante
+﻿# Manquants — liste vivante
 
 **Ce fichier est tenu à jour par le Claude de Vincent.** Chaque placeholder posé dans Unreal y gagne une ligne. Chaque asset livré passe à ✅. C'est la liste que Sabri et les artistes suivent pour savoir quoi produire.
 
@@ -342,4 +342,6 @@ Provisoire ou manquant :
 ## Outil : éditeur de salles (17/11)
 - `Tools/EditeurSalles/EditeurSalles.html` : éditeur hors ligne (Chrome, Edge, Safari ; Mac et PC), fichiers `.eonsalle` (JSON, une rangée du plan par ligne). Le dossier `Salles/` contient les 18 salles du jeu exportées.
 - `Content/Python/eon_salles.py` : import `.eonsalle` -> `/Game/EON/Salles/BP_<nom>` (plan, rôles, forme, poids, portes posées) et export inverse ; aller-retour vérifié identique. Menu « EON Salles » dans l'éditeur (`init_unreal.py`) : pas encore vu dans l'éditeur ouvert.
-- `SourceAssets/FBX/` : copie des FBX d'Unity sans les personnages (`chara`, `xeno`, tentacules du boss), base de la future bibliothèque d'assets (`.eonasset`), pas encore faite.
+- `SourceAssets/FBX/` : copie des FBX d'Unity sans les personnages (`chara`, `xeno`, tentacules du boss).
+- Bibliothèque d'assets : `Content/Python/eon_assets.py` crée un Blueprint par FBX (`/Game/EON/RoomAssets/.../BPA_<nom>`, mesh recentré : origine au centre de l'empreinte, au sol, sans collision) et écrit à côté de chaque FBX un `.eonasset` (empreinte en tuiles, taille, collision, catégorie, rotations) et un `.eonapercu` (géométrie simplifiée pour les aperçus). Un Blueprint existant n'est jamais recréé : on peut y ajouter scripts et colliders. Les assets dynamiques (Blueprints faits à la main) seront des cas particuliers.
+- Objets posés dans une salle : `ChildActorComponent` du Blueprint de salle (tags `eonasset=` / `eonpos=`). Sous un objet solide, le plan du Blueprint reçoit des tuiles `O` (nouvelle tuile `EEONTile::Prop` : bloque comme une caisse, bloc de collision invisible `BlocsObjets`, sans décor). Vérifié en jeu (salle de test à 11 objets).

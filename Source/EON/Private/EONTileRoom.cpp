@@ -54,6 +54,9 @@ AEONTileRoom::AEONTileRoom()
 	GapISM = MakeISM(this, TEXT("BordsDuVide"), Cube.Object, Root, false);
 	WallISM = MakeISM(this, TEXT("Murs"), Cube.Object, Root, true);
 	CrateISM = MakeISM(this, TEXT("Decor"), Cube.Object, Root, true);
+	PropBlockISM = MakeISM(this, TEXT("BlocsObjets"), Cube.Object, Root, true);
+	PropBlockISM->SetVisibility(false);
+	PropBlockISM->SetHiddenInGame(true);
 	TankISM = MakeISM(this, TEXT("Cuves"), Cyl.Object, Root, true);
 	DoorISM = MakeISM(this, TEXT("Portes"), Cube.Object, Root, true);
 	RedDoorISM = MakeISM(this, TEXT("PorteRouge"), Cube.Object, Root, true);
@@ -190,7 +193,7 @@ void AEONTileRoom::UpdateDoorCollision()
 
 void AEONTileRoom::RebuildVisuals()
 {
-	for (UInstancedStaticMeshComponent* C : { FloorISM.Get(), GapISM.Get(), WallISM.Get(), CrateISM.Get(), TankISM.Get(), DoorISM.Get() })
+	for (UInstancedStaticMeshComponent* C : { FloorISM.Get(), GapISM.Get(), WallISM.Get(), CrateISM.Get(), PropBlockISM.Get(), TankISM.Get(), DoorISM.Get() })
 	{
 		if (C) { C->ClearInstances(); }
 	}
@@ -263,6 +266,10 @@ void AEONTileRoom::RebuildVisuals()
 			case EEONTile::Crate:
 				FloorISM->AddInstance(FTransform(FRotator::ZeroRotator, C + FVector(0, 0, -Th * 0.5f), FVector(1.f, 1.f, Th / 100.f)));
 				CrateISM->AddInstance(FTransform(FRotator::ZeroRotator, C + FVector(0, 0, 40.f), FVector(0.84f, 0.84f, 0.8f)));
+				break;
+			case EEONTile::Prop:
+				FloorISM->AddInstance(FTransform(FRotator::ZeroRotator, C + FVector(0, 0, -Th * 0.5f), FVector(1.f, 1.f, Th / 100.f)));
+				PropBlockISM->AddInstance(FTransform(FRotator::ZeroRotator, C + FVector(0, 0, WallHeightCm * 0.5f), FVector(1.f, 1.f, WallHeightCm / 100.f)));
 				break;
 			case EEONTile::Door:
 				FloorISM->AddInstance(FTransform(FRotator::ZeroRotator, C + FVector(0, 0, -Th * 0.5f), FVector(1.f, 1.f, Th / 100.f)));
@@ -498,6 +505,7 @@ bool AEONTileRoom::LayoutToGrid(const TArray<FString>& Rows, uint8 Doors, FEONTi
 			case TEXT('='): V = EEONTile::Pit; Out.Gap.Add(Y * W + X); break;
 			case TEXT('X'): case TEXT('x'): V = EEONTile::Crate; break;
 			case TEXT('K'): case TEXT('k'): V = EEONTile::Tank; break;
+			case TEXT('O'): V = EEONTile::Prop; break;
 			default: break;
 			}
 			Out.Set(X, Y, V);
@@ -576,6 +584,7 @@ void AEONTileRoom::GridToLayout(const FEONTileGrid& G, TArray<FString>& Rows)
 			case EEONTile::Door: S.AppendChar(TEXT('D')); break;
 			case EEONTile::Crate: S.AppendChar(TEXT('X')); break;
 			case EEONTile::Tank: S.AppendChar(TEXT('K')); break;
+			case EEONTile::Prop: S.AppendChar(TEXT('O')); break;
 			default: S.AppendChar(TEXT('#')); break;
 			}
 		}
@@ -613,7 +622,7 @@ bool AEONTileRoom::IsTileSolid(int32 I, bool bPits) const
 	if (!Grid.T.IsValidIndex(I)) { return true; }
 	const EEONTile V = (EEONTile)Grid.T[I];
 	if (InnerClosed.Contains(I)) { return true; }
-	return V == EEONTile::Wall || V == EEONTile::Crate || V == EEONTile::Tank || (InfestK > 0.35f && InfestTiles.Contains(I)) || (V == EEONTile::Door && !InnerAll.Contains(I) && (bLocked || RedSet.Contains(I))) || (bPits && V == EEONTile::Pit);
+	return V == EEONTile::Wall || V == EEONTile::Crate || V == EEONTile::Tank || V == EEONTile::Prop || (InfestK > 0.35f && InfestTiles.Contains(I)) || (V == EEONTile::Door && !InnerAll.Contains(I) && (bLocked || RedSet.Contains(I))) || (bPits && V == EEONTile::Pit);
 }
 
 bool AEONTileRoom::SolidAtPx(const FVector2D& P) const

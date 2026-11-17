@@ -1,0 +1,33 @@
+{
+  "format": "eonasset",
+  "version": 1,
+  "id": "highttech/Assets_Hitech_small/Hitech_small_V10",
+  "nom": "Hitech small V10",
+  "categorie": "High-tech petits",
+  "tags": [],
+  "collision": "aucune",
+  "rotations": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "fbx": "Hitech_small_V10.fbx",
+  "mesh": "/Game/EON/Unity/import/fbx/highttech/Assets_Hitech_small/Hitech_small_V10.Hitech_small_V10",
+  "unreal": "/Game/EON/RoomAssets/highttech/Assets_Hitech_small/BPA_Hitech_small_V10.BPA_Hitech_small_V10_C",
+  "empreinte": [
+    1,
+    1
+  ],
+  "taille_cm": [
+    29.0,
+    9.0,
+    39.6
+  ],
+  "centre_cm": [
+    0.0,
+    0.0
+  ],
+  "sol_cm": 0.0,
+  "apercu": "Hitech_small_V10.eonapercu"
+}

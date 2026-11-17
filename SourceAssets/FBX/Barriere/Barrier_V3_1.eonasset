@@ -1,0 +1,33 @@
+{
+  "format": "eonasset",
+  "version": 1,
+  "id": "Barriere/Barrier_V3_1",
+  "nom": "Barrier V3 1",
+  "categorie": "Barrières",
+  "tags": [],
+  "collision": "solide",
+  "rotations": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "fbx": "Barrier_V3_1.fbx",
+  "mesh": "/Game/EON/Unity/import/fbx/Barriere/Barrier_V3_1.Barrier_V3_1",
+  "unreal": "/Game/EON/RoomAssets/Barriere/BPA_Barrier_V3_1.BPA_Barrier_V3_1_C",
+  "empreinte": [
+    2,
+    1
+  ],
+  "taille_cm": [
+    160.0,
+    15.6,
+    82.4
+  ],
+  "centre_cm": [
+    0.0,
+    0.0
+  ],
+  "sol_cm": -0.0,
+  "apercu": "Barrier_V3_1.eonapercu"
+}

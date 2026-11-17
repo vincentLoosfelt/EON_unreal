@@ -9,6 +9,10 @@
 #   eon_salles.export_all()          # tous les Blueprints de salle -> .eonsalle
 #   eon_salles.watch(True)           # réimport automatique quand un fichier change (éditeur ouvert)
 #
+# Objets posés : {"asset": id .eonasset, "x", "y" (coin haut-gauche de l'empreinte tournée), "rot" (degrés)}. Chacun devient
+# un ChildActorComponent du Blueprint de salle (classe = Blueprint d'asset BPA_*), marqué par ses tags eonasset= / eonpos=.
+# Sous un objet solide, le plan du Blueprint reçoit des tuiles O (bloquent comme une caisse) ; le fichier garde le sol.
+#
 # Repère des portes dans le fichier : tuiles, origine en haut à gauche du plan (x vers la droite, y vers le bas).
 #   extérieure : {"type": "exterieure", "cote": "N|S|E|W", "pos": première des 2 tuiles le long du bord}
 #   intérieure : {"type": "interieure", "x": .., "y": .., "largeur": L, "sens": "horizontal|vertical"}
@@ -70,11 +74,34 @@ def _door_components(bp):
     return out
 
 
+def _tag(o, key):
+    for t in o.get_editor_property("component_tags"):
+        t = str(t)
+        if t.startswith(key + "="):
+            return t[len(key) + 1:]
+    return None
+
+
+def _object_components(bp):
+    sub = _sub()
+    out = []
+    for h in sub.k2_gather_subobject_data_for_blueprint(bp):
+        o = unreal.SubobjectDataBlueprintFunctionLibrary.get_object(unreal.SubobjectDataBlueprintFunctionLibrary.get_data(h))
+        if isinstance(o, unreal.ChildActorComponent) and _tag(o, "eonasset") is not None:
+            out.append((h, o))
+    return out
+
+
+def _rot_dims(a, rot):
+    w, h = a["empreinte"]
+    return (h, w) if int(rot) % 180 else (w, h)
+
+
 def _norm_plan(rows):
     w = max((len(r) for r in rows), default=0)
     out = []
     for r in rows:
-        r = r.replace(" ", "_").replace("D", "#").replace("x", "X").replace("k", "K")
+        r = r.replace(" ", "_").replace("D", "#").replace("x", "X").replace("k", "K").replace("O", ".")
         out.append(r + "#" * (w - len(r)))
     return out, w, len(out)
 
@@ -102,6 +129,12 @@ def bp_to_dict(bp):
             else:
                 x0, y0, sens = _clamp(_rnd(tx - L * 0.5), 1, w - 1 - L), _clamp(math.floor(ty), 1, h - 2), "horizontal"
             portes.append({"type": "interieure", "x": int(x0), "y": int(y0), "largeur": L, "sens": sens})
+    # Ordre stable (l'ordre des composants change d'une session à l'autre) : extérieures N, S, E, W puis intérieures.
+    portes.sort(key=lambda p: (0, "NSEW".index(p["cote"]), 0) if p["type"] == "exterieure" else (1, p["y"], p["x"]))
+    objets = []
+    for _, o in sorted(_object_components(bp), key=lambda ho: ho[1].get_name()):
+        pos = (_tag(o, "eonpos") or "0,0,0").split(",")
+        objets.append({"asset": _tag(o, "eonasset"), "x": int(pos[0]), "y": int(pos[1]), "rot": int(pos[2])})
     nom = bp.get_name()
     if nom.startswith("BP_"):
         nom = nom[3:]
@@ -114,8 +147,9 @@ def bp_to_dict(bp):
         "rolesEnPlus": [str(r) for r in cdo.get_editor_property("extra_roles")],
         "forme": "" if shape in ("None", "") else shape,
         "poids": float(cdo.get_editor_property("weight")),
-        "plan": plan,
         "portes": portes,
+        "objets": objets,
+        "plan": plan,
     }
 
 
@@ -189,11 +223,14 @@ def validate(d):
         err.append("plan de %dx%d, minimum 8x6" % (w, h))
     if sum(r.count(".") for r in plan) < 12:
         err.append("moins de 12 tuiles de sol")
-    bad = set("".join(plan)) - set("#._=XK")
+    bad = set("".join(plan)) - set("#._=XKO")
     if bad:
         err.append("caractères inconnus dans le plan : %s" % "".join(sorted(bad)))
     if not d.get("nom") or any(c in d["nom"] for c in " /\\.:"):
         err.append("nom vide ou avec espace / point / barre")
+    for o in d.get("objets", []):
+        if not isinstance(o, dict) or "asset" not in o or int(o.get("x", -1)) < 0 or int(o.get("y", -1)) < 0 or int(o.get("x", 0)) >= w or int(o.get("y", 0)) >= h:
+            err.append("objet mal placé : %s" % o)
     cotes = [p["cote"] for p in d.get("portes", []) if p.get("type") == "exterieure"]
     for c in set(cotes):
         if cotes.count(c) > 1:
@@ -241,6 +278,14 @@ def import_file(path, save=True):
     if err:
         raise ValueError("%s : %s" % (os.path.basename(path), " ; ".join(err)))
     plan, w, h = _norm_plan(d["plan"])
+    objets = list(d.get("objets", []))
+    lib = None
+    if objets:
+        import eon_assets
+        lib = eon_assets.load_library()
+        absent = sorted(set(o["asset"] for o in objets if o["asset"] not in lib))
+        if absent:
+            raise ValueError("%s : assets absents de la bibliothèque : %s" % (os.path.basename(path), ", ".join(absent)))
     eal = unreal.EditorAssetLibrary
     dst = BP_DIR + "/BP_" + d["nom"]
     if eal.does_asset_exist(dst):
@@ -255,7 +300,7 @@ def import_file(path, save=True):
         raise RuntimeError("impossible de créer " + dst)
     sub = _sub()
     # Portes : on remplace toutes celles du Blueprint par celles du fichier.
-    old = _door_components(bp)
+    old = _door_components(bp) + _object_components(bp)
     if old:
         bp.modify()
         sub.delete_subobjects(sub.k2_gather_subobject_data_for_blueprint(bp)[0], [h for h, _ in old], bp)
@@ -272,6 +317,35 @@ def import_file(path, save=True):
         comp.set_editor_property("relative_rotation", unreal.Rotator(0.0, 0.0, yaw))
         comp.set_editor_property("exterieure", ext)
         comp.set_editor_property("largeur", larg)
+    # Objets : un ChildActorComponent par objet, pivot du Blueprint d'asset au centre de son empreinte, au sol.
+    grid = [list(r) for r in plan]
+    for i, o in enumerate(objets):
+        a = lib[o["asset"]]
+        rot = int(o.get("rot", 0)) % 360
+        ow, oh = _rot_dims(a, rot)
+        x0, y0 = int(o["x"]), int(o["y"])
+        cx, cy = (x0 + ow * 0.5) * TILE_CM - w * TILE_CM * 0.5, (y0 + oh * 0.5) * TILE_CM - h * TILE_CM * 0.5
+        r = math.radians(rot)
+        mx, my = a["centre_cm"]
+        px, py = cx - (mx * math.cos(r) - my * math.sin(r)), cy - (mx * math.sin(r) + my * math.cos(r))
+        cls = unreal.load_object(None, a["unreal"])
+        if not cls:
+            raise RuntimeError("Blueprint d'asset introuvable : " + a["unreal"])
+        hd, fail = sub.add_new_subobject(unreal.AddNewSubobjectParams(parent_handle=root, new_class=unreal.ChildActorComponent, blueprint_context=bp))
+        if not fail.is_empty():
+            raise RuntimeError("objet %s : %s" % (o["asset"], fail))
+        sub.rename_subobject(hd, unreal.Text("Objet_%02d_%s" % (i + 1, os.path.basename(o["asset"]))))
+        comp = unreal.SubobjectDataBlueprintFunctionLibrary.get_object(unreal.SubobjectDataBlueprintFunctionLibrary.get_data(hd))
+        comp.set_editor_property("relative_location", unreal.Vector(px, py, -float(a.get("sol_cm", 0.0))))
+        comp.set_editor_property("relative_rotation", unreal.Rotator(0.0, 0.0, float(rot)))
+        comp.set_child_actor_class(cls)
+        comp.set_editor_property("component_tags", ["eonasset=" + o["asset"], "eonpos=%d,%d,%d" % (x0, y0, rot)])
+        if a.get("collision", "solide") != "aucune":
+            for yy in range(y0, y0 + oh):
+                for xx in range(x0, x0 + ow):
+                    if 0 <= yy < h and 0 <= xx < w and grid[yy][xx] == ".":
+                        grid[yy][xx] = "O"
+    plan = ["".join(r) for r in grid]
     unreal.BlueprintEditorLibrary.compile_blueprint(bp)
     cdo = unreal.get_default_object(bp.generated_class())
     cdo.set_editor_property("layout", plan)
@@ -283,7 +357,7 @@ def import_file(path, save=True):
     eal.set_metadata_tag(bp, TAG_STAMP, _stamp(path))
     if save and not eal.save_asset(dst, only_if_is_dirty=False):
         raise RuntimeError("enregistrement de %s impossible : fichier verrouillé (jeu EON lancé ?)" % dst)
-    unreal.log("EON salles : %s %s (%dx%d, %d portes)" % ("créé" if created else "mis à jour", dst, w, h, len(d.get("portes", []))))
+    unreal.log("EON salles : %s %s (%dx%d, %d portes, %d objets)" % ("créé" if created else "mis à jour", dst, w, h, len(d.get("portes", [])), len(objets)))
     return dst
 
 

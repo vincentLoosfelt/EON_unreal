@@ -1,0 +1,33 @@
+{
+  "format": "eonasset",
+  "version": 1,
+  "id": "Cuve_5",
+  "nom": "Cuve 5",
+  "categorie": "Cuves",
+  "tags": [],
+  "collision": "solide",
+  "rotations": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "fbx": "Cuve_5.fbx",
+  "mesh": "/Game/EON/Unity/import/fbx/Cuve_5.Cuve_5",
+  "unreal": "/Game/EON/RoomAssets/BPA_Cuve_5.BPA_Cuve_5_C",
+  "empreinte": [
+    3,
+    3
+  ],
+  "taille_cm": [
+    270.9,
+    313.8,
+    496.9
+  ],
+  "centre_cm": [
+    -1.0,
+    2.2
+  ],
+  "sol_cm": 0.7,
+  "apercu": "Cuve_5.eonapercu"
+}

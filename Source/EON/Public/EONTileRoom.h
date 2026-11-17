@@ -56,7 +56,7 @@ public:
 	// --- Salle dessinée à la main (Blueprint enfant de cette classe, rangé dans /Game/EON/Salles)
 	/** Plan de la salle, une ligne par rangée de tuiles (de haut en bas, 1 tuile = 1 m) :
 	 *  #  mur      .  sol      _  vide      =  fossé (vide franchissable au dash)
-	 *  X  décor solide (caisse)      K  cuve      D  porte (ignoré : les portes sont posées au milieu de chaque côté)
+	 *  X  décor solide (caisse)      K  cuve      O  sous un objet posé (bloque, sans décor)      D  porte (ignoré : les portes sont posées au milieu de chaque côté)
 	 *  Vide = salle générée par le proto. Le générateur d'étage prend ce plan pour RoomRole (et ExtraRoles) et Shape. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EON|Salle|Plan") TArray<FString> Layout;
 	/** Autres rôles que cette salle peut tenir dans un étage (en plus de RoomRole). */
@@ -156,6 +156,8 @@ private:
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> GapISM;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> WallISM;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> CrateISM;
+	/** Blocs invisibles sous les objets posés (tuiles O) : la collision de l'objet, son mesh n'en a pas. */
+	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> PropBlockISM;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> TankISM;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> DoorISM;
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UInstancedStaticMeshComponent> RedDoorISM;

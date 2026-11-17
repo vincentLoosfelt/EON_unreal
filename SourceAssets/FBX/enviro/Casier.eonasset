@@ -1,0 +1,33 @@
+{
+  "format": "eonasset",
+  "version": 1,
+  "id": "enviro/Casier",
+  "nom": "Casier",
+  "categorie": "Environnement",
+  "tags": [],
+  "collision": "solide",
+  "rotations": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "fbx": "Casier.fbx",
+  "mesh": "/Game/EON/Unity/import/fbx/enviro/Casier.Casier",
+  "unreal": "/Game/EON/RoomAssets/enviro/BPA_Casier.BPA_Casier_C",
+  "empreinte": [
+    4,
+    2
+  ],
+  "taille_cm": [
+    400.0,
+    127.3,
+    500.0
+  ],
+  "centre_cm": [
+    0.0,
+    -2.2
+  ],
+  "sol_cm": 0.0,
+  "apercu": "Casier.eonapercu"
+}

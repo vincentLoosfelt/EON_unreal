@@ -97,6 +97,13 @@ select.inp { padding: 0 4px; }
 .issue.click:hover { background: #2b3138; }
 .issue .ic { flex: none; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #111; margin-top: 1px; }
 .issue.err .ic { background: var(--err); } .issue.warn .ic { background: var(--warn); } .issue.ok .ic { background: var(--ok); } .issue.info .ic { background: #6aa0d8; }
+.assets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.asset { background: var(--panel2); border: 1px solid transparent; border-radius: 8px; padding: 4px; cursor: pointer; text-align: center; min-width: 0; }
+.asset:hover { border-color: var(--line2); }
+.asset.on { border-color: var(--acc); background: #24413e; }
+.asset .th { width: 100%; aspect-ratio: 1; display: block; background: #0d0f12; border-radius: 6px; }
+.asset .an { font-size: 11px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.asset .as { font-size: 10px; color: var(--txt3); }
 .lib { display: flex; flex-direction: column; gap: 6px; }
 .libitem { display: flex; gap: 10px; align-items: center; padding: 6px; border-radius: 6px; background: var(--panel2); cursor: pointer; border: 1px solid transparent; }
 .libitem:hover { border-color: var(--line2); }
@@ -170,7 +177,8 @@ select.inp { padding: 0 4px; }
   <aside class="right">
     <div class="tabs">
       <button data-tab="props" class="on">Salle</button>
-      <button data-tab="lib">Bibliothèque</button>
+      <button data-tab="obj">Objets</button>
+      <button data-tab="lib">Salles</button>
       <button data-tab="iso">Aperçu 3D</button>
     </div>
     <div class="pane on" id="pane-props">
@@ -186,6 +194,13 @@ select.inp { padding: 0 4px; }
       </div>
       <div class="field"><label>Portes</label><div class="muted" id="pDoors" style="font-size:12px"></div></div>
     </div>
+    <div class="pane" id="pane-obj">
+      <div class="row" style="margin-bottom:8px"><button class="btn" id="bAssets">Ouvrir la bibliothèque d'assets…</button></div>
+      <div class="muted" id="assetsHint" style="margin-bottom:8px;font-size:12px">Ouvre le dossier <b>SourceAssets/FBX</b> du projet EON : un fichier .eonasset par asset (Blueprint BPA_*).</div>
+      <input class="inp" id="assetSearch" placeholder="Rechercher un asset…" spellcheck="false" style="margin-bottom:8px">
+      <div class="chips" id="assetCats" style="margin-bottom:8px"></div>
+      <div class="assets" id="assetGrid"></div>
+    </div>
     <div class="pane" id="pane-lib">
       <div class="row" style="margin-bottom:10px"><button class="btn" id="bDir2">Ouvrir un dossier…</button><button class="btn icon" id="bRefresh" title="Relire le dossier"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></button></div>
       <div class="muted" id="libInfo" style="margin-bottom:8px;font-size:12px">Ouvre le dossier <b>Salles</b> du projet EON pour voir toutes les salles ici. (Chrome ou Edge : enregistrement direct dans le dossier. Safari et Firefox : ouvre des fichiers un par un, l'enregistrement les télécharge.)</div>
@@ -194,7 +209,7 @@ select.inp { padding: 0 4px; }
     <div class="pane" id="pane-iso">
       <canvas id="iso"></canvas>
       <div class="isobar"><button class="btn" id="isoL">⟲ Tourner</button><button class="btn" id="isoR">Tourner ⟳</button></div>
-      <p class="muted" style="font-size:12px">Aperçu volumique simplifié : murs 1,6 m, caisses et cuves. Le rendu réel est celui d'Unreal.</p>
+      <p class="muted" style="font-size:12px">Aperçu volumique simplifié : murs 1,6 m, caisses, cuves et objets posés. Le rendu réel est celui d'Unreal.</p>
     </div>
     <div class="issues" id="issues"></div>
   </aside>
@@ -225,6 +240,7 @@ select.inp { padding: 0 4px; }
     <kbd>M</kbd><span>Sélection : Ctrl+C, Ctrl+X, Ctrl+V, Suppr ; dans un collage, <kbd>H</kbd> <kbd>V</kbd> miroir, <kbd>T</kbd> tourner</span>
     <kbd>P</kbd><span>Porte extérieure : clic sur un bord (2 tuiles, une par côté)</span>
     <kbd>O</kbd><span>Porte intérieure : glisser une ligne de 1 à 8 tuiles</span>
+    <kbd>A</kbd><span>Objet : poser un asset de l'onglet Objets ; <kbd>R</kbd> tourner, clic droit supprimer, Maj + clic reprendre</span>
     <kbd>Espace</kbd><span>Main (déplacer la vue), aussi clic molette</span>
     <kbd>1</kbd>–<kbd>6</kbd><span>Choisir une tuile · <kbd>X</kbd> échanger gauche / droite</span>
     <kbd>Molette</kbd><span>Zoom · <kbd>F</kbd> cadrer</span>
@@ -238,6 +254,7 @@ select.inp { padding: 0 4px; }
 
 <div class="toast" id="toast"><span id="toastMsg"></span><button class="btn" id="toastBtn" style="display:none"></button></div>
 <div class="drop" id="drop">Dépose un fichier .eonsalle</div>
+<input type="file" id="assetIn" webkitdirectory multiple hidden>
 <input type="file" id="fileIn" accept=".eonsalle,.json,application/json" multiple hidden>
 
 <script>
@@ -281,7 +298,7 @@ function blankRoom(nom, W, H, fill, role, forme) {
     const border = x === 0 || y === 0 || x === W - 1 || y === H - 1;
     g[y * W + x] = fill === "wall" ? "#" : fill === "floor" ? "." : (border ? "#" : ".");
   }
-  return { nom, role: role || "COMBAT", rolesEnPlus: [], forme: forme || "", poids: 1, W, H, g, portes: [] };
+  return { nom, role: role || "COMBAT", rolesEnPlus: [], forme: forme || "", poids: 1, W, H, g, portes: [], objets: [] };
 }
 
 function clone(r) { return JSON.parse(JSON.stringify(r)); }
@@ -293,7 +310,8 @@ function toFileText(r) {
   for (let y = 0; y < r.H; y++) plan.push(r.g.slice(y * r.W, (y + 1) * r.W).join(""));
   const head = { format: FORMAT, version: VERSION, nom: r.nom, role: r.role, rolesEnPlus: r.rolesEnPlus, forme: r.forme,
     poids: Number(r.poids) || 0, portes: r.portes.map(p => p.type === "exterieure" ? { type: p.type, cote: p.cote, pos: p.pos }
-      : { type: p.type, x: p.x, y: p.y, largeur: p.largeur, sens: p.sens }) };
+      : { type: p.type, x: p.x, y: p.y, largeur: p.largeur, sens: p.sens }),
+    objets: (r.objets || []).map(o => ({ asset: o.asset, x: o.x, y: o.y, rot: o.rot })) };
   let t = JSON.stringify(head, null, 2);
   t = t.replace(/("poids": )(-?\d+)(,?\n)/, "$1$2.0$3");
   t = t.slice(0, -2) + ',\n  "plan": [\n' + plan.map(s => "    " + JSON.stringify(s)).join(",\n") + "\n  ]\n}\n";
@@ -309,7 +327,8 @@ function fromFileText(txt) {
   const g = [];
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const c = (rows[y] || "")[x] || "#"; g.push(TILE_BY[c] ? c : "#"); }
   return { nom: d.nom || "Salle", role: d.role || "COMBAT", rolesEnPlus: Array.isArray(d.rolesEnPlus) ? d.rolesEnPlus.slice() : [],
-    forme: d.forme || "", poids: d.poids ?? 1, W, H, g, portes: Array.isArray(d.portes) ? d.portes.map(p => ({ ...p })) : [] };
+    forme: d.forme || "", poids: d.poids ?? 1, W, H, g, portes: Array.isArray(d.portes) ? d.portes.map(p => ({ ...p })) : [],
+    objets: Array.isArray(d.objets) ? d.objets.map(o => ({ asset: String(o.asset), x: o.x | 0, y: o.y | 0, rot: ((o.rot | 0) % 360 + 360) % 360 })) : [] };
 }
 
 const hasFS = "showOpenFilePicker" in window;
@@ -419,11 +438,224 @@ function drawThumb(c, r) {
   x.putImageData(im, 0, 0);
 }
 
+// ======================================================================= bibliothèque d'assets (.eonasset)
+// Dossier SourceAssets/FBX du projet : un .eonasset par asset (généré par Content/Python/eon_assets.py, pointe sur un
+// Blueprint BPA_*) et son aperçu .eonapercu (géométrie simplifiée). Objets posés : room.objets = [{asset, x, y, rot}].
+const assets = {};            // id -> { d, ap, thumb, sprites }
+let assetsName = "", assetSel = null, objRot = 0, assetFilter = "", assetCat = "";
+const LIGHT = (() => { const l = [-0.45, -0.6, 0.66], n = Math.hypot(...l); return l.map(v => v / n); })();
+
+function rotDims(d, rot) { const [w, h] = d.empreinte; return rot % 180 ? [h, w] : [w, h]; }
+function objTiles(o) {
+  const a = assets[o.asset];
+  const [w, h] = a ? rotDims(a.d, o.rot) : (o.w ? [o.w, o.h] : [1, 1]);
+  const out = [];
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) out.push([o.x + i, o.y + j]);
+  return out;
+}
+function objSolid(o) { const a = assets[o.asset]; return !a || a.d.collision !== "aucune"; }
+function objectAt(x, y) {
+  for (let i = room.objets.length - 1; i >= 0; i--) if (objTiles(room.objets[i]).some(([a, b]) => a === x && b === y)) return i;
+  return -1;
+}
+
+// Sommets de l'asset dans le repère de la salle (tuiles en x, y ; cm au-dessus du sol en z).
+function meshWorld(a, o) {
+  const d = a.d, [w, h] = rotDims(d, o.rot), r = o.rot * Math.PI / 180, c = Math.cos(r), s = Math.sin(r);
+  const cx = o.x + w / 2, cy = o.y + h / 2, mx = d.centre_cm[0], my = d.centre_cm[1];
+  const out = [];
+  for (const p of a.ap.pieces) {
+    const v = p.v, W = new Float32Array(v.length);
+    for (let i = 0; i < v.length; i += 3) {
+      const lx = v[i] - mx, ly = v[i + 1] - my;
+      W[i] = cx + (lx * c - ly * s) / 100; W[i + 1] = cy + (lx * s + ly * c) / 100; W[i + 2] = v[i + 2] - d.sol_cm;
+    }
+    out.push({ W, t: p.t, col: p.couleur });
+  }
+  return out;
+}
+function shade(hex, k) {
+  const n = parseInt(hex.slice(1), 16), f = v => Math.max(0, Math.min(255, Math.round(v * k)));
+  return "rgb(" + f(n >> 16) + "," + f((n >> 8) & 255) + "," + f(n & 255) + ")";
+}
+// Triangles projetés et éclairés, triés du fond vers l'avant. proj(x, y, zcm) -> [sx, sy, profondeur].
+function meshTris(parts, proj) {
+  const tris = [];
+  for (const p of parts) {
+    const W = p.W, t = p.t;
+    for (let i = 0; i < t.length; i += 3) {
+      const a = t[i] * 3, b = t[i + 1] * 3, c = t[i + 2] * 3;
+      const ux = W[b] - W[a], uy = W[b + 1] - W[a + 1], uz = (W[b + 2] - W[a + 2]) / 100;
+      const vx = W[c] - W[a], vy = W[c + 1] - W[a + 1], vz = (W[c + 2] - W[a + 2]) / 100;
+      let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+      const nl = Math.hypot(nx, ny, nz) || 1; nx /= nl; ny /= nl; nz /= nl;
+      if (nz < 0) { nx = -nx; ny = -ny; nz = -nz; }
+      const k = .42 + .62 * Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
+      const A = proj(W[a], W[a + 1], W[a + 2]), B = proj(W[b], W[b + 1], W[b + 2]), C = proj(W[c], W[c + 1], W[c + 2]);
+      tris.push({ A, B, C, z: (A[2] + B[2] + C[2]) / 3, f: shade(p.col, k) });
+    }
+  }
+  tris.sort((p, q) => p.z - q.z);
+  return tris;
+}
+function fillTris(g, tris) {
+  g.lineWidth = .6;
+  for (const T of tris) { g.beginPath(); g.moveTo(T.A[0], T.A[1]); g.lineTo(T.B[0], T.B[1]); g.lineTo(T.C[0], T.C[1]); g.closePath(); g.fillStyle = T.f; g.fill(); g.strokeStyle = T.f; g.stroke(); }
+}
+const isoP = (x, y, z) => [(x - y), (x + y) / 2 - z / 100 * 1.15, x + y + z / 1000];
+
+// Vignette 3/4 de l'asset seul.
+function assetThumb(a, size) {
+  const c = document.createElement("canvas"); c.width = c.height = size;
+  if (!a.ap) return c;
+  const parts = meshWorld(a, { x: 0, y: 0, rot: 0 });
+  let mnx = 1e9, mny = 1e9, mxx = -1e9, mxy = -1e9;
+  for (const p of parts) for (let i = 0; i < p.W.length; i += 3) { const q = isoP(p.W[i], p.W[i + 1], p.W[i + 2]); mnx = Math.min(mnx, q[0]); mxx = Math.max(mxx, q[0]); mny = Math.min(mny, q[1]); mxy = Math.max(mxy, q[1]); }
+  const k = (size - 10) / Math.max(mxx - mnx, mxy - mny, .01), ox = (size - (mxx - mnx) * k) / 2 - mnx * k, oy = (size - (mxy - mny) * k) / 2 - mny * k;
+  fillTris(c.getContext("2d"), meshTris(parts, (x, y, z) => { const q = isoP(x, y, z); return [ox + q[0] * k, oy + q[1] * k, q[2]]; }));
+  return c;
+}
+// Vue de dessus de l'objet posé, en cache par rotation (48 px par tuile).
+function assetSprite(a, rot) {
+  a.sprites = a.sprites || {};
+  if (a.sprites[rot]) return a.sprites[rot];
+  const PX = 48, parts = meshWorld(a, { x: 0, y: 0, rot });
+  let mnx = 1e9, mny = 1e9, mxx = -1e9, mxy = -1e9;
+  for (const p of parts) for (let i = 0; i < p.W.length; i += 3) { mnx = Math.min(mnx, p.W[i]); mxx = Math.max(mxx, p.W[i]); mny = Math.min(mny, p.W[i + 1]); mxy = Math.max(mxy, p.W[i + 1]); }
+  if (mnx > mxx) { mnx = mny = 0; mxx = mxy = 1; }
+  const c = document.createElement("canvas"); c.width = Math.max(2, Math.ceil((mxx - mnx) * PX) + 2); c.height = Math.max(2, Math.ceil((mxy - mny) * PX) + 2);
+  fillTris(c.getContext("2d"), meshTris(parts, (x, y, z) => [(x - mnx) * PX + 1, (y - mny) * PX + 1, z]));
+  return (a.sprites[rot] = { c, x: mnx, y: mny, PX });
+}
+
+function drawObject(g, o, z, ghost, bad) {
+  const a = assets[o.asset];
+  const tl = objTiles(o), xs = tl.map(t => t[0]), ys = tl.map(t => t[1]);
+  const x0 = Math.min(...xs), y0 = Math.min(...ys), w = Math.max(...xs) - x0 + 1, h = Math.max(...ys) - y0 + 1;
+  g.save();
+  if (ghost) g.globalAlpha = .8;
+  g.fillStyle = bad ? "rgba(239,90,90,.4)" : a && a.d.collision === "aucune" ? "rgba(80,180,255,.12)" : "rgba(0,0,0,.25)";
+  g.fillRect(x0 * z, y0 * z, w * z, h * z);
+  if (a && a.ap) { const sp = assetSprite(a, o.rot); g.drawImage(sp.c, (o.x + sp.x) * z - z / sp.PX, (o.y + sp.y) * z - z / sp.PX, sp.c.width * z / sp.PX, sp.c.height * z / sp.PX); }
+  else { g.fillStyle = "#d65aff"; g.font = "700 " + Math.max(9, z * .6) + "px system-ui"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("?", (x0 + w / 2) * z, (y0 + h / 2) * z); }
+  g.strokeStyle = bad ? "#ef5a5a" : ghost ? "#fff" : "rgba(255,255,255,.3)"; g.lineWidth = ghost ? 1.5 : 1; if (ghost) g.setLineDash([4, 3]);
+  g.strokeRect(x0 * z + .5, y0 * z + .5, w * z - 1, h * z - 1);
+  g.restore();
+}
+
+function placeAt(cx, cy) {
+  const a = assets[assetSel]; if (!a) return null;
+  const [w, h] = rotDims(a.d, objRot);
+  return { asset: assetSel, x: cx - ((w - 1) >> 1), y: cy - ((h - 1) >> 1), rot: objRot };
+}
+function placeBad(o) {
+  return objTiles(o).some(([x, y]) => at(x, y) === null || (objSolid(o) && at(x, y) !== "."));
+}
+function rotateObj(dir) {
+  const a = assets[assetSel]; const R = a && a.d.rotations && a.d.rotations.length ? a.d.rotations : [0, 90, 180, 270];
+  let i = R.indexOf(objRot); if (i < 0) i = 0;
+  objRot = R[(i + dir + R.length) % R.length]; renderOptbar(); draw();
+}
+
+// --- chargement du dossier
+async function loadAssetFiles(list) {   // list : [{path, text()}]
+  for (const k in assets) delete assets[k];
+  const ap = {};
+  for (const f of list) if (/\.eonapercu$/i.test(f.path)) ap[f.path.replace(/\.eonapercu$/i, "")] = f;
+  let n = 0, bad = 0;
+  for (const f of list) {
+    if (!/\.eonasset$/i.test(f.path)) continue;
+    try {
+      const d = JSON.parse(await f.text());
+      if (d.format !== "eonasset") continue;
+      const af = ap[f.path.replace(/\.eonasset$/i, "")];
+      const a = { d, ap: af ? JSON.parse(await af.text()) : null };
+      a.thumb = assetThumb(a, 96);
+      assets[d.id] = a; n++;
+    } catch (e) { bad++; }
+  }
+  renderAssets(); changed(false);
+  toast("Bibliothèque d'assets : " + n + " assets" + (bad ? ", " + bad + " illisible(s)" : ""));
+}
+async function walkDir(h, prefix, out) {
+  for await (const [name, e] of h.entries()) {
+    if (e.kind === "directory") await walkDir(e, prefix + name + "/", out);
+    else if (/\.(eonasset|eonapercu)$/i.test(name)) out.push({ path: prefix + name, text: async () => (await e.getFile()).text() });
+  }
+}
+async function openAssetDir(h) { const out = []; await walkDir(h, "", out); assetsName = h.name; await loadAssetFiles(out); }
+async function pickAssetDir() {
+  if ("showDirectoryPicker" in window) {
+    try { const h = await window.showDirectoryPicker({ id: "eon-assets", mode: "read" }); await openAssetDir(h); idbSet("assets", h); }
+    catch (e) { if (e.name !== "AbortError") toast("Bibliothèque : " + e.message); }
+  } else $("assetIn").click();
+}
+// Le dossier choisi est retenu (Chrome, Edge) : on le rouvre sans le redemander.
+function idb() { return new Promise((ok, ko) => { const r = indexedDB.open("eon-editeur-salles", 1); r.onupgradeneeded = () => r.result.createObjectStore("h"); r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error); }); }
+async function idbSet(k, v) { try { const db = await idb(); db.transaction("h", "readwrite").objectStore("h").put(v, k); } catch (e) {} }
+async function idbGet(k) { try { const db = await idb(); return await new Promise(ok => { const r = db.transaction("h").objectStore("h").get(k); r.onsuccess = () => ok(r.result); r.onerror = () => ok(null); }); } catch (e) { return null; } }
+async function reopenAssets(ask) {
+  const h = await idbGet("assets"); if (!h || !h.queryPermission) return false;
+  try {
+    let p = await h.queryPermission({ mode: "read" });
+    if (p !== "granted" && ask) p = await h.requestPermission({ mode: "read" });
+    if (p === "granted") { await openAssetDir(h); return true; }
+    const H = $("assetsHint"); H.innerHTML = 'Dernière bibliothèque : <b></b> · <a href="#" style="color:var(--acc)">la rouvrir</a>';
+    H.querySelector("b").textContent = h.name;
+    H.querySelector("a").onclick = e => { e.preventDefault(); reopenAssets(true); };
+  } catch (e) {}
+  return false;
+}
+
+function renderAssets() {
+  const ids = Object.keys(assets).sort((p, q) => assets[p].d.categorie.localeCompare(assets[q].d.categorie) || assets[p].d.nom.localeCompare(assets[q].d.nom, undefined, { numeric: true }));
+  if (ids.length) $("assetsHint").textContent = assetsName + " · " + ids.length + " assets";
+  const cats = [...new Set(ids.map(i => assets[i].d.categorie))];
+  const C = $("assetCats"); C.innerHTML = "";
+  if (ids.length) for (const c of [""].concat(cats)) {
+    const ch = document.createElement("span"); ch.className = "chip" + (c === assetCat ? " on" : ""); ch.textContent = c || "Toutes";
+    ch.onclick = () => { assetCat = c; renderAssets(); }; C.appendChild(ch);
+  }
+  const G = $("assetGrid"); G.innerHTML = "";
+  const f = assetFilter.toLowerCase();
+  for (const id of ids) {
+    const a = assets[id], d = a.d;
+    if (assetCat && d.categorie !== assetCat) continue;
+    if (f && !(d.nom + " " + d.id + " " + (d.tags || []).join(" ")).toLowerCase().includes(f)) continue;
+    const it = document.createElement("div"); it.className = "asset" + (id === assetSel ? " on" : "");
+    it.title = d.id + "\n" + d.taille_cm.map(Math.round).join(" × ") + " cm · collision " + d.collision + "\n" + d.unreal;
+    a.thumb.className = "th"; it.appendChild(a.thumb);
+    const m = document.createElement("div"); m.className = "an"; m.textContent = d.nom; it.appendChild(m);
+    const s = document.createElement("div"); s.className = "as"; s.textContent = d.empreinte.join(" × ") + (d.collision === "aucune" ? " · traversable" : ""); it.appendChild(s);
+    it.onclick = () => { assetSel = id; const R = d.rotations && d.rotations.length ? d.rotations : [0]; if (!R.includes(objRot)) objRot = R[0]; setTool("object"); renderAssets(); };
+    G.appendChild(it);
+  }
+}
+
+// --- vérifications des objets (appelée par analyse)
+function analyseObjects(iss, passable, blocked) {
+  const W = room.W, H = room.H, n = Object.keys(assets).length, occ = new Map();
+  let unknown = 0;
+  room.objets.forEach((o, i) => {
+    const a = assets[o.asset], nm = a ? a.d.nom : o.asset;
+    if (!a) unknown++;
+    const tl = objTiles(o);
+    if (tl.some(([x, y]) => x < 0 || y < 0 || x >= W || y >= H)) { iss.push({ lvl: "err", t: "« " + nm + " » dépasse de la salle.", cells: [[Math.max(0, Math.min(W - 1, o.x)), Math.max(0, Math.min(H - 1, o.y))]] }); return; }
+    if (!objSolid(o)) return;
+    const under = tl.filter(([x, y]) => at(x, y) !== ".");
+    if (under.length) iss.push({ lvl: "warn", t: "« " + nm + " » est posé sur " + under.length + " tuile(s) qui ne sont pas du sol.", cells: [under[0]] });
+    for (const [x, y] of tl) { const k = y * W + x; blocked.add(k); if (occ.has(k) && occ.get(k) !== i) { iss.push({ lvl: "warn", t: "Deux objets solides se chevauchent.", cells: [[x, y]] }); break; } occ.set(k, i); passable[k] = 0; }
+  });
+  if (unknown && n) iss.push({ lvl: "warn", t: unknown + " objet(s) absent(s) de la bibliothèque ouverte : ils restent dans le fichier." });
+  else if (unknown) iss.push({ lvl: "info", t: room.objets.length + " objet(s) posé(s) : ouvre la bibliothèque d'assets (onglet Objets) pour les voir." });
+}
+
 // ======================================================================= historique
 function snapshot() { return JSON.stringify(room); }
+function fixRoom() { if (!room.objets) room.objets = []; }
 function pushUndo() { undo.push(snapshot()); if (undo.length > 300) undo.shift(); redo = []; }
-function doUndo() { if (!undo.length) return; redo.push(snapshot()); room = JSON.parse(undo.pop()); syncProps(); changed(); }
-function doRedo() { if (!redo.length) return; undo.push(snapshot()); room = JSON.parse(redo.pop()); syncProps(); changed(); }
+function doUndo() { if (!undo.length) return; redo.push(snapshot()); room = JSON.parse(undo.pop()); fixRoom(); syncProps(); changed(); }
+function doRedo() { if (!redo.length) return; undo.push(snapshot()); room = JSON.parse(redo.pop()); fixRoom(); syncProps(); changed(); }
 
 function setDirty(v) { dirty = v; $("dirty").classList.toggle("on", v); document.title = (v ? "● " : "") + (room ? room.nom : "") + " · EON salles"; }
 function confirmLose() { return !dirty || confirm("La salle en cours a des modifications non enregistrées. Continuer quand même ?"); }
@@ -542,8 +774,11 @@ function resize(W, H, anc) {
   }
   const before = room.portes.length;
   room.portes = shiftDoors(dx, dy, W, H);
+  room.objets = room.objets.map(o => ({ ...o, x: o.x + dx, y: o.y + dy }));
   room.g = g; room.W = W; room.H = H;
   syncProps(); fit(); changed();
+  const outObj = room.objets.filter(o => objTiles(o).some(([x, y]) => x < 0 || y < 0 || x >= W || y >= H)).length;
+  if (outObj) toast(outObj + " objet(s) dépassent maintenant de la salle (voir Vérification)");
   if (room.portes.length < before) toast((before - room.portes.length) + " porte(s) hors de la nouvelle taille ont été retirées");
 }
 
@@ -586,6 +821,8 @@ function analyse() {
   const passable = new Uint8Array(W * H);
   for (let i = 0; i < W * H; i++) passable[i] = room.g[i] === "." || room.g[i] === "=" ? 1 : 0;
   for (const p of room.portes) if (p.type === "interieure") for (const [a, b] of inDoorTiles(p)) passable[b * W + a] = 1;
+  const blocked = new Set();
+  analyseObjects(iss, passable, blocked);
   const seen = new Uint8Array(W * H), st = [], cleared = new Set();
   const inward = { N: [0, 1], S: [0, -1], W: [1, 0], E: [-1, 0] };
   for (const [c, tl] of sides) for (const [a, b] of tl) {
@@ -605,7 +842,7 @@ function analyse() {
     st.push([a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]);
   }
   const un = new Set();
-  for (let i = 0; i < W * H; i++) if (room.g[i] === "." && !seen[i]) un.add(i);
+  for (let i = 0; i < W * H; i++) if (room.g[i] === "." && !seen[i] && !blocked.has(i)) un.add(i);
   if (un.size) iss.push({ lvl: "warn", t: un.size + " tuile(s) de sol inaccessibles depuis les portes (en rouge).", cells: [...un].slice(0, 1).map(i => [i % W, (i / W) | 0]) });
   if (!ext.length) iss.push({ lvl: "info", t: "Aucune porte extérieure posée : le jeu en met une au milieu de chaque côté qui a un voisin." });
   else iss.push({ lvl: "info", t: "Portes posées " + ext.map(p => p.cote).join(", ") + " : la salle ne sera tirée que pour des cases dont les portes sont parmi celles-là." });
@@ -722,6 +959,8 @@ function draw() {
   // axes de symétrie
   if (symX) { ctx.strokeStyle = "rgba(62,199,184,.8)"; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(W * z / 2, -10); ctx.lineTo(W * z / 2, H * z + 10); ctx.stroke(); ctx.setLineDash([]); }
   if (symY) { ctx.strokeStyle = "rgba(62,199,184,.8)"; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(-10, H * z / 2); ctx.lineTo(W * z + 10, H * z / 2); ctx.stroke(); ctx.setLineDash([]); }
+  // objets posés
+  for (const o of room.objets) drawObject(ctx, o, z, false, false);
   // portes
   const ext = room.portes.filter(p => p.type === "exterieure");
   if (!ext.length && show.auto) for (const c of "NSEW") drawExtDoor(autoDoorTiles(c), c, true);
@@ -790,6 +1029,8 @@ function drawPreview() {
       if (symX && symY) org.push([W - sx - brush, H - sy - brush]);
       ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5;
       for (const [a, b] of org) ctx.strokeRect(a * z + .5, b * z + .5, brush * z - 1, brush * z - 1);
+    } else if (tool === "object" && assets[assetSel]) {
+      const o = placeAt(hover.x, hover.y); drawObject(ctx, o, z, true, placeBad(o));
     } else if (tool === "extdoor") {
       const p = extDoorFromCell(hover.x, hover.y); drawExtDoor(extDoorTiles(p), p.cote, true);
     } else {
@@ -846,7 +1087,18 @@ function drawIso() {
     poly([P(a + e, b, 0), P(a + e, b + e, 0), P(a + e, b + e, h), P(a + e, b, h)], right);
     poly([P(a, b, h), P(a + e, b, h), P(a + e, b + e, h), P(a, b + e, h)], top);
   };
-  for (let s2 = 0; s2 < RW + RH; s2++) for (let x = 0; x < RW; x++) {
+  // Repère de la vue tournée : tuile (a, b) de la salle -> (x, y) de la vue.
+  const V = (a, b) => rot === 1 ? [H - b, a] : rot === 2 ? [W - a, H - b] : rot === 3 ? [b, W - a] : [a, b];
+  const objAt = {};
+  for (const o of room.objets) {
+    const A = assets[o.asset]; if (!A || !A.ap) continue;
+    const parts = meshWorld(A, o).map(p => { const W2 = new Float32Array(p.W.length); for (let i = 0; i < p.W.length; i += 3) { const q = V(p.W[i], p.W[i + 1]); W2[i] = q[0]; W2[i + 1] = q[1]; W2[i + 2] = p.W[i + 2]; } return { W: W2, t: p.t, col: p.col }; });
+    const vt = objTiles(o).map(([a, b]) => V(a + .5, b + .5));
+    const key = Math.max(...vt.map(q => Math.floor(q[0]) + Math.floor(q[1])));
+    (objAt[key] = objAt[key] || []).push(parts);
+  }
+  for (let s2 = 0; s2 < RW + RH; s2++) for (let x = 0; x <= RW; x++) {
+    if (x === RW) { for (const parts of objAt[s2] || []) fillTris(g, meshTris(parts, (a, b, zc) => { const q = P(a, b, zc / 100 * s); return [q[0], q[1], a + b + zc / 1000]; })); continue; }
     const y = s2 - x; if (y < 0 || y >= RH) continue;
     const t = get(x, y);
     if (t === "_" || t === "=") { poly([P(x, y, -s * .4), P(x + 1, y, -s * .4), P(x + 1, y + 1, -s * .4), P(x, y + 1, -s * .4)], t === "=" ? "#2a1838" : "#050608"); continue; }
@@ -887,6 +1139,21 @@ function onDown(ev) {
   if (tool === "indoor") {
     if (btn === 2) { const i = doorAt(c.x, c.y); if (i >= 0) { pushUndo(); room.portes.splice(i, 1); changed(); } return; }
     if (inside) drag = { kind: "indoor", a: c, b: c }; draw(); return;
+  }
+  if (tool === "object") {
+    if (!inside) return;
+    const i = objectAt(c.x, c.y);
+    if (btn === 2) { if (i >= 0) { pushUndo(); room.objets.splice(i, 1); changed(); } return; }
+    if (!assets[assetSel]) {
+      // Sans asset choisi : un clic sur un objet le reprend (pour le déplacer).
+      if (i >= 0) { pushUndo(); const o = room.objets.splice(i, 1)[0]; assetSel = o.asset; objRot = o.rot; renderAssets(); changed(); }
+      else { toast("Choisis un asset dans l'onglet Objets"); showTab("obj"); }
+      return;
+    }
+    if (i >= 0 && ev.shiftKey) { pushUndo(); const o = room.objets.splice(i, 1)[0]; assetSel = o.asset; objRot = o.rot; renderAssets(); changed(); return; }
+    const o = placeAt(c.x, c.y);
+    if (objTiles(o).some(([x, y]) => at(x, y) === null)) { toast("L'objet dépasse de la salle"); return; }
+    pushUndo(); room.objets.push(o); changed(); return;
   }
 }
 const clampX = x => Math.max(0, Math.min(room.W - 1, x)), clampY = y => Math.max(0, Math.min(room.H - 1, y));
@@ -934,6 +1201,7 @@ const TOOLS = [
   { id: "pan", k: "Esp", t: "Main (déplacer la vue)", svg: '<path d="M8 13V5a1.5 1.5 0 0 1 3 0v6M11 10V4a1.5 1.5 0 0 1 3 0v6M14 10V5.5a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-3l-2-4a1.5 1.5 0 0 1 2.5-1.5L8 13"/>' },
   { id: "extdoor", k: "P", t: "Porte extérieure (sortie)", svg: '<path d="M4 20V4h9v16M13 12h7M17 9l3 3-3 3"/>' },
   { id: "indoor", k: "O", t: "Porte intérieure (s'ouvre avec Interagir)", svg: '<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M15 12h.01"/>' },
+  { id: "object", k: "A", t: "Objet (asset de la bibliothèque)", svg: '<path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/>' },
 ];
 function renderTools() {
   const T = $("tools"); T.innerHTML = "";
@@ -953,9 +1221,15 @@ function renderOptbar() {
   if (tool === "brush" || tool === "erase") h += '<label>Taille <input type="range" id="oBrush" min="1" max="9" value="' + brush + '"><span id="oBrushV">' + brush + "</span></label>";
   if (tool === "rect") h += '<label><input type="checkbox" id="oOutline"' + (rectOutline ? " checked" : "") + "> Contour seulement</label>";
   if (tool === "fill") h += '<label><input type="checkbox" id="oFillAll"' + (fillAll ? " checked" : "") + "> Toutes les tuiles de ce type</label>";
+  if (tool === "object") {
+    const a = assets[assetSel];
+    h += a ? '<span style="color:var(--txt)">' + a.d.nom.replace(/[<>&]/g, "") + "</span><span>" + rotDims(a.d, objRot).join(" × ") + " tuiles</span>" : '<span>Aucun asset choisi</span>';
+    h += '<button class="btn" id="oRotL" title="Tourner (Maj+R)">⟲</button><span>' + objRot + '°</span><button class="btn" id="oRotR" title="Tourner (R)">⟳</button>';
+  }
   if (tool === "select") h += '<button class="btn" id="oCopy">Copier</button><button class="btn" id="oCut">Couper</button><button class="btn" id="oPaste">Coller</button><button class="btn" id="oFH" title="H">↔</button><button class="btn" id="oFV" title="V">↕</button><button class="btn" id="oRot" title="T">⟳</button>';
   const hints = { brush: "Clic gauche / droit : tuiles G / D · Alt + clic : pipette", rect: "Glisser pour tracer", line: "Maj : ligne droite", fill: "Remplit la zone de même tuile",
     erase: "Remet du sol", pick: "Clic gauche → tuile G, clic droit → tuile D", select: paste ? "Clic : poser le collage · clic droit : annuler" : "Glisser pour sélectionner · Suppr efface",
+    object: "Clic : poser · R : tourner · clic droit : supprimer · Maj + clic : reprendre un objet pour le déplacer",
     pan: "Glisser pour déplacer la vue", extdoor: "Clic près d'un bord : la porte s'y place (2 tuiles). Une seule par côté.", indoor: "Glisser une ligne de 1 à 8 tuiles en travers du passage" };
   h += '<span class="hint">' + (hints[tool] || "") + "</span>";
   o.innerHTML = h;
@@ -964,6 +1238,7 @@ function renderOptbar() {
   on("oOutline", "change", e => { rectOutline = e.target.checked; });
   on("oFillAll", "change", e => { fillAll = e.target.checked; });
   on("oCopy", "click", () => copySel(false)); on("oCut", "click", () => copySel(true)); on("oPaste", "click", startPaste);
+  on("oRotL", "click", () => rotateObj(-1)); on("oRotR", "click", () => rotateObj(1));
   on("oFH", "click", () => clipFlip(true)); on("oFV", "click", () => clipFlip(false)); on("oRot", "click", clipRot);
 }
 function renderTiles() {
@@ -975,7 +1250,7 @@ function renderTiles() {
     d.appendChild(c);
     const n = document.createElement("div"); n.className = "nm"; n.innerHTML = t.nm + "<small>" + t.d + "</small>"; d.appendChild(n);
     d.insertAdjacentHTML("beforeend", '<span class="badge bp">G</span><span class="badge bs">D</span><kbd>' + t.k + "</kbd>");
-    d.onclick = () => { primary = t.c; renderTiles(); if (["pick", "select", "pan", "extdoor", "indoor", "erase"].includes(tool)) setTool("brush"); };
+    d.onclick = () => { primary = t.c; renderTiles(); if (["pick", "select", "pan", "extdoor", "indoor", "erase", "object"].includes(tool)) setTool("brush"); };
     d.oncontextmenu = e => { e.preventDefault(); secondary = t.c; renderTiles(); };
     T.appendChild(d);
   }
@@ -1087,6 +1362,8 @@ window.addEventListener("keydown", e => {
   if (paste && k === "h") { clipFlip(true); return; }
   if (paste && k === "v") { clipFlip(false); return; }
   if (paste && k === "t") { clipRot(); return; }
+  if (tool === "object" && k === "r") { rotateObj(e.shiftKey ? -1 : 1); return; }
+  if (k === "a") { setTool("object"); showTab("obj"); return; }
   const map = { b: "brush", r: "rect", l: "line", g: "fill", e: "erase", i: "pick", m: "select", p: "extdoor", o: "indoor", h: "pan" };
   if (map[k]) { setTool(map[k]); return; }
   const t = TILES.find(t => t.k === e.key); if (t) { primary = t.c; renderTiles(); return; }
@@ -1113,6 +1390,13 @@ $("bNew").onclick = openNew; $("bOpen").onclick = openFiles; $("bDir").onclick =
 $("bSave").onclick = () => save(false); $("bSaveAs").onclick = () => save(true);
 $("bUndo").onclick = doUndo; $("bRedo").onclick = doRedo; $("bFit").onclick = fit; $("bPng").onclick = exportPng;
 $("bHelp").onclick = () => $("mHelp").classList.add("on");
+$("bAssets").onclick = pickAssetDir;
+$("assetSearch").addEventListener("input", e => { assetFilter = e.target.value; renderAssets(); });
+$("assetIn").addEventListener("change", async e => {
+  const fs = [...e.target.files].filter(f => /\.(eonasset|eonapercu)$/i.test(f.name));
+  assetsName = (e.target.files[0] && e.target.files[0].webkitRelativePath.split("/")[0]) || "dossier";
+  await loadAssetFiles(fs.map(f => ({ path: f.webkitRelativePath || f.name, text: () => f.text() }))); e.target.value = "";
+});
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => b.closest(".modal-bg").classList.remove("on"));
 $("nOk").onclick = createNew;
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
@@ -1150,9 +1434,10 @@ setInterval(() => { if (sel) draw(); }, 120);
 renderTools(); renderTiles(); renderAnchor(); renderOptbar();
 room = blankRoom("Salle_Nouvelle", 32, 20, "room", "COMBAT", "std");
 syncProps(); resizeCanvas(); fit(); changed(false);
+reopenAssets(false);
 try {
   const b = JSON.parse(localStorage.getItem("eonsalle.brouillon") || "null");
-  if (b && b.room) toast("Un brouillon non enregistré existe (" + b.room.nom + ").", "Le reprendre", () => { room = b.room; fileName = b.fileName; fileHandle = null; syncProps(); fit(); changed(true); });
+  if (b && b.room) toast("Un brouillon non enregistré existe (" + b.room.nom + ").", "Le reprendre", () => { room = b.room; fixRoom(); fileName = b.fileName; fileHandle = null; syncProps(); fit(); changed(true); });
 } catch (e) {}
 </script>
 </body>

@@ -1,0 +1,33 @@
+{
+  "format": "eonasset",
+  "version": 1,
+  "id": "lootable/Ammo",
+  "nom": "Ammo",
+  "categorie": "Ramassables",
+  "tags": [],
+  "collision": "aucune",
+  "rotations": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "fbx": "Ammo.fbx",
+  "mesh": "/Game/EON/Unity/import/fbx/lootable/Ammo.Ammo",
+  "unreal": "/Game/EON/RoomAssets/lootable/BPA_Ammo.BPA_Ammo_C",
+  "empreinte": [
+    1,
+    1
+  ],
+  "taille_cm": [
+    14.7,
+    3.1,
+    19.2
+  ],
+  "centre_cm": [
+    0.0,
+    0.0
+  ],
+  "sol_cm": 0.0,
+  "apercu": "Ammo.eonapercu"
+}
