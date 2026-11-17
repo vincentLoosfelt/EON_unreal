@@ -356,8 +356,17 @@ function fromFileText(txt) {
 }
 
 const hasFS = "showOpenFilePicker" in window;
+// Appli web Google (Apps Script, Tools/EditeurSalles/AppsScript/Code.gs) : la bibliothèque et les salles
+// sont lues et écrites directement dans le dossier Drive EON_EditeurSalles, sans dossier sur l'ordinateur.
+const GAS = typeof google !== "undefined" && !!(google.script && google.script.run);
+function gas(fn, ...args) {
+  return new Promise((ok, ko) => google.script.run.withSuccessHandler(ok)
+    .withFailureHandler(e => ko(e instanceof Error ? e : new Error(String((e && e.message) || e))))[fn](...args));
+}
+function b64Blob(b, type) { const s = atob(b), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return new Blob([u], { type }); }
 
 async function openFiles() {
+  if (GAS) { showTab("lib"); await refreshLib(); return; }
   if (!confirmLose()) return;
   if (hasFS) {
     try {
@@ -384,10 +393,25 @@ function loadText(txt, name, handle) {
 }
 
 async function save(as) {
+  if (GAS && as) {
+    const n = (prompt("Enregistrer sous le nom (fichier et Blueprint BP_nom) :", room.nom) || "").trim();
+    if (!n) return;
+    if (n !== room.nom) { pushUndo(); room.nom = n; syncProps(); changed(); }
+  }
   const txt = toFileText(room);
   const name = room.nom + ".eonsalle";
   try {
-    if (!as && fileHandle && fileName === name) { await writeHandle(fileHandle, txt); }
+    if (GAS) {
+      const known = fileHandle && fileHandle.drive && fileName === name ? fileHandle.t : null;
+      let r = await gas("ecrireSalle", name, txt, known, false);
+      if (r.conflit) {
+        if (!confirm(known ? "« " + name + " » a été modifiée sur le Drive depuis son ouverture (un autre PC ?). L'écraser avec cette version ?"
+                           : "« " + name + " » existe déjà sur le Drive. La remplacer ?")) return;
+        r = await gas("ecrireSalle", name, txt, known, true);
+      }
+      fileHandle = { drive: r.id, t: r.t }; fileName = name;
+    }
+    else if (!as && fileHandle && fileName === name) { await writeHandle(fileHandle, txt); }
     else if (!as && dirHandle) {
       const h = await dirHandle.getFileHandle(name, { create: true });
       if (fileName && fileName !== name && fileHandle) {
@@ -400,10 +424,10 @@ async function save(as) {
     } else {
       download(name, txt, "application/json"); fileName = name;
     }
-    setDirty(false);
+    setDirty(false); $("docName").textContent = fileName;
     try { localStorage.removeItem("eonsalle.brouillon"); } catch (e) {}
     toast("Enregistré : " + fileName + (analysis.issues.some(i => i.lvl === "err") ? " — attention, la salle a des erreurs : Unreal la refusera" : ""));
-    if (dirHandle) refreshLib();
+    if (dirHandle || GAS) refreshLib();
   } catch (e) { if (e.name !== "AbortError") toast("Enregistrement impossible : " + e.message); }
 }
 
@@ -421,6 +445,7 @@ function download(name, data, type) {
 // ======================================================================= bibliothèque (dossier)
 let libItems = [];
 async function openDir() {
+  if (GAS) { showTab("lib"); await refreshLib(); return; }
   if (!("showDirectoryPicker" in window)) { toast("Ce navigateur n'ouvre pas de dossier : utilise Chrome ou Edge, ou « Ouvrir » fichier par fichier."); return; }
   try {
     dirHandle = await window.showDirectoryPicker({ id: "eon-salles", mode: "readwrite" });
@@ -428,6 +453,17 @@ async function openDir() {
   } catch (e) { if (e.name !== "AbortError") toast("Dossier : " + e.message); }
 }
 async function refreshLib() {
+  if (GAS) {
+    $("libInfo").textContent = "Lecture des salles sur le Drive…";
+    try {
+      libItems = (await gas("listeSalles")).map(f => { try { return { name: f.name, drive: f.id, t: f.t, txt: f.txt, r: fromFileText(f.txt) }; }
+        catch (e) { return { name: f.name, drive: f.id, t: f.t, r: null, err: e.message }; } });
+    } catch (e) { $("libInfo").textContent = "Salles du Drive illisibles : " + e.message; return; }
+    libItems.sort((a, b) => a.name.localeCompare(b.name));
+    $("libInfo").innerHTML = "<b>Drive · EON_EditeurSalles/Salles</b> · " + libItems.length + " salle(s)";
+    $("docWhere").textContent = "· Drive";
+    renderLib(); return;
+  }
   if (!dirHandle) return;
   libItems = [];
   for await (const [name, h] of dirHandle.entries()) {
@@ -451,7 +487,7 @@ function renderLib() {
     m.querySelector("b").textContent = it.name.replace(/\.eonsalle$/i, "");
     m.querySelector("small").textContent = it.r ? (ROLE_FR[it.r.role] ? it.r.role : it.r.role) + " · " + it.r.W + "×" + it.r.H + (it.r.forme ? " · " + it.r.forme : "") : "illisible : " + it.err;
     d.append(c, m);
-    d.onclick = async () => { if (it.name === fileName || !confirmLose()) return; await openHandle(it.h); };
+    d.onclick = async () => { if (it.name === fileName || !confirmLose()) return; if (it.drive) loadText(it.txt, it.name, { drive: it.drive, t: it.t }); else await openHandle(it.h); };
     L.appendChild(d);
   }
 }
@@ -671,7 +707,7 @@ async function loadAssetFiles(list) {   // list : [{path, text(), blob()}]
   for (const k in texFiles) delete texFiles[k];
   theme = null;
   for (const f of list) {
-    if (/\.png$/i.test(f.path)) texFiles[f.path.split("/").pop()] = f;
+    if (/\.(png|webp)$/i.test(f.path)) texFiles[f.path.split("/").pop().replace(/\.webp$/i, ".png")] = f;   // .webp = texture allégée du Drive
     else if (/\.eontheme$/i.test(f.path)) { try { theme = JSON.parse(await f.text()); } catch (e) {} }
   }
   const ap = {};
@@ -694,11 +730,33 @@ async function loadAssetFiles(list) {   // list : [{path, text(), blob()}]
 async function walkDir(h, prefix, out) {
   for await (const [name, e] of h.entries()) {
     if (e.kind === "directory") await walkDir(e, prefix + name + "/", out);
-    else if (/\.(eonasset|eonapercu|eontheme|png)$/i.test(name)) out.push({ path: prefix + name, text: async () => (await e.getFile()).text(), blob: () => e.getFile() });
+    else if (/\.(eonasset|eonapercu|eontheme|png|webp)$/i.test(name)) out.push({ path: prefix + name, text: async () => (await e.getFile()).text(), blob: () => e.getFile() });
   }
 }
 async function openAssetDir(h) { const out = []; await walkDir(h, "", out); assetsName = h.name; await loadAssetFiles(out); }
+// Appli Google : la bibliothèque vient du Drive. Les fichiers déjà lus sont gardés dans le navigateur
+// (IndexedDB) et seuls ceux qui ont changé sur le Drive sont relus.
+async function driveAssets() {
+  const H = $("assetsHint"); H.textContent = "Lecture de la bibliothèque sur le Drive…";
+  try {
+    const man = await gas("manifeste");
+    const cache = (await idbGet("drive")) || {};
+    const need = man.filter(m => !cache[m.id] || cache[m.id].t !== m.t);
+    const lots = []; let lot = [], taille = 0, fait = 0;
+    for (const m of need) { if (lot.length && taille + m.n > 4e6) { lots.push(lot); lot = []; taille = 0; } lot.push(m); taille += m.n; }
+    if (lot.length) lots.push(lot);
+    for (const L of lots) {
+      for (const r of await gas("fichiers", L.map(m => m.id))) { const m = L.find(q => q.id === r.id); cache[r.id] = { t: m.t, txt: r.txt, b64: r.b64, type: r.type }; }
+      fait += L.length; H.textContent = "Lecture du Drive : " + fait + " / " + need.length + " fichier(s)…";
+    }
+    const keep = {}; for (const m of man) keep[m.id] = cache[m.id];
+    await idbSet("drive", keep);
+    assetsName = "Drive · Bibliotheque";
+    await loadAssetFiles(man.map(m => { const c = keep[m.id]; return { path: m.path, text: async () => c.txt, blob: async () => b64Blob(c.b64, c.type) }; }));
+  } catch (e) { H.textContent = "Bibliothèque du Drive illisible : " + e.message; toast("Bibliothèque du Drive : " + e.message); }
+}
 async function pickAssetDir() {
+  if (GAS) return driveAssets();
   if ("showDirectoryPicker" in window) {
     try { const h = await window.showDirectoryPicker({ id: "eon-assets", mode: "read" }); await openAssetDir(h); idbSet("assets", h); }
     catch (e) { if (e.name !== "AbortError") toast("Bibliothèque : " + e.message); }
@@ -1739,10 +1797,10 @@ $("bUndo").onclick = doUndo; $("bRedo").onclick = doRedo; $("bFit").onclick = fi
 $("bHelp").onclick = () => $("mHelp").classList.add("on");
 $("bAssets").onclick = pickAssetDir;
 // Actualiser : relit le même dossier (Chrome, Edge), sinon le redemande.
-$("bAssetsRe").onclick = async () => { for (const k in assets) assets[k].sprites = null; if (!(await reopenAssets(true))) pickAssetDir(); };
+$("bAssetsRe").onclick = async () => { for (const k in assets) assets[k].sprites = null; if (GAS || !(await reopenAssets(true))) pickAssetDir(); };
 $("assetSearch").addEventListener("input", e => { assetFilter = e.target.value; renderAssets(); });
 $("assetIn").addEventListener("change", async e => {
-  const fs = [...e.target.files].filter(f => /\.(eonasset|eonapercu|eontheme|png)$/i.test(f.name));
+  const fs = [...e.target.files].filter(f => /\.(eonasset|eonapercu|eontheme|png|webp)$/i.test(f.name));
   assetsName = (e.target.files[0] && e.target.files[0].webkitRelativePath.split("/")[0]) || "dossier";
   await loadAssetFiles(fs.map(f => ({ path: f.webkitRelativePath || f.name, text: () => f.text(), blob: async () => f }))); e.target.value = "";
 });
@@ -1787,7 +1845,14 @@ setInterval(() => { if (sel) draw(); }, 120);
 renderTools(); renderTiles(); renderAnchor(); renderOptbar();
 room = blankRoom("Salle_Nouvelle", 32, 20, "room", "COMBAT", "std");
 syncProps(); resizeCanvas(); fit(); changed(false);
-reopenAssets(false);
+if (GAS) {
+  // Appli Google : tout vient du Drive, les boutons « dossier » lisent le Drive.
+  $("bAssets").textContent = "Relire la bibliothèque du Drive";
+  $("bDir2").textContent = "Relire les salles du Drive";
+  $("bDir").title = "Salles du Drive"; $("bOpen").title = "Ouvrir une salle du Drive (Ctrl+O)";
+  $("libInfo").textContent = "Salles du dossier Drive EON_EditeurSalles/Salles.";
+  driveAssets(); refreshLib();
+} else reopenAssets(false);
 try {
   const b = JSON.parse(localStorage.getItem("eonsalle.brouillon") || "null");
   if (b && b.room) toast("Un brouillon non enregistré existe (" + b.room.nom + ").", "Le reprendre", () => { room = b.room; fixRoom(); fileName = b.fileName; fileHandle = null; syncProps(); fit(); changed(true); });

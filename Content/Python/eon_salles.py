@@ -19,6 +19,7 @@
 #                horizontal = L tuiles côte à côte sur une rangée (on passe du nord au sud), vertical = sur une colonne.
 import json
 import shutil
+import subprocess
 import math
 import os
 import time
@@ -82,6 +83,24 @@ def _copy_if_newer(src, dst):
     return True
 
 
+def _texture_web(src, dst):
+    """Texture allégée pour l'éditeur en ligne (WebP 1024 px, ~30 Ko au lieu de 4 Mo).
+    Renvoie 1 si écrite, 0 si déjà à jour, None si impossible (Pillow absent : la PNG est copiée)."""
+    if os.path.exists(dst) and os.stat(dst).st_mtime >= os.stat(src).st_mtime:
+        return 0
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    tool = os.path.join(project_dir(), "Tools", "EditeurSalles", "texture_web.py")
+    try:
+        r = subprocess.run(["py", "-3", tool, src, dst], capture_output=True, text=True, timeout=120,
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        if r.returncode == 0 and os.path.exists(dst):
+            return 1
+        unreal.log_warning("EON salles : texture WebP impossible (%s) : %s" % (os.path.basename(src), (r.stderr or "").strip()[-300:]))
+    except Exception as e:
+        unreal.log_warning("EON salles : texture WebP impossible (%s) : %s" % (os.path.basename(src), e))
+    return None
+
+
 def publish_drive():
     """Met la bibliothèque d'assets et l'éditeur sur le Drive ; la première fois, y recopie les salles du projet."""
     if not drive_on():
@@ -98,6 +117,12 @@ def publish_drive():
             if f.lower().endswith(".png") and os.path.basename(dp) != "Textures":
                 continue
             rel = os.path.relpath(os.path.join(dp, f), src)
+            if f.lower().endswith(".png"):
+                web = _texture_web(os.path.join(dp, f), os.path.join(lib, rel[:-4] + ".webp"))
+                if web is not None:
+                    keep.add(os.path.normcase(rel[:-4] + ".webp"))
+                    n += web
+                    continue
             keep.add(os.path.normcase(rel))
             n += _copy_if_newer(os.path.join(dp, f), os.path.join(lib, rel))
     # Ce qui n'est plus dans la bibliothèque du projet est retiré du Drive.
@@ -107,6 +132,9 @@ def publish_drive():
             if os.path.normcase(rel) not in keep:
                 os.remove(os.path.join(dp, f))
     n += _copy_if_newer(os.path.join(project_dir(), "Tools", "EditeurSalles", "EditeurSalles.html"), os.path.join(DRIVE, "EditeurSalles.html"))
+    # Code de l'appli Google (à recopier dans le projet Apps Script s'il change).
+    for f in ("Code.gs", "appsscript.json"):
+        n += _copy_if_newer(os.path.join(project_dir(), "Tools", "EditeurSalles", "AppsScript", f), os.path.join(DRIVE, "AppsScript", f))
     ds = os.path.join(DRIVE, "Salles")
     if not os.path.isdir(ds) or not any(f.lower().endswith(".eonsalle") for f in os.listdir(ds)):
         os.makedirs(ds, exist_ok=True)
