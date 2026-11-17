@@ -92,8 +92,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EON|Salle|Rendu") TObjectPtr<UMaterialInterface> HubWallMaterial;
 	/** Emplacement « light » du mur (fines lignes lumineuses) : Room light d'Unity. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EON|Salle|Rendu") TObjectPtr<UMaterialInterface> HubWallLightMaterial;
-	/** Dessus des murs épais (vu de haut). */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "EON|Salle|Rendu") TObjectPtr<UMaterialInterface> WallTopMaterial;
 
 	/** Régénère la grille avec Role / Shape / DoorMask / Seed, puis reconstruit le décor. */
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "EON|Salle")

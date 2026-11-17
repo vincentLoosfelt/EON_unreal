@@ -200,22 +200,12 @@ void AEONTileRoom::RebuildVisuals()
 	if (!bHasGrid) { return; }
 	FloorISM->SetMaterial(0, FloorMaterial);
 	GapISM->SetMaterial(0, GapMaterial);
-	if (bHubWalls && HubWallMesh)
-	{
-		// Dessus des murs épais : gris très sombre, pour que seules les façades peintes ressortent.
-		UMaterialInterface* Top = WallTopMaterial;
-		if (!Top)
-		{
-			if (UMaterialInterface* Flat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/EON/Materials/M_Flat.M_Flat")))
-			{
-				UMaterialInstanceDynamic* M = UMaterialInstanceDynamic::Create(Flat, this);
-				M->SetVectorParameterValue(TEXT("Color"), FLinearColor(0.012f, 0.011f, 0.016f));
-				Top = M;
-			}
-		}
-		WallISM->SetMaterial(0, Top ? Top : WallMaterial.Get());
-	}
-	else { WallISM->SetMaterial(0, WallMaterial); }
+	// Avec les façades du HUB, on ne voit que le FBX WallA320 (Vincent, 17/11) : les blocs de mur restent
+	// pour la collision seulement, comme les blocs d'objets (PropBlockISM).
+	const bool bFacades = bHubWalls && HubWallMesh;
+	WallISM->SetMaterial(0, WallMaterial);
+	WallISM->SetVisibility(!bFacades);
+	WallISM->SetHiddenInGame(bFacades);
 	CrateISM->SetMaterial(0, CrateMaterial);
 	TankISM->SetMaterial(0, TankMaterial);
 	DoorISM->SetMaterial(0, DoorMaterial);
@@ -242,26 +232,7 @@ void AEONTileRoom::RebuildVisuals()
 				}
 				break;
 			case EEONTile::Wall:
-				{
-					// Avec les façades du HUB, le bloc s'arrête juste sous leur sommet (on voit le haut du mur peint).
-					// Bloc sous une façade (sol voisin, même en diagonale) : plus petit et plus bas, caché dans la façade,
-					// sinon ses faces tombent pile sur celles du mur du HUB et scintillent.
-					bool bCovered = false;
-					if (bHubWalls && HubWallMesh)
-					{
-						for (int32 Dy = -1; Dy <= 1 && !bCovered; ++Dy)
-						{
-							for (int32 Dx = -1; Dx <= 1; ++Dx)
-							{
-								const EEONTile N = Grid.Get(X + Dx, Y + Dy);
-								if (Grid.IsValidTile(X + Dx, Y + Dy) && N != EEONTile::Wall && N != EEONTile::Door) { bCovered = true; break; }
-							}
-						}
-					}
-					const float Hw = !(bHubWalls && HubWallMesh) ? WallHeightCm : bCovered ? WallHeightCm - 12.f : WallHeightCm - 6.f;
-					const float Sxy = bCovered ? 0.9f : 1.f;
-					WallISM->AddInstance(FTransform(FRotator::ZeroRotator, C + FVector(0, 0, (Hw - Th) * 0.5f), FVector(Sxy, Sxy, (Hw + Th) / 100.f)));
-				}
+				WallISM->AddInstance(FTransform(FRotator::ZeroRotator, C + FVector(0, 0, (WallHeightCm - Th) * 0.5f), FVector(1.f, 1.f, (WallHeightCm + Th) / 100.f)));
 				break;
 			case EEONTile::Crate:
 				FloorISM->AddInstance(FTransform(FRotator::ZeroRotator, C + FVector(0, 0, -Th * 0.5f), FVector(1.f, 1.f, Th / 100.f)));

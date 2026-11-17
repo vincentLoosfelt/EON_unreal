@@ -1426,12 +1426,8 @@ function v3RoomGeo() {
     const t = at(x, y), X = x * 100, Y = y * 100, k = y * W + x;
     if (doorSet.has(k)) { box("sol", X, Y, -20, X + 100, Y + 100, 0, { t: 1 }); box("porte", X + 1, Y + 1, 0, X + 99, Y + 99, HW * .98, ALL); continue; }
     if (t === "#") {
-      if (FAC) {
-        // Bloc sous une façade (sol voisin, même en diagonale) : réduit à 0,9 et 12 cm plus bas, caché derrière elle.
-        let cov = false;
-        for (let dy = -1; dy <= 1 && !cov; dy++) for (let dx = -1; dx <= 1; dx++) if (open(x + dx, y + dy)) { cov = true; break; }
-        const m = cov ? 5 : 0; box("dessus", X + m, Y + m, 0, X + 100 - m, Y + 100 - m, HW - (cov ? 12 : 6), ALL);
-      } else box("mur", X, Y, 0, X + 100, Y + 100, HW, { t: 1, n: !isWall(x, y - 1) && y > 0, s: !isWall(x, y + 1) && y < H - 1, w: !isWall(x - 1, y) && x > 0, e: !isWall(x + 1, y) && x < W - 1 });
+      // Avec les façades, le jeu ne montre que le FBX WallA320 : le bloc de mur n'y sert qu'à la collision.
+      if (!FAC) box("mur", X, Y, 0, X + 100, Y + 100, HW, { t: 1, n: !isWall(x, y - 1) && y > 0, s: !isWall(x, y + 1) && y < H - 1, w: !isWall(x - 1, y) && x > 0, e: !isWall(x + 1, y) && x < W - 1 });
       continue;
     }
     if (t === "_") continue;
@@ -1496,9 +1492,6 @@ function v3FacMesh() {
     return { g: v3Buffer(p.v, v3Normals(p.v, p.t), uv, p.t), m: p };
   }));
 }
-// Blocs de mur derrière les façades : M_Flat (0.012 linéaire) dans le jeu, mais l'exposition automatique d'Unreal
-// les montre gris bleuté, un peu plus clairs que le sol (capture du 17/11) ; ce gris donne le même rapport ici.
-const V3_DESSUS = "#7a7c86";
 const V3_THEME0 = { sol: { couleur: "#765e4d" }, mur: { couleur: "#83afa8" }, caisse: { couleur: "#c08a46" }, cuve: { couleur: "#7984b7" }, porte: { couleur: "#b5000b" }, vide: { couleur: "#555a60" } };
 function v3SetMat(m, emisExtra) {
   const gl = V3.gl, u = V3.u;
@@ -1556,7 +1549,7 @@ function v3Render() {
   // salle
   const TH = theme || V3_THEME0;
   gl.uniformMatrix4fv(u.uM, false, M_ID);
-  for (const g of V3.roomGeo) { v3SetMat(g.k === "dessus" ? { couleur: V3_DESSUS } : TH[g.k] || V3_THEME0[g.k]); gl.bindVertexArray(g.g.vao); gl.drawElements(gl.TRIANGLES, g.g.n, gl.UNSIGNED_INT, 0); }
+  for (const g of V3.roomGeo) { v3SetMat(TH[g.k] || V3_THEME0[g.k]); gl.bindVertexArray(g.g.vao); gl.drawElements(gl.TRIANGLES, g.g.n, gl.UNSIGNED_INT, 0); }
   if (V3.facXf && V3.facXf.length) for (const pc of v3FacMesh()) {
     v3SetMat(pc.m); gl.bindVertexArray(pc.g.vao);
     for (const M of V3.facXf) { gl.uniformMatrix4fv(u.uM, false, M); gl.drawElements(gl.TRIANGLES, pc.g.n, gl.UNSIGNED_INT, 0); }
