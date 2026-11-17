@@ -12,6 +12,7 @@
     180,
     270
   ],
+  "pose": "sol",
   "fbx": "Cuve_3.fbx",
   "mesh": "/Game/EON/Unity/import/fbx/Cuve_3.Cuve_3",
   "unreal": "/Game/EON/RoomAssets/BPA_Cuve_3.BPA_Cuve_3_C",

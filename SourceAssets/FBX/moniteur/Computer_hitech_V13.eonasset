@@ -12,6 +12,7 @@
     180,
     270
   ],
+  "pose": "sol",
   "fbx": "Computer_hitech_V13.fbx",
   "mesh": "/Game/EON/Unity/import/fbx/moniteur/Computer_hitech_V13.Computer_hitech_V13",
   "unreal": "/Game/EON/RoomAssets/moniteur/BPA_Computer_hitech_V13.BPA_Computer_hitech_V13_C",

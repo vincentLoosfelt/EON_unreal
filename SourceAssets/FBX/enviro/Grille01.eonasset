@@ -12,6 +12,7 @@
     180,
     270
   ],
+  "pose": "sol",
   "fbx": "Grille01.fbx",
   "mesh": "/Game/EON/Unity/import/fbx/enviro/Grille01.Grille01",
   "unreal": "/Game/EON/RoomAssets/enviro/BPA_Grille01.BPA_Grille01_C",

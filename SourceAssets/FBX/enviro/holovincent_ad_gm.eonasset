@@ -12,6 +12,7 @@
     180,
     270
   ],
+  "pose": "sol",
   "fbx": "holovincent_ad_gm.fbx",
   "mesh": "/Game/EON/Unity/import/fbx/enviro/holovincent_ad_gm.holovincent_ad_gm",
   "unreal": "/Game/EON/RoomAssets/enviro/BPA_holovincent_ad_gm.BPA_holovincent_ad_gm_C",

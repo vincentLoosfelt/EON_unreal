@@ -1,0 +1,25 @@
+{
+  "format": "eontheme",
+  "version": 1,
+  "hauteur_mur_cm": 220,
+  "sol": {
+    "couleur": "#765e4d"
+  },
+  "mur": {
+    "couleur": "#83afa8"
+  },
+  "caisse": {
+    "couleur": "#ffffff",
+    "texture": "yellow_black_strips.png"
+  },
+  "cuve": {
+    "couleur": "#7984b7"
+  },
+  "porte": {
+    "couleur": "#b5000b"
+  },
+  "vide": {
+    "couleur": "#ffffff",
+    "texture": "Grille01_Material_AlbedoTransparency.png"
+  }
+}

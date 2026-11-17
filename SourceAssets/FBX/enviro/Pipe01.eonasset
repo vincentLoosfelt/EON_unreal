@@ -12,6 +12,7 @@
     180,
     270
   ],
+  "pose": "sol",
   "fbx": "Pipe01.fbx",
   "mesh": "/Game/EON/Unity/import/fbx/enviro/Pipe01.Pipe01",
   "unreal": "/Game/EON/RoomAssets/enviro/BPA_Pipe01.BPA_Pipe01_C",

@@ -12,6 +12,7 @@
     180,
     270
   ],
+  "pose": "sol",
   "fbx": "weapon01.fbx",
   "mesh": "/Game/EON/Unity/import/fbx/weapons/weapon01.weapon01",
   "unreal": "/Game/EON/RoomAssets/weapons/BPA_weapon01.BPA_weapon01_C",

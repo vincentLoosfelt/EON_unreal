@@ -12,6 +12,7 @@
     180,
     270
   ],
+  "pose": "sol",
   "fbx": "Barrier_V1.fbx",
   "mesh": "/Game/EON/Unity/import/fbx/Barriere/Barrier_V1.Barrier_V1",
   "unreal": "/Game/EON/RoomAssets/Barriere/BPA_Barrier_V1.BPA_Barrier_V1_C",

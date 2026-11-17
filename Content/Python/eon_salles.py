@@ -18,6 +18,7 @@
 #   intérieure : {"type": "interieure", "x": .., "y": .., "largeur": L, "sens": "horizontal|vertical"}
 #                horizontal = L tuiles côte à côte sur une rangée (on passe du nord au sud), vertical = sur une colonne.
 import json
+import shutil
 import math
 import os
 import time
@@ -37,9 +38,90 @@ FORMES = {"std": (32, 20), "carree": (32, 32), "large": (40, 26), "small": (24, 
 YAW = {"N": -90.0, "S": 90.0, "E": 0.0, "W": 180.0}
 
 
+# Dossier maître sur le Google Drive (Vincent, 17/11) : on dessine les salles depuis n'importe quel PC ou Mac.
+#   <DRIVE>/Salles            les .eonsalle (lus et écrits par l'import / l'export)
+#   <DRIVE>/Bibliotheque      copie de SourceAssets sans les FBX (.eonasset, .eonapercu, Salle.eontheme, Textures)
+#   <DRIVE>/EditeurSalles.html
+# Le dossier Salles du projet en reste le miroir, pour l'historique Git. Sans Drive, tout se fait dans le projet.
+DRIVE = r"G:\My Drive\EON_EditeurSalles"
+
+
+def project_dir():
+    return os.path.normpath(unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_dir()))
+
+
+def project_salles_dir():
+    return os.path.join(project_dir(), "Salles")
+
+
+def drive_on():
+    return os.path.isdir(os.path.dirname(DRIVE))
+
+
 def salles_dir():
-    """Dossier des fichiers .eonsalle : <projet>/Salles."""
-    return os.path.normpath(os.path.join(unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_dir()), "Salles"))
+    """Dossier des fichiers .eonsalle : <DRIVE>/Salles si le Drive est monté, sinon <projet>/Salles."""
+    return os.path.join(DRIVE, "Salles") if drive_on() else project_salles_dir()
+
+
+def _mirror(path):
+    """Copie un .eonsalle du Drive dans le dossier Salles du projet (miroir pour Git)."""
+    dst = os.path.join(project_salles_dir(), os.path.basename(path))
+    if os.path.normcase(os.path.abspath(path)) == os.path.normcase(os.path.abspath(dst)):
+        return
+    os.makedirs(project_salles_dir(), exist_ok=True)
+    shutil.copy2(path, dst)
+
+
+def _copy_if_newer(src, dst):
+    if os.path.exists(dst):
+        a, b = os.stat(src), os.stat(dst)
+        if int(a.st_mtime) <= int(b.st_mtime) and a.st_size == b.st_size:
+            return False
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    shutil.copy2(src, dst)
+    return True
+
+
+def publish_drive():
+    """Met la bibliothèque d'assets et l'éditeur sur le Drive ; la première fois, y recopie les salles du projet."""
+    if not drive_on():
+        unreal.log_warning("EON salles : Drive absent (%s)" % os.path.dirname(DRIVE))
+        return 0
+    src = os.path.join(project_dir(), "SourceAssets")
+    lib = os.path.join(DRIVE, "Bibliotheque")
+    n = 0
+    keep = set()
+    for dp, _, files in os.walk(src):
+        for f in files:
+            if not f.lower().endswith((".eonasset", ".eonapercu", ".eontheme", ".png")):
+                continue
+            if f.lower().endswith(".png") and os.path.basename(dp) != "Textures":
+                continue
+            rel = os.path.relpath(os.path.join(dp, f), src)
+            keep.add(os.path.normcase(rel))
+            n += _copy_if_newer(os.path.join(dp, f), os.path.join(lib, rel))
+    # Ce qui n'est plus dans la bibliothèque du projet est retiré du Drive.
+    for dp, _, files in os.walk(lib):
+        for f in files:
+            rel = os.path.relpath(os.path.join(dp, f), lib)
+            if os.path.normcase(rel) not in keep:
+                os.remove(os.path.join(dp, f))
+    n += _copy_if_newer(os.path.join(project_dir(), "Tools", "EditeurSalles", "EditeurSalles.html"), os.path.join(DRIVE, "EditeurSalles.html"))
+    ds = os.path.join(DRIVE, "Salles")
+    if not os.path.isdir(ds) or not any(f.lower().endswith(".eonsalle") for f in os.listdir(ds)):
+        os.makedirs(ds, exist_ok=True)
+        for f in os.listdir(project_salles_dir()):
+            if f.lower().endswith(".eonsalle"):
+                shutil.copy2(os.path.join(project_salles_dir(), f), os.path.join(ds, f))
+                n += 1
+    unreal.log("EON salles : Drive à jour (%d fichier(s) copiés) -> %s" % (n, DRIVE))
+    return n
+
+
+def _num(v):
+    # Nombre entier écrit sans ".0", comme l'éditeur de salles (JavaScript) : mêmes fichiers des deux côtés.
+    v = float(v)
+    return int(v) if v == int(v) else v
 
 
 def _rnd(x):
@@ -134,7 +216,15 @@ def bp_to_dict(bp):
     objets = []
     for _, o in sorted(_object_components(bp), key=lambda ho: ho[1].get_name()):
         pos = (_tag(o, "eonpos") or "0,0,0").split(",")
-        objets.append({"asset": _tag(o, "eonasset"), "x": int(pos[0]), "y": int(pos[1]), "rot": int(pos[2])})
+        ob = {"asset": _tag(o, "eonasset"), "x": int(pos[0]), "y": int(pos[1]), "rot": int(pos[2])}
+        lum = _tag(o, "eonlum")
+        if lum:
+            q = lum.split(";")
+            ob["lumiere"] = {"mode": q[0], "couleur": q[1], "rayon_px": float(q[2]), "intensite": float(q[3])}
+            for k in ("rayon_px", "intensite"):
+                if ob["lumiere"][k] == int(ob["lumiere"][k]):
+                    ob["lumiere"][k] = int(ob["lumiere"][k])
+        objets.append(ob)
     nom = bp.get_name()
     if nom.startswith("BP_"):
         nom = nom[3:]
@@ -146,7 +236,7 @@ def bp_to_dict(bp):
         "role": str(cdo.get_editor_property("room_role")),
         "rolesEnPlus": [str(r) for r in cdo.get_editor_property("extra_roles")],
         "forme": "" if shape in ("None", "") else shape,
-        "poids": float(cdo.get_editor_property("weight")),
+        "poids": _num(cdo.get_editor_property("weight")),
         "portes": portes,
         "objets": objets,
         "plan": plan,
@@ -172,6 +262,7 @@ def export_bp(asset_path, out_dir=None):
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, d["nom"] + ".eonsalle")
     write_file(d, path)
+    _mirror(path)
     eal = unreal.EditorAssetLibrary
     eal.set_metadata_tag(bp, TAG_SOURCE, path.replace("\\", "/"))
     eal.set_metadata_tag(bp, TAG_STAMP, _stamp(path))
@@ -339,7 +430,12 @@ def import_file(path, save=True):
         comp.set_editor_property("relative_location", unreal.Vector(px, py, -float(a.get("sol_cm", 0.0))))
         comp.set_editor_property("relative_rotation", unreal.Rotator(0.0, 0.0, float(rot)))
         comp.set_child_actor_class(cls)
-        comp.set_editor_property("component_tags", ["eonasset=" + o["asset"], "eonpos=%d,%d,%d" % (x0, y0, rot)])
+        tags = ["eonasset=" + o["asset"], "eonpos=%d,%d,%d" % (x0, y0, rot)]
+        # Réglages de la lumière posée (lus par AEONLampe au lancement).
+        if isinstance(o.get("lumiere"), dict):
+            l = o["lumiere"]
+            tags.append("eonlum=%s;%s;%g;%g" % (l.get("mode", "fixe"), l.get("couleur", "#ff3d8b"), float(l.get("rayon_px", 52)), float(l.get("intensite", 0.8))))
+        comp.set_editor_property("component_tags", tags)
         if a.get("collision", "solide") != "aucune":
             for yy in range(y0, y0 + oh):
                 for xx in range(x0, x0 + ow):
@@ -358,6 +454,7 @@ def import_file(path, save=True):
     if save and not eal.save_asset(dst, only_if_is_dirty=False):
         raise RuntimeError("enregistrement de %s impossible : fichier verrouillé (jeu EON lancé ?)" % dst)
     unreal.log("EON salles : %s %s (%dx%d, %d portes, %d objets)" % ("créé" if created else "mis à jour", dst, w, h, len(d.get("portes", [])), len(objets)))
+    _mirror(path)
     return dst
 
 

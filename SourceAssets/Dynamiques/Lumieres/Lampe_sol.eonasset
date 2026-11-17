@@ -1,0 +1,39 @@
+{
+  "format": "eonasset",
+  "version": 1,
+  "id": "Dynamiques/Lumieres/Lampe_sol",
+  "nom": "Lampe sol",
+  "categorie": "Lumières",
+  "tags": [],
+  "collision": "aucune",
+  "rotations": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "pose": "sol",
+  "dynamique": true,
+  "lumiere": {
+    "mode": "fixe",
+    "couleur": "#ff3d8b",
+    "rayon_px": 24.0,
+    "intensite": 0.5
+  },
+  "unreal": "/Game/EON/RoomAssets/Dynamiques/Lumieres/BPA_Lampe_sol.BPA_Lampe_sol_C",
+  "empreinte": [
+    1,
+    1
+  ],
+  "taille_cm": [
+    50.0,
+    50.0,
+    2.0
+  ],
+  "centre_cm": [
+    0.0,
+    0.0
+  ],
+  "sol_cm": 0.0,
+  "apercu": "Lampe_sol.eonapercu"
+}

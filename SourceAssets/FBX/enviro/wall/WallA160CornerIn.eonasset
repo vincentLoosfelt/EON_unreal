@@ -12,6 +12,7 @@
     180,
     270
   ],
+  "pose": "sol",
   "fbx": "WallA160CornerIn.fbx",
   "mesh": "/Game/EON/Unity/import/fbx/enviro/wall/WallA160CornerIn.WallA160CornerIn",
   "unreal": "/Game/EON/RoomAssets/enviro/wall/BPA_WallA160CornerIn.BPA_WallA160CornerIn_C",

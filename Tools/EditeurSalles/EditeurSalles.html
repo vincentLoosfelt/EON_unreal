@@ -113,8 +113,19 @@ select.inp { padding: 0 4px; }
 .libitem .meta b { display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .libitem .meta small { color: var(--txt3); }
 .muted { color: var(--txt3); }
-#iso { width: 100%; height: 260px; background: #0d0f12; border-radius: 8px; display: block; }
-.isobar { display: flex; gap: 6px; margin-top: 8px; }
+#gl { position: absolute; inset: 0; width: 100%; height: 100%; display: none; cursor: grab; }
+#gl.on { display: block; }
+#gl:active { cursor: grabbing; }
+.v3bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.v3row { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 12px; color: var(--txt2); }
+.v3row input[type=range] { flex: 1; accent-color: var(--acc); }
+.v3row b { min-width: 34px; text-align: right; color: var(--txt); font-weight: 600; }
+.lum { border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin-bottom: 10px; background: var(--bg2); }
+.lum h4 { margin: 0 0 8px; font-size: 12px; color: var(--txt); }
+.lum .v3row { margin: 6px 0; }
+.lum input[type=color] { width: 34px; height: 24px; border: 1px solid var(--line); background: none; padding: 0; border-radius: 4px; }
+.sw { width: 18px; height: 18px; border-radius: 4px; border: 1px solid rgba(255,255,255,.25); cursor: pointer; display: inline-block; }
+.sw.on { outline: 2px solid #fff; }
 .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none; align-items: center; justify-content: center; z-index: 50; }
 .modal-bg.on { display: flex; }
 .modal { width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow-y: auto; background: var(--panel); border: 1px solid var(--line2); border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.5); padding: 20px; }
@@ -172,7 +183,7 @@ select.inp { padding: 0 4px; }
 
   <div class="optbar" id="optbar"></div>
 
-  <main id="main"><canvas id="cv"></canvas></main>
+  <main id="main"><canvas id="cv"></canvas><canvas id="gl"></canvas></main>
 
   <aside class="right">
     <div class="tabs">
@@ -195,8 +206,16 @@ select.inp { padding: 0 4px; }
       <div class="field"><label>Portes</label><div class="muted" id="pDoors" style="font-size:12px"></div></div>
     </div>
     <div class="pane" id="pane-obj">
-      <div class="row" style="margin-bottom:8px"><button class="btn" id="bAssets">Ouvrir la bibliothèque d'assets…</button></div>
-      <div class="muted" id="assetsHint" style="margin-bottom:8px;font-size:12px">Ouvre le dossier <b>SourceAssets/FBX</b> du projet EON : un fichier .eonasset par asset (Blueprint BPA_*).</div>
+      <div class="row" style="margin-bottom:8px"><button class="btn" id="bAssets">Ouvrir la bibliothèque d'assets…</button><button class="btn icon" id="bAssetsRe" title="Actualiser : relire les .eonasset, aperçus et textures (après « Générer la bibliothèque » dans Unreal)"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></button></div>
+      <div class="muted" id="assetsHint" style="margin-bottom:8px;font-size:12px">Ouvre le dossier <b>SourceAssets</b> du projet EON (ou la bibliothèque du Drive) : un fichier .eonasset par asset (Blueprint BPA_*), les textures et le thème des salles.</div>
+      <div class="lum" id="lumPanel" style="display:none">
+        <h4 id="lumTitle"></h4>
+        <div class="chips" id="lumMode"></div>
+        <div class="v3row">Couleur <input type="color" id="lumCol"><span id="lumSw"></span></div>
+        <div class="v3row">Portée <input type="range" id="lumR" min="8" max="200" step="1"><b id="lumRv"></b></div>
+        <div class="v3row">Intensité <input type="range" id="lumI" min="0" max="2" step="0.05"><b id="lumIv"></b></div>
+        <div class="row"><button class="btn" id="lumReset">Valeurs de l'asset</button></div>
+      </div>
       <input class="inp" id="assetSearch" placeholder="Rechercher un asset…" spellcheck="false" style="margin-bottom:8px">
       <div class="chips" id="assetCats" style="margin-bottom:8px"></div>
       <div class="assets" id="assetGrid"></div>
@@ -207,9 +226,13 @@ select.inp { padding: 0 4px; }
       <div class="lib" id="lib"></div>
     </div>
     <div class="pane" id="pane-iso">
-      <canvas id="iso"></canvas>
-      <div class="isobar"><button class="btn" id="isoL">⟲ Tourner</button><button class="btn" id="isoR">Tourner ⟳</button></div>
-      <p class="muted" style="font-size:12px">Aperçu volumique simplifié : murs 1,6 m, caisses, cuves et objets posés. Le rendu réel est celui d'Unreal.</p>
+      <div class="v3bar"><button class="btn" id="v3Game">Vue du jeu</button><button class="btn" id="v3Top">Dessus</button><button class="btn" id="v3Rot">Tourner 90°</button></div>
+      <div class="v3row">Ambiance <input type="range" id="v3Amb" min="0" max="1" step="0.01"><b id="v3AmbV"></b></div>
+      <div class="v3row">Soleil <input type="range" id="v3Sun" min="0" max="1.5" step="0.01"><b id="v3SunV"></b></div>
+      <div class="v3row">Lampes <input type="range" id="v3Lamp" min="0" max="4" step="0.05"><b id="v3LampV"></b></div>
+      <div class="row" style="margin:8px 0"><div class="toggle on" id="v3Anim" title="Clignotement et vacillement des lampes, comme en jeu">Animer les lampes</div><div class="toggle on" id="v3Doors" title="Portes extérieures fermées">Portes</div></div>
+      <p class="muted" style="font-size:12px">Glisser : tourner · clic droit ou Maj + glisser : déplacer · molette : zoom. Textures de base, couleurs, émissions et lumières des assets ; le rendu final (toon, peinture, Lumen) reste celui d'Unreal.</p>
+      <p class="muted" style="font-size:12px" id="v3Info"></p>
     </div>
     <div class="issues" id="issues"></div>
   </aside>
@@ -286,7 +309,7 @@ const show = { grid: true, coords: true, reach: true, auto: true };
 let undo = [], redo = [];
 let clip = null, paste = null;      // clip: {w,h,g}; paste: true quand le collage suit la souris
 let sel = null;                     // {x0,y0,x1,y1}
-let hover = null, drag = null, spaceDown = false, isoRot = 0;
+let hover = null, drag = null, spaceDown = false;
 let analysis = { unreachable: new Set(), issues: [] };
 
 const $ = id => document.getElementById(id);
@@ -311,7 +334,7 @@ function toFileText(r) {
   const head = { format: FORMAT, version: VERSION, nom: r.nom, role: r.role, rolesEnPlus: r.rolesEnPlus, forme: r.forme,
     poids: Number(r.poids) || 0, portes: r.portes.map(p => p.type === "exterieure" ? { type: p.type, cote: p.cote, pos: p.pos }
       : { type: p.type, x: p.x, y: p.y, largeur: p.largeur, sens: p.sens }),
-    objets: (r.objets || []).map(o => ({ asset: o.asset, x: o.x, y: o.y, rot: o.rot })) };
+    objets: (r.objets || []).map(o => Object.assign({ asset: o.asset, x: o.x, y: o.y, rot: o.rot }, o.lumiere ? { lumiere: o.lumiere } : {})) };
   let t = JSON.stringify(head, null, 2);
   t = t.replace(/("poids": )(-?\d+)(,?\n)/, "$1$2.0$3");
   t = t.slice(0, -2) + ',\n  "plan": [\n' + plan.map(s => "    " + JSON.stringify(s)).join(",\n") + "\n  ]\n}\n";
@@ -328,7 +351,8 @@ function fromFileText(txt) {
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const c = (rows[y] || "")[x] || "#"; g.push(TILE_BY[c] ? c : "#"); }
   return { nom: d.nom || "Salle", role: d.role || "COMBAT", rolesEnPlus: Array.isArray(d.rolesEnPlus) ? d.rolesEnPlus.slice() : [],
     forme: d.forme || "", poids: d.poids ?? 1, W, H, g, portes: Array.isArray(d.portes) ? d.portes.map(p => ({ ...p })) : [],
-    objets: Array.isArray(d.objets) ? d.objets.map(o => ({ asset: String(o.asset), x: o.x | 0, y: o.y | 0, rot: ((o.rot | 0) % 360 + 360) % 360 })) : [] };
+    objets: Array.isArray(d.objets) ? d.objets.map(o => Object.assign({ asset: String(o.asset), x: o.x | 0, y: o.y | 0, rot: ((o.rot | 0) % 360 + 360) % 360 },
+      o.lumiere && typeof o.lumiere === "object" ? { lumiere: lumClean(o.lumiere) } : {})) : [] };
 }
 
 const hasFS = "showOpenFilePicker" in window;
@@ -442,6 +466,8 @@ function drawThumb(c, r) {
 // Dossier SourceAssets/FBX du projet : un .eonasset par asset (généré par Content/Python/eon_assets.py, pointe sur un
 // Blueprint BPA_*) et son aperçu .eonapercu (géométrie simplifiée). Objets posés : room.objets = [{asset, x, y, rot}].
 const assets = {};            // id -> { d, ap, thumb, sprites }
+const texFiles = {};          // nom de PNG -> { blob() } (SourceAssets/Textures)
+let theme = null;             // SourceAssets/Salle.eontheme : matériaux du sol, des murs, des caisses, des cuves
 let assetsName = "", assetSel = null, objRot = 0, assetFilter = "", assetCat = "";
 const LIGHT = (() => { const l = [-0.45, -0.6, 0.66], n = Math.hypot(...l); return l.map(v => v / n); })();
 
@@ -511,8 +537,11 @@ function assetThumb(a, size) {
   const parts = meshWorld(a, { x: 0, y: 0, rot: 0 });
   let mnx = 1e9, mny = 1e9, mxx = -1e9, mxy = -1e9;
   for (const p of parts) for (let i = 0; i < p.W.length; i += 3) { const q = isoP(p.W[i], p.W[i + 1], p.W[i + 2]); mnx = Math.min(mnx, q[0]); mxx = Math.max(mxx, q[0]); mny = Math.min(mny, q[1]); mxy = Math.max(mxy, q[1]); }
+  if (mnx > mxx) { mnx = mny = -1; mxx = mxy = 1; }
   const k = (size - 10) / Math.max(mxx - mnx, mxy - mny, .01), ox = (size - (mxx - mnx) * k) / 2 - mnx * k, oy = (size - (mxy - mny) * k) / 2 - mny * k;
   fillTris(c.getContext("2d"), meshTris(parts, (x, y, z) => { const q = isoP(x, y, z); return [ox + q[0] * k, oy + q[1] * k, q[2]]; }));
+  if (a.d.lumiere) { const g = c.getContext("2d"), gr = g.createRadialGradient(size / 2, size / 2, 2, size / 2, size / 2, size / 2);
+    gr.addColorStop(0, a.d.lumiere.couleur); gr.addColorStop(1, "rgba(0,0,0,0)"); g.globalAlpha = .7; g.fillStyle = gr; g.fillRect(0, 0, size, size); g.globalAlpha = 1; }
   return c;
 }
 // Vue de dessus de l'objet posé, en cache par rotation (48 px par tuile).
@@ -545,11 +574,90 @@ function drawObject(g, o, z, ghost, bad) {
 
 function placeAt(cx, cy) {
   const a = assets[assetSel]; if (!a) return null;
+  if (a.d.pose === "mur") {
+    const o = { asset: assetSel, x: cx, y: cy, rot: wallRot(a, cx, cy, objRot) };
+    if (lumNext) o.lumiere = Object.assign({}, lumNext);
+    return o;
+  }
   const [w, h] = rotDims(a.d, objRot);
-  return { asset: assetSel, x: cx - ((w - 1) >> 1), y: cy - ((h - 1) >> 1), rot: objRot };
+  const o = { asset: assetSel, x: cx - ((w - 1) >> 1), y: cy - ((h - 1) >> 1), rot: objRot };
+  if (a.d.lumiere && lumNext) o.lumiere = Object.assign({}, lumNext);
+  return o;
 }
 function placeBad(o) {
+  const a = assets[o.asset];
+  if (a && a.d.pose === "mur") return at(o.x, o.y) !== "#" || !faceOk(o.x, o.y, o.rot);
   return objTiles(o).some(([x, y]) => at(x, y) === null || (objSolid(o) && at(x, y) !== "."));
+}
+
+// --- lumières (assets dynamiques AEONLampe) : réglages par lumière posée, sinon ceux de l'asset
+const NEONS = ["#ff3d8b", "#e0a838", "#3ef2e0", "#7ac8ff", "#ffc23d", "#ffe08a"];   // néons des palettes du proto
+const LUM_MODES = [["fixe", "Fixe"], ["clignote", "Clignote"], ["vacille", "Vacille"]];
+let lumSel = -1, lumNext = null, lumUndo = false;
+const FACE = { 0: [0, 1], 90: [-1, 0], 180: [0, -1], 270: [1, 0] };     // côté éclairé du néon mural selon la rotation
+function lumClean(l) {
+  const m = LUM_MODES.some(q => q[0] === l.mode) ? l.mode : "fixe";
+  return { mode: m, couleur: /^#[0-9a-f]{6}$/i.test(l.couleur) ? l.couleur.toLowerCase() : "#ff3d8b", rayon_px: Math.max(1, +l.rayon_px || 52), intensite: Math.max(0, +l.intensite || 0) };
+}
+function objLum(o) { const a = assets[o.asset]; if (!a || !a.d.lumiere) return null; return lumClean(Object.assign({}, a.d.lumiere, o.lumiere || {})); }
+function faceOk(x, y, rot) { const f = FACE[rot]; if (!f) return false; const t = at(x + f[0], y + f[1]); return t !== null && t !== "#"; }
+function wallRot(a, x, y, pref) {
+  const R = a.d.rotations && a.d.rotations.length ? a.d.rotations : [0, 90, 180, 270];
+  if (faceOk(x, y, pref)) return pref;
+  const r = R.find(q => faceOk(x, y, q)); return r === undefined ? pref : r;
+}
+// Position de la lumière : tuiles en x, y ; cm au-dessus du sol en z.
+function lumPos(o) {
+  const a = assets[o.asset], d = a.d, p = a.ap && a.ap.lumieres && a.ap.lumieres[0] ? a.ap.lumieres[0].pos_cm : [0, 0, 120];
+  const [w, h] = rotDims(d, o.rot), r = o.rot * Math.PI / 180, c = Math.cos(r), s = Math.sin(r), lx = p[0] - d.centre_cm[0], ly = p[1] - d.centre_cm[1];
+  return [o.x + w / 2 + (lx * c - ly * s) / 100, o.y + h / 2 + (lx * s + ly * c) / 100, p[2] - d.sol_cm];
+}
+// Clignote / vacille, comme collectLights du proto (phase = colonne de tuile × 0,37 ; x, y en px).
+function lumFactor(o, L, p, t) {
+  let f = 1;
+  if (L.mode === "clignote" && Math.floor(t * 2.2 + o.x * 0.37) % 3 === 0) f *= .1;
+  if (L.mode === "vacille" && Math.sin(t * 37 + p[0] * 16) * Math.sin(t * 23 + p[1] * 16) > .55) f *= .12;
+  return f;
+}
+function lumTarget() {
+  if (lumSel >= 0 && room.objets[lumSel] && objLum(room.objets[lumSel])) return room.objets[lumSel];
+  lumSel = -1;
+  const a = assets[assetSel];
+  if (a && a.d.lumiere) { if (!lumNext) lumNext = lumClean(a.d.lumiere); return { asset: assetSel, lumiere: lumNext, next: true }; }
+  return null;
+}
+function renderLum() {
+  const T = lumTarget(), P = $("lumPanel");
+  P.style.display = T ? "" : "none"; if (!T) return;
+  const L = T.next ? lumNext : objLum(T), a = assets[T.asset];
+  $("lumTitle").textContent = (T.next ? "Prochaine lumière · " : "Lumière posée · ") + a.d.nom;
+  const M = $("lumMode"); M.innerHTML = "";
+  for (const [k, nm] of LUM_MODES) { const ch = document.createElement("span"); ch.className = "chip" + (L.mode === k ? " on" : ""); ch.textContent = nm; ch.onclick = () => lumSet("mode", k, true); M.appendChild(ch); }
+  $("lumCol").value = L.couleur;
+  const S = $("lumSw"); S.innerHTML = "";
+  for (const c of NEONS) { const e = document.createElement("span"); e.className = "sw" + (L.couleur === c ? " on" : ""); e.style.background = c; e.title = c; e.onclick = () => lumSet("couleur", c, true); S.appendChild(e); }
+  $("lumR").value = L.rayon_px; $("lumRv").textContent = Math.round(L.rayon_px) + " px";
+  $("lumI").value = L.intensite; $("lumIv").textContent = (+L.intensite).toFixed(2);
+}
+function lumSet(k, v, commit) {
+  const T = lumTarget(); if (!T) return;
+  if (T.next) { lumNext[k] = v; renderLum(); return; }
+  if (!lumUndo) { pushUndo(); lumUndo = true; }
+  T.lumiere = Object.assign(objLum(T), { [k]: v });
+  if (commit) lumUndo = false;
+  renderLum(); changed();
+}
+function drawLights(g, z) {
+  for (let i = 0; i < room.objets.length; i++) {
+    const o = room.objets[i], L = objLum(o); if (!L) continue;
+    const p = lumPos(o), R = Math.max(.3, L.rayon_px / 16) * z, x = p[0] * z, y = p[1] * z;
+    const gr = g.createRadialGradient(x, y, 0, x, y, R);
+    gr.addColorStop(0, L.couleur); gr.addColorStop(1, "rgba(0,0,0,0)");
+    g.save(); g.globalAlpha = .28 * Math.min(1, L.intensite + .2); g.fillStyle = gr; g.beginPath(); g.arc(x, y, R, 0, 7); g.fill(); g.restore();
+    g.fillStyle = L.couleur; g.strokeStyle = i === lumSel ? "#fff" : "rgba(0,0,0,.7)"; g.lineWidth = i === lumSel ? 2.5 : 1.5;
+    g.beginPath(); g.arc(x, y, Math.max(4, z * .22), 0, 7); g.fill(); g.stroke();
+    if (L.mode !== "fixe" && z >= 14) { g.fillStyle = "#000"; g.font = "700 " + Math.round(z * .3) + "px system-ui"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(L.mode === "clignote" ? "C" : "V", x, y + .5); }
+  }
 }
 function rotateObj(dir) {
   const a = assets[assetSel]; const R = a && a.d.rotations && a.d.rotations.length ? a.d.rotations : [0, 90, 180, 270];
@@ -558,8 +666,14 @@ function rotateObj(dir) {
 }
 
 // --- chargement du dossier
-async function loadAssetFiles(list) {   // list : [{path, text()}]
+async function loadAssetFiles(list) {   // list : [{path, text(), blob()}]
   for (const k in assets) delete assets[k];
+  for (const k in texFiles) delete texFiles[k];
+  theme = null;
+  for (const f of list) {
+    if (/\.png$/i.test(f.path)) texFiles[f.path.split("/").pop()] = f;
+    else if (/\.eontheme$/i.test(f.path)) { try { theme = JSON.parse(await f.text()); } catch (e) {} }
+  }
   const ap = {};
   for (const f of list) if (/\.eonapercu$/i.test(f.path)) ap[f.path.replace(/\.eonapercu$/i, "")] = f;
   let n = 0, bad = 0;
@@ -574,13 +688,13 @@ async function loadAssetFiles(list) {   // list : [{path, text()}]
       assets[d.id] = a; n++;
     } catch (e) { bad++; }
   }
-  renderAssets(); changed(false);
-  toast("Bibliothèque d'assets : " + n + " assets" + (bad ? ", " + bad + " illisible(s)" : ""));
+  renderAssets(); changed(false); v3Reset();
+  toast("Bibliothèque d'assets : " + n + " assets, " + Object.keys(texFiles).length + " textures" + (bad ? ", " + bad + " illisible(s)" : "") + (theme ? "" : " (pas de Salle.eontheme : ouvre le dossier SourceAssets)"));
 }
 async function walkDir(h, prefix, out) {
   for await (const [name, e] of h.entries()) {
     if (e.kind === "directory") await walkDir(e, prefix + name + "/", out);
-    else if (/\.(eonasset|eonapercu)$/i.test(name)) out.push({ path: prefix + name, text: async () => (await e.getFile()).text() });
+    else if (/\.(eonasset|eonapercu|eontheme|png)$/i.test(name)) out.push({ path: prefix + name, text: async () => (await e.getFile()).text(), blob: () => e.getFile() });
   }
 }
 async function openAssetDir(h) { const out = []; await walkDir(h, "", out); assetsName = h.name; await loadAssetFiles(out); }
@@ -627,7 +741,7 @@ function renderAssets() {
     a.thumb.className = "th"; it.appendChild(a.thumb);
     const m = document.createElement("div"); m.className = "an"; m.textContent = d.nom; it.appendChild(m);
     const s = document.createElement("div"); s.className = "as"; s.textContent = d.empreinte.join(" × ") + (d.collision === "aucune" ? " · traversable" : ""); it.appendChild(s);
-    it.onclick = () => { assetSel = id; const R = d.rotations && d.rotations.length ? d.rotations : [0]; if (!R.includes(objRot)) objRot = R[0]; setTool("object"); renderAssets(); };
+    it.onclick = () => { assetSel = id; const R = d.rotations && d.rotations.length ? d.rotations : [0]; if (!R.includes(objRot)) objRot = R[0]; lumSel = -1; lumNext = d.lumiere ? lumClean(d.lumiere) : null; setTool("object"); renderAssets(); renderLum(); };
     G.appendChild(it);
   }
 }
@@ -641,6 +755,11 @@ function analyseObjects(iss, passable, blocked) {
     if (!a) unknown++;
     const tl = objTiles(o);
     if (tl.some(([x, y]) => x < 0 || y < 0 || x >= W || y >= H)) { iss.push({ lvl: "err", t: "« " + nm + " » dépasse de la salle.", cells: [[Math.max(0, Math.min(W - 1, o.x)), Math.max(0, Math.min(H - 1, o.y))]] }); return; }
+    if (a && a.d.pose === "mur") {
+      if (at(o.x, o.y) !== "#") iss.push({ lvl: "warn", t: "« " + nm + " » se pose sur un mur.", cells: [[o.x, o.y]] });
+      else if (!faceOk(o.x, o.y, o.rot)) iss.push({ lvl: "warn", t: "« " + nm + " » éclaire un mur : tourne-le (R) vers le sol.", cells: [[o.x, o.y]] });
+      return;
+    }
     if (!objSolid(o)) return;
     const under = tl.filter(([x, y]) => at(x, y) !== ".");
     if (under.length) iss.push({ lvl: "warn", t: "« " + nm + " » est posé sur " + under.length + " tuile(s) qui ne sont pas du sol.", cells: [under[0]] });
@@ -652,7 +771,7 @@ function analyseObjects(iss, passable, blocked) {
 
 // ======================================================================= historique
 function snapshot() { return JSON.stringify(room); }
-function fixRoom() { if (!room.objets) room.objets = []; }
+function fixRoom() { if (!room.objets) room.objets = []; lumSel = -1; }
 function pushUndo() { undo.push(snapshot()); if (undo.length > 300) undo.shift(); redo = []; }
 function doUndo() { if (!undo.length) return; redo.push(snapshot()); room = JSON.parse(undo.pop()); fixRoom(); syncProps(); changed(); }
 function doRedo() { if (!redo.length) return; undo.push(snapshot()); room = JSON.parse(redo.pop()); fixRoom(); syncProps(); changed(); }
@@ -663,7 +782,7 @@ function confirmLose() { return !dirty || confirm("La salle en cours a des modif
 let draftTimer = 0;
 function changed(mark = true) {
   if (mark) setDirty(true);
-  analyse(); updateStatus(); renderIssues(); renderDoorsInfo(); draw(); drawIso();
+  analyse(); updateStatus(); renderIssues(); renderDoorsInfo(); draw(); V3.dirty = true;
   $("bUndo").disabled = !undo.length; $("bRedo").disabled = !redo.length;
   $("docName").textContent = (fileName || room.nom + ".eonsalle");
   clearTimeout(draftTimer);
@@ -877,6 +996,7 @@ function resizeCanvas() {
   draw();
 }
 function fit() {
+  V3.fitted = false;
   const r = $("main").getBoundingClientRect();
   const m = 50;
   view.z = Math.max(2, Math.min(64, Math.floor(Math.min((r.width - m * 2) / room.W, (r.height - m * 2) / room.H))));
@@ -961,6 +1081,7 @@ function draw() {
   if (symY) { ctx.strokeStyle = "rgba(62,199,184,.8)"; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(-10, H * z / 2); ctx.lineTo(W * z + 10, H * z / 2); ctx.stroke(); ctx.setLineDash([]); }
   // objets posés
   for (const o of room.objets) drawObject(ctx, o, z, false, false);
+  drawLights(ctx, z);
   // portes
   const ext = room.portes.filter(p => p.type === "exterieure");
   if (!ext.length && show.auto) for (const c of "NSEW") drawExtDoor(autoDoorTiles(c), c, true);
@@ -1064,49 +1185,271 @@ function drawRulers(cw, ch) {
   }
 }
 
-// ======================================================================= aperçu volumique
-function drawIso() {
-  const c = $("iso"); if (!c || !room || !$("pane-iso").classList.contains("on")) return;
-  const d = DPR(), r = c.getBoundingClientRect(); c.width = r.width * d; c.height = r.height * d;
-  const g = c.getContext("2d"); g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, r.width, r.height);
-  let W = room.W, H = room.H;
-  const rot = ((isoRot % 4) + 4) % 4;
-  const get = (x, y) => { // tuile vue après rotation
-    let a = x, b = y;
-    if (rot === 1) { a = y; b = H - 1 - x; } else if (rot === 2) { a = W - 1 - x; b = H - 1 - y; } else if (rot === 3) { a = W - 1 - y; b = x; }
-    return at(a, b);
+// ======================================================================= aperçu 3D (WebGL2)
+// Salle construite comme AEONTileRoom (murs 220 cm, caisses 84 × 84 × 80, cuves = un cylindre par bloc de K, grille des
+// fossés), matériaux de Salle.eontheme ; objets avec leurs textures de base (SourceAssets/Textures), couleurs, émissions ;
+// lumières posées (portée = rayon px × 6,25 cm) animées comme le proto. Repère : cm, x vers l'est, y vers le sud, z en haut.
+const V3 = { gl: null, on: false, dirty: true, yaw: 0, pitch: 55, dist: 0, tx: 0, ty: 0, tz: 0, fov: 25, amb: .22, sun: .35, lamp: 1,
+  anim: true, doors: true, tex: {}, meshes: {}, roomGeo: [], drag: null, raf: 0, fitted: false };
+const V3_MAX_L = 32;
+const V3_VS = `#version 300 es
+in vec3 aP; in vec3 aN; in vec2 aUV;
+uniform mat4 uVP; uniform mat4 uM;
+out vec3 vW; out vec3 vN; out vec2 vUV;
+void main() { vec4 w = uM * vec4(aP, 1.0); vW = w.xyz; vN = mat3(uM) * aN; vUV = aUV; gl_Position = uVP * w; }`;
+const V3_FS = `#version 300 es
+precision highp float;
+in vec3 vW; in vec3 vN; in vec2 vUV;
+uniform vec3 uCol; uniform sampler2D uTex; uniform float uHasTex;
+uniform vec3 uEmis; uniform sampler2D uEmisTex; uniform float uHasEmisTex; uniform float uAlpha;
+uniform float uAmb; uniform vec3 uSunDir; uniform float uSun; uniform vec3 uCam;
+uniform vec4 uLP[${V3_MAX_L}]; uniform vec4 uLC[${V3_MAX_L}]; uniform int uNL;
+out vec4 o;
+void main() {
+  vec3 n = normalize(vN); if (dot(n, uCam - vW) < 0.0) n = -n;
+  vec3 base = uCol; if (uHasTex > 0.5) base *= texture(uTex, vUV).rgb;
+  vec3 light = vec3(uAmb * (0.55 + 0.45 * n.z)) + vec3(uSun * max(dot(n, uSunDir), 0.0));
+  for (int i = 0; i < ${V3_MAX_L}; i++) {
+    if (i >= uNL) break;
+    vec3 d = uLP[i].xyz - vW; float l = length(d);
+    float k = clamp(1.0 - l / uLP[i].w, 0.0, 1.0);
+    light += uLC[i].rgb * (k * k) * (0.25 + 0.75 * max(dot(n, d / max(l, 1.0)), 0.0));
+  }
+  vec3 c = base * light + uEmis;
+  if (uHasEmisTex > 0.5) c += texture(uEmisTex, vUV).rgb * 2.0;
+  c = (c * (2.51 * c + 0.03)) / (c * (2.43 * c + 0.59) + 0.14);
+  o = vec4(pow(clamp(c, 0.0, 1.0), vec3(1.0 / 2.2)), uAlpha);
+}`;
+const lin = h => { const n = parseInt((h || "#808080").slice(1), 16); return [(n >> 16) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255].map(v => v <= .04045 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4)); };
+
+function v3Init() {
+  if (V3.gl) return true;
+  const c = $("gl"), gl = c.getContext("webgl2", { antialias: true, preserveDrawingBuffer: true });
+  if (!gl) { toast("WebGL2 indisponible dans ce navigateur : pas d'aperçu 3D"); return false; }
+  const sh = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+  const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, V3_VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, V3_FS));
+  gl.bindAttribLocation(p, 0, "aP"); gl.bindAttribLocation(p, 1, "aN"); gl.bindAttribLocation(p, 2, "aUV"); gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  V3.gl = gl; V3.prog = p; V3.u = {};
+  for (const n of ["uVP", "uM", "uCol", "uTex", "uHasTex", "uEmis", "uEmisTex", "uHasEmisTex", "uAlpha", "uAmb", "uSunDir", "uSun", "uCam", "uLP", "uLC", "uNL"]) V3.u[n] = gl.getUniformLocation(p, n);
+  V3.white = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, V3.white);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
+  V3.aniso = gl.getExtension("EXT_texture_filter_anisotropic");
+  return true;
+}
+// Texture PNG de la bibliothèque, réduite à 1024 px, chargée à la demande (blanc en attendant).
+function v3Tex(name) {
+  if (!name) return null;
+  if (V3.tex[name] !== undefined) return V3.tex[name];
+  const f = texFiles[name]; V3.tex[name] = null; if (!f || !f.blob) return null;
+  (async () => {
+    try {
+      const bmp = await createImageBitmap(await f.blob());
+      const k = Math.min(1, 1024 / Math.max(bmp.width, bmp.height)), cw = Math.max(1, Math.round(bmp.width * k)), ch = Math.max(1, Math.round(bmp.height * k));
+      const cnv = document.createElement("canvas"); cnv.width = cw; cnv.height = ch; cnv.getContext("2d").drawImage(bmp, 0, 0, cw, ch);
+      const gl = V3.gl, t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.SRGB8_ALPHA8, gl.RGBA, gl.UNSIGNED_BYTE, cnv); gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+      if (V3.aniso) gl.texParameterf(gl.TEXTURE_2D, V3.aniso.TEXTURE_MAX_ANISOTROPY_EXT, 8);
+      V3.tex[name] = t;
+    } catch (e) { console.warn("texture", name, e); }
+  })();
+  return null;
+}
+function v3Buffer(pos, nrm, uv, idx) {
+  const gl = V3.gl, vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  const bufs = [];
+  [[pos, 3], [nrm, 3], [uv, 2]].forEach(([arr, n], i) => { const b = gl.createBuffer(); bufs.push(b); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW); gl.enableVertexAttribArray(i); gl.vertexAttribPointer(i, n, gl.FLOAT, false, 0, 0); });
+  const ib = gl.createBuffer(); bufs.push(ib); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(idx), gl.STATIC_DRAW);
+  gl.bindVertexArray(null);
+  return { vao, bufs, n: idx.length };
+}
+function v3Free(g) { const gl = V3.gl; gl.deleteVertexArray(g.vao); g.bufs.forEach(b => gl.deleteBuffer(b)); }
+function v3Normals(pos, idx) {
+  const n = new Float32Array(pos.length);
+  for (let i = 0; i < idx.length; i += 3) {
+    const a = idx[i] * 3, b = idx[i + 1] * 3, c = idx[i + 2] * 3;
+    const ux = pos[b] - pos[a], uy = pos[b + 1] - pos[a + 1], uz = pos[b + 2] - pos[a + 2], vx = pos[c] - pos[a], vy = pos[c + 1] - pos[a + 1], vz = pos[c + 2] - pos[a + 2];
+    const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+    for (const j of [a, b, c]) { n[j] += nx; n[j + 1] += ny; n[j + 2] += nz; }
+  }
+  for (let i = 0; i < n.length; i += 3) { const l = Math.hypot(n[i], n[i + 1], n[i + 2]) || 1; n[i] /= l; n[i + 1] /= l; n[i + 2] /= l; }
+  return n;
+}
+// Maillages d'un asset (repère du Blueprint, cm), en cache.
+function v3Mesh(id) {
+  if (V3.meshes[id]) return V3.meshes[id];
+  const a = assets[id]; if (!a || !a.ap) return (V3.meshes[id] = []);
+  return (V3.meshes[id] = a.ap.pieces.map(p => {
+    const uv = p.uv && p.uv.length === p.v.length / 3 * 2 ? p.uv : new Array(p.v.length / 3 * 2).fill(0);
+    return { g: v3Buffer(p.v, v3Normals(p.v, p.t), uv, p.t), m: p };
+  }));
+}
+// --- géométrie de la salle (groupes par matériau du thème)
+function v3RoomGeo() {
+  const W = room.W, H = room.H, G = {};
+  const grp = k => G[k] || (G[k] = { p: [], n: [], u: [], i: [] });
+  const quad = (k, pts, nx, ny, nz, uvs) => { const g = grp(k), b = g.p.length / 3; pts.forEach((q, j) => { g.p.push(...q); g.n.push(nx, ny, nz); g.u.push(...uvs[j]); }); g.i.push(b, b + 1, b + 2, b, b + 2, b + 3); };
+  const box = (k, x0, y0, z0, x1, y1, z1, faces) => {
+    const U = 100;
+    if (faces.t) quad(k, [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], 0, 0, 1, [[x0 / U, y0 / U], [x1 / U, y0 / U], [x1 / U, y1 / U], [x0 / U, y1 / U]]);
+    if (faces.n) quad(k, [[x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1]], 0, -1, 0, [[x0 / U, -z0 / U], [x1 / U, -z0 / U], [x1 / U, -z1 / U], [x0 / U, -z1 / U]]);
+    if (faces.s) quad(k, [[x1, y1, z0], [x0, y1, z0], [x0, y1, z1], [x1, y1, z1]], 0, 1, 0, [[x1 / U, -z0 / U], [x0 / U, -z0 / U], [x0 / U, -z1 / U], [x1 / U, -z1 / U]]);
+    if (faces.w) quad(k, [[x0, y1, z0], [x0, y0, z0], [x0, y0, z1], [x0, y1, z1]], -1, 0, 0, [[y1 / U, -z0 / U], [y0 / U, -z0 / U], [y0 / U, -z1 / U], [y1 / U, -z1 / U]]);
+    if (faces.e) quad(k, [[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]], 1, 0, 0, [[y0 / U, -z0 / U], [y1 / U, -z0 / U], [y1 / U, -z1 / U], [y0 / U, -z1 / U]]);
   };
-  const RW = rot & 1 ? H : W, RH = rot & 1 ? W : H;
-  const s = Math.min((r.width - 20) / (RW + RH), (r.height - 40) / ((RW + RH) / 2 + 3));
-  const hw = s, hh = s / 2, wallH = s * 1.6, ox = r.width / 2 - (RW - RH) * hw / 2, oy = 30 + 1.6 * s;
-  const P = (x, y, z) => [ox + (x - y) * hw, oy + (x + y) * hh - z];
-  const poly = (pts, f, st) => { g.beginPath(); g.moveTo(...pts[0]); for (const p of pts.slice(1)) g.lineTo(...p); g.closePath(); g.fillStyle = f; g.fill(); if (st) { g.strokeStyle = st; g.lineWidth = .5; g.stroke(); } };
-  const box = (x, y, h, top, left, right, inset = 0) => {
-    const a = x + inset, b = y + inset, e = 1 - 2 * inset;
-    poly([P(a, b + e, 0), P(a + e, b + e, 0), P(a + e, b + e, h), P(a, b + e, h)], left);
-    poly([P(a + e, b, 0), P(a + e, b + e, 0), P(a + e, b + e, h), P(a + e, b, h)], right);
-    poly([P(a, b, h), P(a + e, b, h), P(a + e, b + e, h), P(a, b + e, h)], top);
-  };
-  // Repère de la vue tournée : tuile (a, b) de la salle -> (x, y) de la vue.
-  const V = (a, b) => rot === 1 ? [H - b, a] : rot === 2 ? [W - a, H - b] : rot === 3 ? [b, W - a] : [a, b];
-  const objAt = {};
+  const ALL = { t: 1, n: 1, s: 1, w: 1, e: 1 };
+  const HW = theme && theme.hauteur_mur_cm || 220;
+  const doorSet = new Set();
+  if (V3.doors) {
+    const ext = room.portes.filter(p => p.type === "exterieure");
+    const tls = ext.length ? ext.flatMap(extDoorTiles) : ["N", "S", "E", "W"].flatMap(autoDoorTiles);
+    tls.forEach(([x, y]) => doorSet.add(y * W + x));
+  }
+  const isWall = (x, y) => { const t = at(x, y); return t === "#" && !doorSet.has(y * W + x); };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const t = at(x, y), X = x * 100, Y = y * 100, k = y * W + x;
+    if (doorSet.has(k)) { box("sol", X, Y, -20, X + 100, Y + 100, 0, { t: 1 }); box("porte", X + 1, Y + 1, 0, X + 99, Y + 99, HW * .98, ALL); continue; }
+    if (t === "#") { box("mur", X, Y, 0, X + 100, Y + 100, HW, { t: 1, n: !isWall(x, y - 1) && y > 0, s: !isWall(x, y + 1) && y < H - 1, w: !isWall(x - 1, y) && x > 0, e: !isWall(x + 1, y) && x < W - 1 }); continue; }
+    if (t === "_") continue;
+    if (t === "=") { box("vide", X + 1, Y + 1, -82, X + 99, Y + 99, -78, ALL); continue; }
+    box("sol", X, Y, -20, X + 100, Y + 100, 0, { t: 1 });
+    if (t === "X") box("caisse", X + 8, Y + 8, 0, X + 92, Y + 92, 80, ALL);
+  }
+  // Cuves : un cylindre par bloc 4-connexe de K, à l'emprise du bloc (× 0,94), 220 cm.
+  const seen = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    if (seen[i] || room.g[i] !== "K") continue;
+    let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1; const q = [i]; seen[i] = 1;
+    while (q.length) { const j = q.pop(), x = j % W, y = (j / W) | 0; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue; const kk = ny * W + nx; if (!seen[kk] && room.g[kk] === "K") { seen[kk] = 1; q.push(kk); } } }
+    const cx = (x0 + x1 + 1) * 50, cy = (y0 + y1 + 1) * 50, rx = (x1 - x0 + 1) * 47, ry = (y1 - y0 + 1) * 47, h = 220, N = 32, g = grp("cuve");
+    for (let s2 = 0; s2 < N; s2++) {
+      const a0 = s2 / N * Math.PI * 2, a1 = (s2 + 1) / N * Math.PI * 2, b = g.p.length / 3;
+      const P0 = [cx + Math.cos(a0) * rx, cy + Math.sin(a0) * ry], P1 = [cx + Math.cos(a1) * rx, cy + Math.sin(a1) * ry];
+      g.p.push(P0[0], P0[1], 0, P1[0], P1[1], 0, P1[0], P1[1], h, P0[0], P0[1], h);
+      g.n.push(Math.cos(a0), Math.sin(a0), 0, Math.cos(a1), Math.sin(a1), 0, Math.cos(a1), Math.sin(a1), 0, Math.cos(a0), Math.sin(a0), 0);
+      g.u.push(s2 / N * 4, 0, (s2 + 1) / N * 4, 0, (s2 + 1) / N * 4, -2.2, s2 / N * 4, -2.2);
+      g.i.push(b, b + 1, b + 2, b, b + 2, b + 3);
+      const c0 = g.p.length / 3; g.p.push(cx, cy, h, P0[0], P0[1], h, P1[0], P1[1], h); g.n.push(0, 0, 1, 0, 0, 1, 0, 0, 1); g.u.push(.5, .5, .5, .5, .5, .5); g.i.push(c0, c0 + 1, c0 + 2);
+    }
+  }
+  return Object.entries(G).map(([k, g]) => ({ k, g: v3Buffer(g.p, g.n, g.u, g.i) }));
+}
+const V3_THEME0 = { sol: { couleur: "#765e4d" }, mur: { couleur: "#83afa8" }, caisse: { couleur: "#c08a46" }, cuve: { couleur: "#7984b7" }, porte: { couleur: "#b5000b" }, vide: { couleur: "#555a60" } };
+function v3SetMat(m, emisExtra) {
+  const gl = V3.gl, u = V3.u;
+  gl.uniform3fv(u.uCol, lin(m.couleur));
+  const t = v3Tex(m.texture), et = v3Tex(m.texture_emission);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, t || V3.white); gl.uniform1i(u.uTex, 0); gl.uniform1f(u.uHasTex, t ? 1 : 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, et || V3.white); gl.uniform1i(u.uEmisTex, 1); gl.uniform1f(u.uHasEmisTex, et ? 1 : 0);
+  let e = m.emission ? lin(m.emission).map(v => v * 1.5) : [0, 0, 0];
+  if (emisExtra) e = emisExtra;
+  gl.uniform3fv(u.uEmis, e);
+  gl.uniform1f(u.uAlpha, m.opacite !== undefined ? m.opacite : 1);
+}
+// --- matrices (colonnes)
+function m4mul(a, b) { const o = new Float32Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s2 = 0; for (let k = 0; k < 4; k++) s2 += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s2; } return o; }
+function m4persp(fovy, asp, n, f) { const t = 1 / Math.tan(fovy / 2), o = new Float32Array(16); o[0] = t / asp; o[5] = t; o[10] = (f + n) / (n - f); o[11] = -1; o[14] = 2 * f * n / (n - f); return o; }
+function m4look(e, c, up) {
+  const z = [e[0] - c[0], e[1] - c[1], e[2] - c[2]], zl = Math.hypot(...z); z.forEach((v, i) => z[i] = v / zl);
+  const x = [up[1] * z[2] - up[2] * z[1], up[2] * z[0] - up[0] * z[2], up[0] * z[1] - up[1] * z[0]], xl = Math.hypot(...x) || 1; x.forEach((v, i) => x[i] = v / xl);
+  const y = [z[1] * x[2] - z[2] * x[1], z[2] * x[0] - z[0] * x[2], z[0] * x[1] - z[1] * x[0]];
+  return new Float32Array([x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, -(x[0] * e[0] + x[1] * e[1] + x[2] * e[2]), -(y[0] * e[0] + y[1] * e[1] + y[2] * e[2]), -(z[0] * e[0] + z[1] * e[1] + z[2] * e[2]), 1]);
+}
+function m4obj(tx, ty, tz, rot, ox, oy, oz) {   // T(t) · Rz(rot) · T(-o)
+  const r = rot * Math.PI / 180, c = Math.cos(r), s2 = Math.sin(r);
+  return new Float32Array([c, s2, 0, 0, -s2, c, 0, 0, 0, 0, 1, 0, tx - (c * ox - s2 * oy), ty - (s2 * ox + c * oy), tz - oz, 1]);
+}
+const M_ID = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+function v3Fit() { V3.tx = room.W * 50; V3.ty = room.H * 50; V3.tz = 0; V3.dist = Math.hypot(room.W, room.H) * 50 / Math.sin(V3.fov * Math.PI / 360) * .95; V3.fitted = true; }
+function v3Camera() {
+  const p = V3.pitch * Math.PI / 180, y = V3.yaw * Math.PI / 180;
+  return [V3.tx + V3.dist * Math.sin(y) * Math.cos(p), V3.ty + V3.dist * Math.cos(y) * Math.cos(p), V3.tz + V3.dist * Math.sin(p)];
+}
+function v3Render() {
+  if (!V3.gl || !room) return;
+  const gl = V3.gl, c = $("gl"), d = DPR(), r = c.getBoundingClientRect();
+  const cw = Math.max(1, Math.round(r.width * d)), ch = Math.max(1, Math.round(r.height * d));
+  if (c.width !== cw || c.height !== ch) { c.width = cw; c.height = ch; }
+  if (V3.dirty) { V3.roomGeo.forEach(g => v3Free(g.g)); V3.roomGeo = v3RoomGeo(); V3.dirty = false; }
+  if (!V3.fitted) v3Fit();
+  gl.viewport(0, 0, cw, ch); gl.clearColor(.03, .035, .045, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.useProgram(V3.prog);
+  const u = V3.u, eye = v3Camera(), S = new Float32Array([1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);   // y vers le sud -> repère direct
+  const V = m4look([eye[0], -eye[1], eye[2]], [V3.tx, -V3.ty, V3.tz], [0, 0, 1]);
+  gl.uniformMatrix4fv(u.uVP, false, m4mul(m4persp(V3.fov * Math.PI / 180, cw / ch, 20, V3.dist * 4 + 20000), m4mul(V, S)));
+  gl.uniform3fv(u.uCam, eye); gl.uniform1f(u.uAmb, V3.amb); gl.uniform1f(u.uSun, V3.sun);
+  const sd = [.35, .45, .82], sl = Math.hypot(...sd); gl.uniform3fv(u.uSunDir, sd.map(v => v / sl));
+  // lumières posées
+  const t = V3.anim ? performance.now() / 1000 : 0, LP = new Float32Array(V3_MAX_L * 4), LC = new Float32Array(V3_MAX_L * 4), neon = new Map();
+  const ls = [];
+  room.objets.forEach(o => { const L = objLum(o); if (!L) return; const p = lumPos(o), f = V3.anim ? lumFactor(o, L, p, t) : 1; ls.push({ o, L, p, f }); neon.set(o, lin(L.couleur).map(v => v * 6 * f * Math.min(1.5, L.intensite + .2))); });
+  ls.sort((a, b) => Math.hypot(a.p[0] * 100 - V3.tx, a.p[1] * 100 - V3.ty) - Math.hypot(b.p[0] * 100 - V3.tx, b.p[1] * 100 - V3.ty));
+  const nl = Math.min(V3_MAX_L, ls.length);
+  for (let i = 0; i < nl; i++) { const { L, p, f } = ls[i], col = lin(L.couleur), k = L.intensite * f * V3.lamp * 4;
+    LP.set([p[0] * 100, p[1] * 100, p[2], Math.max(10, L.rayon_px * 6.25)], i * 4); LC.set([col[0] * k, col[1] * k, col[2] * k, 0], i * 4); }
+  gl.uniform4fv(u.uLP, LP); gl.uniform4fv(u.uLC, LC); gl.uniform1i(u.uNL, nl);
+  // salle
+  const TH = theme || V3_THEME0;
+  gl.uniformMatrix4fv(u.uM, false, M_ID);
+  for (const g of V3.roomGeo) { v3SetMat(TH[g.k] || V3_THEME0[g.k]); gl.bindVertexArray(g.g.vao); gl.drawElements(gl.TRIANGLES, g.g.n, gl.UNSIGNED_INT, 0); }
+  // objets (opaques puis transparents)
+  const late = [];
   for (const o of room.objets) {
-    const A = assets[o.asset]; if (!A || !A.ap) continue;
-    const parts = meshWorld(A, o).map(p => { const W2 = new Float32Array(p.W.length); for (let i = 0; i < p.W.length; i += 3) { const q = V(p.W[i], p.W[i + 1]); W2[i] = q[0]; W2[i + 1] = q[1]; W2[i + 2] = p.W[i + 2]; } return { W: W2, t: p.t, col: p.col }; });
-    const vt = objTiles(o).map(([a, b]) => V(a + .5, b + .5));
-    const key = Math.max(...vt.map(q => Math.floor(q[0]) + Math.floor(q[1])));
-    (objAt[key] = objAt[key] || []).push(parts);
+    const a = assets[o.asset]; if (!a) continue;
+    const [w, h] = rotDims(a.d, o.rot), M = m4obj((o.x + w / 2) * 100, (o.y + h / 2) * 100, 0, o.rot, a.d.centre_cm[0], a.d.centre_cm[1], a.d.sol_cm);
+    for (const pc of v3Mesh(o.asset)) {
+      if (pc.m.opacite !== undefined && pc.m.opacite < 1) { late.push([M, pc, o]); continue; }
+      gl.uniformMatrix4fv(u.uM, false, M); v3SetMat(pc.m, pc.m.neon ? neon.get(o) : null); gl.bindVertexArray(pc.g.vao); gl.drawElements(gl.TRIANGLES, pc.g.n, gl.UNSIGNED_INT, 0);
+    }
   }
-  for (let s2 = 0; s2 < RW + RH; s2++) for (let x = 0; x <= RW; x++) {
-    if (x === RW) { for (const parts of objAt[s2] || []) fillTris(g, meshTris(parts, (a, b, zc) => { const q = P(a, b, zc / 100 * s); return [q[0], q[1], a + b + zc / 1000]; })); continue; }
-    const y = s2 - x; if (y < 0 || y >= RH) continue;
-    const t = get(x, y);
-    if (t === "_" || t === "=") { poly([P(x, y, -s * .4), P(x + 1, y, -s * .4), P(x + 1, y + 1, -s * .4), P(x, y + 1, -s * .4)], t === "=" ? "#2a1838" : "#050608"); continue; }
-    poly([P(x, y, 0), P(x + 1, y, 0), P(x + 1, y + 1, 0), P(x, y + 1, 0)], ((x + y) & 1) ? "#9da49a" : "#a6ada3", "rgba(0,0,0,.08)");
-    if (t === "#") box(x, y, wallH, "#6c8a83", "#3c4f4a", "#4a5f5a");
-    else if (t === "X") box(x, y, s * .8, "#c08a46", "#7a5122", "#93652e", .08);
-    else if (t === "K") { box(x, y, s * 1.1, "#4fd0c6", "#1f5e59", "#2a7a74", .14); }
+  if (late.length) {
+    gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+    for (const [M, pc, o] of late) { gl.uniformMatrix4fv(u.uM, false, M); v3SetMat(pc.m, pc.m.neon ? neon.get(o) : null); gl.bindVertexArray(pc.g.vao); gl.drawElements(gl.TRIANGLES, pc.g.n, gl.UNSIGNED_INT, 0); }
+    gl.depthMask(true); gl.disable(gl.BLEND);
   }
+  gl.bindVertexArray(null);
+  const missing = Object.keys(assets).length ? "" : " · bibliothèque non ouverte : objets invisibles";
+  const info = room.objets.length + " objet(s), " + ls.length + " lumière(s)" + (ls.length > V3_MAX_L ? " (les " + V3_MAX_L + " plus proches éclairent)" : "") + missing;
+  if ($("v3Info").textContent !== info) $("v3Info").textContent = info;
+}
+function v3Loop() { if (!V3.on) { V3.raf = 0; return; } v3Render(); V3.raf = requestAnimationFrame(v3Loop); }
+function v3Show(on) {
+  if (on && !v3Init()) on = false;
+  V3.on = on; $("gl").classList.toggle("on", on); cv.style.visibility = on ? "hidden" : "";
+  if (on && !V3.raf) V3.raf = requestAnimationFrame(v3Loop);
+}
+// Bibliothèque rechargée : maillages et textures à refaire.
+function v3Reset() {
+  if (!V3.gl) return;
+  for (const k in V3.meshes) V3.meshes[k].forEach(p => v3Free(p.g));
+  for (const k in V3.meshes) delete V3.meshes[k];
+  for (const k in V3.tex) { if (V3.tex[k]) V3.gl.deleteTexture(V3.tex[k]); delete V3.tex[k]; }
+  V3.dirty = true;
+}
+function v3Bind() {
+  const c = $("gl");
+  c.addEventListener("contextmenu", e => e.preventDefault());
+  c.addEventListener("pointerdown", e => { c.setPointerCapture(e.pointerId); V3.drag = { x: e.clientX, y: e.clientY, pan: e.button !== 0 || e.shiftKey }; });
+  c.addEventListener("pointermove", e => {
+    const D = V3.drag; if (!D) return;
+    const dx = e.clientX - D.x, dy = e.clientY - D.y; D.x = e.clientX; D.y = e.clientY;
+    if (D.pan) {
+      const k = V3.dist * Math.tan(V3.fov * Math.PI / 360) * 2 / c.getBoundingClientRect().height, y = V3.yaw * Math.PI / 180;
+      V3.tx -= (dx * Math.cos(y) - dy * Math.sin(y) / Math.sin(V3.pitch * Math.PI / 180)) * k;
+      V3.ty -= (-dx * Math.sin(y) - dy * Math.cos(y) / Math.sin(V3.pitch * Math.PI / 180)) * k;
+    } else { V3.yaw = (V3.yaw - dx * .35) % 360; V3.pitch = Math.max(8, Math.min(89.5, V3.pitch + dy * .25)); }
+  });
+  c.addEventListener("pointerup", () => { V3.drag = null; });
+  c.addEventListener("wheel", e => { e.preventDefault(); V3.dist = Math.max(150, Math.min(30000, V3.dist * Math.pow(1.0015, e.deltaY))); }, { passive: false });
+  $("v3Game").onclick = () => { V3.yaw = 0; V3.pitch = 55; v3Fit(); };
+  $("v3Top").onclick = () => { V3.pitch = 89.5; };
+  $("v3Rot").onclick = () => { V3.yaw = (Math.round(V3.yaw / 90) * 90 + 90) % 360; };
+  const sl = (id, key, fmt) => { const e = $(id); e.value = V3[key]; $(id + "V").textContent = fmt(V3[key]); e.addEventListener("input", () => { V3[key] = +e.value; $(id + "V").textContent = fmt(V3[key]); }); };
+  sl("v3Amb", "amb", v => v.toFixed(2)); sl("v3Sun", "sun", v => v.toFixed(2)); sl("v3Lamp", "lamp", v => "× " + v.toFixed(2));
+  $("v3Anim").onclick = () => { V3.anim = !V3.anim; $("v3Anim").classList.toggle("on", V3.anim); };
+  $("v3Doors").onclick = () => { V3.doors = !V3.doors; $("v3Doors").classList.toggle("on", V3.doors); V3.dirty = true; };
 }
 
 // ======================================================================= souris
@@ -1143,14 +1486,17 @@ function onDown(ev) {
   if (tool === "object") {
     if (!inside) return;
     const i = objectAt(c.x, c.y);
-    if (btn === 2) { if (i >= 0) { pushUndo(); room.objets.splice(i, 1); changed(); } return; }
+    if (btn === 2) { if (i >= 0) { pushUndo(); room.objets.splice(i, 1); lumSel = -1; renderLum(); changed(); } return; }
     if (!assets[assetSel]) {
       // Sans asset choisi : un clic sur un objet le reprend (pour le déplacer).
       if (i >= 0) { pushUndo(); const o = room.objets.splice(i, 1)[0]; assetSel = o.asset; objRot = o.rot; renderAssets(); changed(); }
       else { toast("Choisis un asset dans l'onglet Objets"); showTab("obj"); }
       return;
     }
-    if (i >= 0 && ev.shiftKey) { pushUndo(); const o = room.objets.splice(i, 1)[0]; assetSel = o.asset; objRot = o.rot; renderAssets(); changed(); return; }
+    if (i >= 0 && ev.shiftKey) { pushUndo(); const o = room.objets.splice(i, 1)[0]; assetSel = o.asset; objRot = o.rot; if (o.lumiere) lumNext = lumClean(o.lumiere); lumSel = -1; renderAssets(); renderLum(); changed(); return; }
+    // Clic sur une lumière posée : on la règle (onglet Objets).
+    if (i >= 0 && objLum(room.objets[i])) { lumSel = i; lumUndo = false; showTab("obj"); renderLum(); draw(); return; }
+    lumSel = -1;
     const o = placeAt(c.x, c.y);
     if (objTiles(o).some(([x, y]) => at(x, y) === null)) { toast("L'objet dépasse de la salle"); return; }
     pushUndo(); room.objets.push(o); changed(); return;
@@ -1300,7 +1646,7 @@ function toast(msg, btn, fn) {
 function showTab(id) {
   document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === id));
   document.querySelectorAll(".pane").forEach(p => p.classList.toggle("on", p.id === "pane-" + id));
-  if (id === "iso") drawIso();
+  v3Show(id === "iso");
 }
 
 // --- nouvelle salle
@@ -1329,6 +1675,7 @@ function createNew() {
 
 // --- PNG
 function exportPng() {
+  if (V3.on) { v3Render(); $("gl").toBlob(b => download(room.nom + "_3D.png", b, "image/png")); return; }
   const z = 16, c = document.createElement("canvas"); c.width = room.W * z; c.height = room.H * z;
   const g = c.getContext("2d");
   for (let y = 0; y < room.H; y++) for (let x = 0; x < room.W; x++) drawTile(g, room.g[y * room.W + x], x * z, y * z, z, x, y);
@@ -1383,7 +1730,7 @@ cv.addEventListener("pointercancel", onUp);
 cv.addEventListener("pointerleave", () => { hover = null; updateStatus(); draw(); });
 cv.addEventListener("wheel", onWheel, { passive: false });
 cv.addEventListener("contextmenu", e => e.preventDefault());
-window.addEventListener("resize", () => { resizeCanvas(); drawIso(); });
+window.addEventListener("resize", () => { resizeCanvas(); });
 window.addEventListener("beforeunload", e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
 
 $("bNew").onclick = openNew; $("bOpen").onclick = openFiles; $("bDir").onclick = openDir; $("bDir2").onclick = openDir; $("bRefresh").onclick = refreshLib;
@@ -1391,16 +1738,22 @@ $("bSave").onclick = () => save(false); $("bSaveAs").onclick = () => save(true);
 $("bUndo").onclick = doUndo; $("bRedo").onclick = doRedo; $("bFit").onclick = fit; $("bPng").onclick = exportPng;
 $("bHelp").onclick = () => $("mHelp").classList.add("on");
 $("bAssets").onclick = pickAssetDir;
+// Actualiser : relit le même dossier (Chrome, Edge), sinon le redemande.
+$("bAssetsRe").onclick = async () => { for (const k in assets) assets[k].sprites = null; if (!(await reopenAssets(true))) pickAssetDir(); };
 $("assetSearch").addEventListener("input", e => { assetFilter = e.target.value; renderAssets(); });
 $("assetIn").addEventListener("change", async e => {
-  const fs = [...e.target.files].filter(f => /\.(eonasset|eonapercu)$/i.test(f.name));
+  const fs = [...e.target.files].filter(f => /\.(eonasset|eonapercu|eontheme|png)$/i.test(f.name));
   assetsName = (e.target.files[0] && e.target.files[0].webkitRelativePath.split("/")[0]) || "dossier";
-  await loadAssetFiles(fs.map(f => ({ path: f.webkitRelativePath || f.name, text: () => f.text() }))); e.target.value = "";
+  await loadAssetFiles(fs.map(f => ({ path: f.webkitRelativePath || f.name, text: () => f.text(), blob: async () => f }))); e.target.value = "";
 });
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => b.closest(".modal-bg").classList.remove("on"));
 $("nOk").onclick = createNew;
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
-$("isoL").onclick = () => { isoRot--; drawIso(); }; $("isoR").onclick = () => { isoRot++; drawIso(); };
+v3Bind();
+$("lumCol").addEventListener("input", e => lumSet("couleur", e.target.value, false)); $("lumCol").addEventListener("change", () => { lumUndo = false; });
+$("lumR").addEventListener("input", e => lumSet("rayon_px", +e.target.value, false)); $("lumR").addEventListener("change", () => { lumUndo = false; });
+$("lumI").addEventListener("input", e => lumSet("intensite", +e.target.value, false)); $("lumI").addEventListener("change", () => { lumUndo = false; });
+$("lumReset").onclick = () => { const T = lumTarget(); if (!T) return; if (T.next) { lumNext = lumClean(assets[T.asset].d.lumiere); } else { pushUndo(); delete T.lumiere; changed(); } renderLum(); };
 const tog = (id, f) => $(id).onclick = () => { $(id).classList.toggle("on"); f($(id).classList.contains("on")); draw(); };
 tog("symX", v => symX = v); tog("symY", v => symY = v); tog("vGrid", v => show.grid = v); tog("vCoords", v => show.coords = v);
 tog("vReach", v => show.reach = v); tog("vAuto", v => show.auto = v);

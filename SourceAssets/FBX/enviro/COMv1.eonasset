@@ -12,6 +12,7 @@
     180,
     270
   ],
+  "pose": "sol",
   "fbx": "COMv1.fbx",
   "mesh": "/Game/EON/Unity/import/fbx/enviro/COMv1.COMv1",
   "unreal": "/Game/EON/RoomAssets/enviro/BPA_COMv1.BPA_COMv1_C",

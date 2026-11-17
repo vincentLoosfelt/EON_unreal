@@ -12,6 +12,7 @@
     180,
     270
   ],
+  "pose": "sol",
   "fbx": "fractured.fbx",
   "mesh": "/Game/EON/Unity/import/fbx/lootable/fractured.fractured",
   "unreal": "/Game/EON/RoomAssets/lootable/BPA_fractured.BPA_fractured_C",

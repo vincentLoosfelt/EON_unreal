@@ -12,6 +12,7 @@
     180,
     270
   ],
+  "pose": "sol",
   "fbx": "Hitech_big_V1.fbx",
   "mesh": "/Game/EON/Unity/import/fbx/highttech/Assets_Hitech_big/Hitech_big_V1.Hitech_big_V1",
   "unreal": "/Game/EON/RoomAssets/highttech/Assets_Hitech_big/BPA_Hitech_big_V1.BPA_Hitech_big_V1_C",
