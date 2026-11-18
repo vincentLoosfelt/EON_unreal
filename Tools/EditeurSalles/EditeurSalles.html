@@ -108,6 +108,11 @@ select.inp { padding: 0 4px; }
 .libitem { display: flex; gap: 10px; align-items: center; padding: 6px; border-radius: 6px; background: var(--panel2); cursor: pointer; border: 1px solid transparent; }
 .libitem:hover { border-color: var(--line2); }
 .libitem.cur { border-color: var(--acc); }
+.couv { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 10px; }
+.couv th, .couv td { padding: 3px 4px; text-align: center; border-bottom: 1px solid var(--line); }
+.couv th:first-child, .couv td:first-child { text-align: left; }
+.couv td.no { color: #4a535c; } .couv td.ok { color: var(--ok); font-weight: 700; } .couv td.repli { color: var(--warn); } .couv td.gen { color: var(--err); }
+.couv td[title] { cursor: help; }
 .libitem canvas { width: 72px; height: 48px; flex: none; image-rendering: pixelated; background: #0d0f12; border-radius: 4px; }
 .libitem .meta { min-width: 0; }
 .libitem .meta b { display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -224,6 +229,8 @@ select.inp { padding: 0 4px; }
     <div class="pane" id="pane-lib">
       <div class="row" style="margin-bottom:10px"><button class="btn" id="bDir2">Ouvrir un dossier…</button><button class="btn icon" id="bRefresh" title="Relire le dossier"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></button></div>
       <div class="muted" id="libInfo" style="margin-bottom:8px;font-size:12px">Ouvre le dossier <b>Salles</b> du projet EON pour voir toutes les salles ici. (Chrome ou Edge : enregistrement direct dans le dossier. Safari et Firefox : ouvre des fichiers un par un, l'enregistrement les télécharge.)</div>
+      <div class="row" style="margin-bottom:8px"><button class="btn" id="bCouv" title="Pour chaque rôle de case et chaque forme demandés par le générateur d'étage : les salles dessinées qui peuvent servir">Couverture</button><button class="btn" id="bVerifTout" title="Vérifie toutes les salles du dossier avec les règles du jeu">Tout vérifier</button></div>
+      <div id="libReport"></div>
       <div class="lib" id="lib"></div>
     </div>
     <div class="pane" id="pane-iso">
@@ -261,10 +268,10 @@ select.inp { padding: 0 4px; }
     <kbd>G</kbd><span>Remplissage</span>
     <kbd>E</kbd><span>Gomme (pose du sol)</span>
     <kbd>I</kbd><span>Pipette (ou Alt + clic)</span>
-    <kbd>M</kbd><span>Sélection : Ctrl+C, Ctrl+X, Ctrl+V, Suppr ; dans un collage, <kbd>H</kbd> <kbd>V</kbd> miroir, <kbd>T</kbd> tourner</span>
+    <kbd>M</kbd><span>Sélection : Ctrl+C, Ctrl+X, Ctrl+V, Suppr (tuiles et objets entièrement dedans) ; dans un collage, <kbd>H</kbd> <kbd>V</kbd> miroir, <kbd>T</kbd> tourner</span>
     <kbd>P</kbd><span>Porte extérieure : clic sur un bord (2 tuiles, une par côté)</span>
     <kbd>O</kbd><span>Porte intérieure : glisser une ligne de 1 à 8 tuiles</span>
-    <kbd>A</kbd><span>Objet : poser un asset de l'onglet Objets ; <kbd>R</kbd> tourner, clic droit supprimer, Maj + clic reprendre</span>
+    <kbd>A</kbd><span>Objet : poser un asset de l'onglet Objets ; clic sur un objet posé = le choisir (glisser pour le déplacer, <kbd>R</kbd> tourner, <kbd>Suppr</kbd> effacer) ; Ctrl + clic poser par-dessus ; clic droit supprimer ; Maj + clic reprendre</span>
     <kbd>Espace</kbd><span>Main (déplacer la vue), aussi clic molette</span>
     <kbd>1</kbd>–<kbd>6</kbd><span>Choisir une tuile · <kbd>X</kbd> échanger gauche / droite</span>
     <kbd>Molette</kbd><span>Zoom · <kbd>F</kbd> cadrer</span>
@@ -285,9 +292,25 @@ select.inp { padding: 0 4px; }
 "use strict";
 // ======================================================================= données
 const FORMAT = "eonsalle", VERSION = 1;
-const ROLES = ["COMBAT", "TENSION", "CALME", "CORRIDOR", "DEPART", "OPPORTUNITE", "ASCENSEUR", "SECURITE", "MARCHAND", "FAILLE", "EVENEMENT"];
-const ROLE_FR = { COMBAT: "Combat", TENSION: "Tension", CALME: "Calme (aussi Trésor, Irruption)", CORRIDOR: "Corridor", DEPART: "Départ", OPPORTUNITE: "Opportunité",
-  ASCENSEUR: "Ascenseur (gardien)", SECURITE: "Sécurité", MARCHAND: "Marchand", FAILLE: "Faille", EVENEMENT: "Événement (aussi Cartographe)" };
+const ROLES = ["COMBAT", "TENSION", "CALME", "CORRIDOR", "OPPORTUNITE", "ASCENSEUR", "SECURITE", "MARCHAND", "FAILLE", "EVENEMENT", "TRESOR", "IRRUPTION", "CARTO", "DEPART"];
+const ROLE_FR = { COMBAT: "Combat", TENSION: "Tension", CALME: "Calme (aussi Trésor, Irruption sans salle à eux)", CORRIDOR: "Corridor", DEPART: "Départ (jamais tirée : le jeu y met le C.O.M)", OPPORTUNITE: "Opportunité",
+  ASCENSEUR: "Ascenseur (gardien)", SECURITE: "Sécurité", MARCHAND: "Marchand", FAILLE: "Faille", EVENEMENT: "Événement (aussi Cartographe sans salle à lui)",
+  TRESOR: "Trésor (sinon une salle Calme)", IRRUPTION: "Irruption (sinon une salle Calme)", CARTO: "Cartographe (sinon une salle Événement)" };
+// Formes que le générateur d'étage demande pour chaque rôle de case (AEONFloorManager : choix de C.Shape ; les couloirs
+// corH / corV pour Combat, Tension et Calme quand la case n'a que deux portes en ligne). Repli : buildRoom prend une salle
+// du rôle de repli quand aucune salle ne sert le rôle lui-même. Sans aucune salle dessinée, le jeu génère la salle (proto).
+const GEN = { COMBAT: ["std", "large", "small", "corH", "corV"], TENSION: ["std", "large", "corH", "corV"], CALME: ["std", "small", "corH", "corV"],
+  CORRIDOR: ["corH", "corV"], OPPORTUNITE: ["small"], ASCENSEUR: ["std"], SECURITE: ["std"], MARCHAND: ["std"], FAILLE: ["std", "large"],
+  EVENEMENT: ["std"], TRESOR: ["std"], IRRUPTION: ["std"], CARTO: ["std"] };
+const GEN_REPLI = { TRESOR: "CALME", IRRUPTION: "CALME", CARTO: "EVENEMENT" };
+const GEN_FORMES = ["std", "large", "small", "corH", "corV"];
+function serves(r, role, forme) { return Number(r.poids) > 0 && (r.role === role || r.rolesEnPlus.includes(role)) && (!r.forme || r.forme === forme); }
+// Couples (rôle, forme) du générateur que cette salle peut servir.
+function servedPairs(r) {
+  const out = [];
+  for (const role of [r.role].concat(r.rolesEnPlus)) for (const f of GEN[role] || []) if (!r.forme || r.forme === f) out.push([role, f]);
+  return out;
+}
 const FORMES = { "": [0, 0, "Libre (toutes les cases)"], std: [32, 20, "Standard"], carree: [32, 32, "Carrée"], large: [40, 26, "Large"],
   small: [24, 16, "Petite"], corH: [50, 9, "Couloir horizontal"], corV: [12, 32, "Couloir vertical"] };
 const TILES = [
@@ -329,30 +352,47 @@ function clone(r) { return JSON.parse(JSON.stringify(r)); }
 const at = (x, y) => (x >= 0 && y >= 0 && x < room.W && y < room.H) ? room.g[y * room.W + x] : null;
 
 // ======================================================================= fichier
+// JSON sur une ligne comme json.dumps de Python (séparateurs « , » et « : », accents gardés) : eon_salles.write_file écrit
+// exactement le même texte. Une porte, un objet, une rangée du plan par ligne : fichiers courts et faciles à comparer dans Git.
+function pyJson(v) {
+  if (Array.isArray(v)) return "[" + v.map(pyJson).join(", ") + "]";
+  if (v && typeof v === "object") return "{" + Object.keys(v).map(k => JSON.stringify(k) + ": " + pyJson(v[k])).join(", ") + "}";
+  return JSON.stringify(v);
+}
+function jsonLines(a) { return a.length ? "[\n" + a.map(o => "    " + pyJson(o)).join(",\n") + "\n  ]" : "[]"; }
 function toFileText(r) {
   const plan = [];
   for (let y = 0; y < r.H; y++) plan.push(r.g.slice(y * r.W, (y + 1) * r.W).join(""));
-  const head = { format: FORMAT, version: VERSION, nom: r.nom, role: r.role, rolesEnPlus: r.rolesEnPlus, forme: r.forme,
-    poids: Number(r.poids) || 0, portes: r.portes.map(p => p.type === "exterieure" ? { type: p.type, cote: p.cote, pos: p.pos }
-      : { type: p.type, x: p.x, y: p.y, largeur: p.largeur, sens: p.sens }),
-    objets: (r.objets || []).map(o => Object.assign({ asset: o.asset, x: o.x, y: o.y, rot: o.rot }, o.lumiere ? { lumiere: o.lumiere } : {})) };
-  let t = JSON.stringify(head, null, 2);
-  t = t.replace(/("poids": )(-?\d+)(,?\n)/, "$1$2.0$3");
-  t = t.slice(0, -2) + ',\n  "plan": [\n' + plan.map(s => "    " + JSON.stringify(s)).join(",\n") + "\n  ]\n}\n";
-  return t;
+  const p = Number(r.poids) || 0;
+  const head = [["format", FORMAT], ["version", VERSION], ["nom", r.nom], ["role", r.role], ["rolesEnPlus", r.rolesEnPlus], ["forme", r.forme]];
+  const portes = r.portes.map(p => p.type === "exterieure" ? { type: p.type, cote: p.cote, pos: p.pos } : { type: p.type, x: p.x, y: p.y, largeur: p.largeur, sens: p.sens });
+  const objets = (r.objets || []).map(o => Object.assign({ asset: o.asset, x: o.x, y: o.y, rot: o.rot }, o.lumiere ? { lumiere: o.lumiere } : {}));
+  return "{\n" + head.map(([k, v]) => "  " + JSON.stringify(k) + ": " + pyJson(v)).join(",\n") +
+    ',\n  "poids": ' + (Number.isInteger(p) ? p + ".0" : String(p)) + ',\n  "portes": ' + jsonLines(portes) + ',\n  "objets": ' + jsonLines(objets) +
+    ',\n  "plan": ' + jsonLines(plan) + "\n}\n";
 }
 
+let loadWarn = [];          // corrections faites par le dernier fromFileText (montrées à l'ouverture et dans la liste des salles)
 function fromFileText(txt) {
-  const d = JSON.parse(txt);
-  if (d.format !== FORMAT) throw new Error("ce n'est pas un fichier .eonsalle");
+  let d;
+  try { d = JSON.parse(txt); } catch (e) { throw new Error("JSON abîmé (" + e.message + ")"); }
+  if (!d || d.format !== FORMAT) throw new Error("ce n'est pas un fichier .eonsalle");
   if ((d.version | 0) > VERSION) throw new Error("fichier d'une version plus récente (" + d.version + ")");
-  const rows = (d.plan || []).map(s => String(s).replace(/ /g, "_").replace(/D/g, "#").replace(/x/g, "X").replace(/k/g, "K"));
+  if (!Array.isArray(d.plan) || !d.plan.length) throw new Error("pas de plan");
+  const warn = [];
+  const rows = d.plan.map(s => String(s).replace(/ /g, "_").replace(/D/g, "#").replace(/x/g, "X").replace(/k/g, "K").replace(/O/g, "."));
   const W = Math.max(1, ...rows.map(s => s.length)), H = Math.max(1, rows.length);
-  const g = [];
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const c = (rows[y] || "")[x] || "#"; g.push(TILE_BY[c] ? c : "#"); }
+  if (rows.some(s => s.length !== W)) warn.push("rangées de longueurs différentes : complétées par du mur");
+  const g = [], bad = new Set();
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const c = (rows[y] || "")[x] || "#"; if (!TILE_BY[c]) bad.add(c); g.push(TILE_BY[c] ? c : "#"); }
+  if (bad.size) warn.push("tuiles inconnues « " + [...bad].join(" ") + " » remplacées par du mur");
+  const objOk = o => o && typeof o === "object" && typeof o.asset === "string" && o.asset;
+  if (Array.isArray(d.objets) && d.objets.some(o => !objOk(o))) warn.push("objet(s) sans asset retiré(s)");
+  if (!ROLES.includes(d.role)) warn.push("rôle inconnu « " + d.role + " »");
+  loadWarn = warn;
   return { nom: d.nom || "Salle", role: d.role || "COMBAT", rolesEnPlus: Array.isArray(d.rolesEnPlus) ? d.rolesEnPlus.slice() : [],
     forme: d.forme || "", poids: d.poids ?? 1, W, H, g, portes: Array.isArray(d.portes) ? d.portes.map(p => ({ ...p })) : [],
-    objets: Array.isArray(d.objets) ? d.objets.map(o => Object.assign({ asset: String(o.asset), x: o.x | 0, y: o.y | 0, rot: ((o.rot | 0) % 360 + 360) % 360 },
+    objets: Array.isArray(d.objets) ? d.objets.filter(objOk).map(o => Object.assign({ asset: String(o.asset), x: o.x | 0, y: o.y | 0, rot: ((o.rot | 0) % 360 + 360) % 360 },
       o.lumiere && typeof o.lumiere === "object" ? { lumiere: lumClean(o.lumiere) } : {})) : [] };
 }
 
@@ -387,9 +427,9 @@ function loadText(txt, name, handle) {
     room = fromFileText(txt);
   } catch (e) { toast("« " + name + " » : " + e.message); return; }
   fileHandle = handle || null; fileName = name;
-  undo = []; redo = []; sel = null; paste = null;
+  undo = []; redo = []; sel = null; paste = null; fixRoom();
   setDirty(false); syncProps(); fit(); changed(false);
-  toast("Ouvert : " + name);
+  toast(loadWarn.length ? "Ouvert : " + name + " (corrigé : " + loadWarn.join(" ; ") + ")" : "Ouvert : " + name);
   renderLib();
 }
 
@@ -457,7 +497,7 @@ async function refreshLib() {
   if (GAS) {
     $("libInfo").textContent = "Lecture des salles sur le Drive…";
     try {
-      libItems = (await gas("listeSalles")).map(f => { try { return { name: f.name, drive: f.id, t: f.t, txt: f.txt, r: fromFileText(f.txt) }; }
+      libItems = (await gas("listeSalles")).map(f => { try { return { name: f.name, drive: f.id, t: f.t, txt: f.txt, r: fromFileText(f.txt), warn: loadWarn }; }
         catch (e) { return { name: f.name, drive: f.id, t: f.t, r: null, err: e.message }; } });
     } catch (e) { $("libInfo").textContent = "Salles du Drive illisibles : " + e.message; return; }
     libItems.sort((a, b) => a.name.localeCompare(b.name));
@@ -469,7 +509,7 @@ async function refreshLib() {
   libItems = [];
   for await (const [name, h] of dirHandle.entries()) {
     if (h.kind !== "file" || !name.toLowerCase().endsWith(".eonsalle")) continue;
-    try { const r = fromFileText(await (await h.getFile()).text()); libItems.push({ name, h, r }); }
+    try { const r = fromFileText(await (await h.getFile()).text()); libItems.push({ name, h, r, warn: loadWarn }); }
     catch (e) { libItems.push({ name, h, r: null, err: e.message }); }
   }
   libItems.sort((a, b) => a.name.localeCompare(b.name));
@@ -486,11 +526,60 @@ function renderLib() {
     const m = document.createElement("div"); m.className = "meta";
     m.innerHTML = "<b></b><small></small>";
     m.querySelector("b").textContent = it.name.replace(/\.eonsalle$/i, "");
-    m.querySelector("small").textContent = it.r ? (ROLE_FR[it.r.role] ? it.r.role : it.r.role) + " · " + it.r.W + "×" + it.r.H + (it.r.forme ? " · " + it.r.forme : "") : "illisible : " + it.err;
+    m.querySelector("small").textContent = it.r ? it.r.role + " · " + it.r.W + "×" + it.r.H + (it.r.forme ? " · " + it.r.forme : "") + (it.warn && it.warn.length ? " · ⚠ " + it.warn.join(", ") : "") : "illisible : " + it.err;
     d.append(c, m);
     d.onclick = async () => { if (it.name === fileName || !confirmLose()) return; if (it.drive) loadText(it.txt, it.name, { drive: it.drive, t: it.t }); else await openHandle(it.h); };
     L.appendChild(d);
   }
+}
+// Couverture : ce que le générateur d'étage peut demander (GEN) et les salles dessinées qui y répondent.
+function renderCouverture() {
+  const rooms = libItems.filter(it => it.r), box = $("libReport");
+  if (!rooms.length) { box.innerHTML = '<p class="muted">Ouvre d\'abord le dossier des salles.</p>'; return; }
+  const name = it => it.name.replace(/\.eonsalle$/i, "");
+  let h = '<h3 style="margin-top:4px">Couverture du générateur</h3><table class="couv"><tr><th>Rôle</th>' + GEN_FORMES.map(f => "<th>" + f + "</th>").join("") + "</tr>";
+  let manque = 0;
+  for (const role of Object.keys(GEN)) {
+    h += "<tr><td>" + role + "</td>";
+    for (const f of GEN_FORMES) {
+      if (!GEN[role].includes(f)) { h += '<td class="no">·</td>'; continue; }
+      const own = rooms.filter(it => serves(it.r, role, f)), rp = GEN_REPLI[role] ? rooms.filter(it => serves(it.r, GEN_REPLI[role], f)) : [];
+      const fixe = own.filter(it => it.r.portes.some(p => p.type === "exterieure")).length;
+      if (own.length) h += '<td class="ok" title="' + own.map(name).join(", ") + (fixe ? " · " + fixe + " avec portes posées (seulement pour certaines cases)" : "") + '">' + own.length + "</td>";
+      else if (rp.length) h += '<td class="repli" title="Pas de salle ' + role + " : le jeu prend une salle " + GEN_REPLI[role] + " (" + rp.map(name).join(", ") + ')">repli</td>';
+      else { manque++; h += '<td class="gen" title="Aucune salle dessinée : le jeu génère la salle comme le proto">0</td>'; }
+    }
+    h += "</tr>";
+  }
+  h += "</table>";
+  const jamais = rooms.filter(it => !(Number(it.r.poids) > 0) || !servedPairs(it.r).length);
+  h += '<p class="muted" style="font-size:12px;margin:0 0 6px">Nombre de salles qui peuvent servir chaque case. <b style="color:var(--err)">0</b> : salle générée par le jeu (' + manque + " cas). <b style=\"color:var(--warn)\">repli</b> : salle du rôle de repli. Survol : noms des salles.</p>";
+  if (jamais.length) h += '<p style="font-size:12px;margin:0 0 10px;color:var(--warn)">Jamais tirées : ' + jamais.map(it => name(it) + " (" + (!(Number(it.r.poids) > 0) ? "poids 0" : it.r.role === "DEPART" ? "Départ" : "forme " + it.r.forme) + ")").join(", ") + "</p>";
+  box.innerHTML = h;
+}
+// Vérifie toutes les salles du dossier avec analyse() (mêmes règles que pour la salle ouverte).
+function verifTout() {
+  const box = $("libReport"), keep = room, items = libItems.slice();
+  if (!items.length) { box.innerHTML = '<p class="muted">Ouvre d\'abord le dossier des salles.</p>'; return; }
+  const res = [];
+  for (const it of items) {
+    if (!it.r) { res.push({ it, iss: [{ lvl: "err", t: "illisible : " + it.err }] }); continue; }
+    room = clone(it.r); fixRoom(); analyse();
+    res.push({ it, iss: analysis.issues.filter(i => i.lvl === "err" || i.lvl === "warn").concat((it.warn || []).map(t => ({ lvl: "warn", t: "à l'ouverture : " + t }))) });
+  }
+  room = keep; if (room) { fixRoom(); analyse(); }
+  const bad = res.filter(r => r.iss.length);
+  box.innerHTML = '<h3 style="margin-top:4px">Vérification de ' + items.length + " salle(s)</h3>";
+  if (!bad.length) { box.insertAdjacentHTML("beforeend", '<div class="issue ok"><span class="ic">✓</span><span>Toutes les salles sont valides.</span></div>'); return; }
+  for (const { it, iss } of bad) {
+    const d = document.createElement("div"), err = iss.some(i => i.lvl === "err");
+    d.className = "issue click " + (err ? "err" : "warn");
+    d.innerHTML = '<span class="ic">!</span><span></span>';
+    d.lastChild.textContent = it.name.replace(/\.eonsalle$/i, "") + " : " + iss.map(i => i.t).join(" · ");
+    d.onclick = async () => { if (it.name === fileName || !confirmLose()) return; if (it.drive) loadText(it.txt, it.name, { drive: it.drive, t: it.t }); else await openHandle(it.h); };
+    box.appendChild(d);
+  }
+  box.insertAdjacentHTML("beforeend", '<p class="muted" style="font-size:12px">' + (items.length - bad.length) + " salle(s) sans remarque. Clic : ouvrir la salle.</p>");
 }
 function drawThumb(c, r) {
   const x = c.getContext("2d"), im = x.createImageData(r.W, r.H);
@@ -630,7 +719,7 @@ function placeBad(o) {
 // --- lumières (assets dynamiques AEONLampe) : réglages par lumière posée, sinon ceux de l'asset
 const NEONS = ["#ff3d8b", "#e0a838", "#3ef2e0", "#7ac8ff", "#ffc23d", "#ffe08a"];   // néons des palettes du proto
 const LUM_MODES = [["fixe", "Fixe"], ["clignote", "Clignote"], ["vacille", "Vacille"]];
-let lumSel = -1, lumNext = null, lumUndo = false;
+let lumSel = -1, lumNext = null, lumUndo = false, objSel = -1;   // objSel : objet posé sélectionné (outil Objet)
 const FACE = { 0: [0, 1], 90: [-1, 0], 180: [0, -1], 270: [1, 0] };     // côté éclairé du néon mural selon la rotation
 function lumClean(l) {
   const m = LUM_MODES.some(q => q[0] === l.mode) ? l.mode : "fixe";
@@ -695,6 +784,16 @@ function drawLights(g, z) {
     g.beginPath(); g.arc(x, y, Math.max(4, z * .22), 0, 7); g.fill(); g.stroke();
     if (L.mode !== "fixe" && z >= 14) { g.fillStyle = "#000"; g.font = "700 " + Math.round(z * .3) + "px system-ui"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(L.mode === "clignote" ? "C" : "V", x, y + .5); }
   }
+}
+// Tourne l'objet posé sélectionné autour de son centre (rotations permises par l'asset).
+function rotatePlaced(dir) {
+  const o = room.objets[objSel], a = assets[o.asset]; const R = a && a.d.rotations && a.d.rotations.length ? a.d.rotations : [0, 90, 180, 270];
+  let i = R.indexOf(o.rot); if (i < 0) i = 0;
+  const [w0, h0] = objDims(o), cx = o.x + (w0 - 1) / 2, cy = o.y + (h0 - 1) / 2;
+  const n = Object.assign({}, o, { rot: R[(i + dir + R.length) % R.length] }), [w1, h1] = objDims(n);
+  if (!(a && a.d.pose === "mur")) { n.x = Math.round(cx - (w1 - 1) / 2); n.y = Math.round(cy - (h1 - 1) / 2); }
+  if (objTiles(n).some(([x, y]) => at(x, y) === null)) { toast("Tourné, l'objet dépasserait de la salle"); return; }
+  pushUndo(); room.objets[objSel] = n; changed();
 }
 function rotateObj(dir) {
   const a = assets[assetSel]; const R = a && a.d.rotations && a.d.rotations.length ? a.d.rotations : [0, 90, 180, 270];
@@ -883,8 +982,8 @@ function analyseObjects(iss, passable, blocked) {
 
 // ======================================================================= historique
 function snapshot() { return JSON.stringify(room); }
-function fixRoom() { if (!room.objets) room.objets = []; lumSel = -1; }
-function pushUndo() { undo.push(snapshot()); if (undo.length > 300) undo.shift(); redo = []; }
+function fixRoom() { if (!room.objets) room.objets = []; lumSel = -1; objSel = -1; }
+function pushUndo(snap) { undo.push(snap || snapshot()); if (undo.length > 300) undo.shift(); redo = []; }
 function doUndo() { if (!undo.length) return; redo.push(snapshot()); room = JSON.parse(undo.pop()); fixRoom(); syncProps(); changed(); }
 function doRedo() { if (!redo.length) return; undo.push(snapshot()); room = JSON.parse(redo.pop()); fixRoom(); syncProps(); changed(); }
 
@@ -1015,22 +1114,53 @@ function resize(W, H, anc) {
 
 // --- sélection, copier, coller
 function selRect() { if (!sel) return null; return { x0: Math.min(sel.x0, sel.x1), y0: Math.min(sel.y0, sel.y1), x1: Math.max(sel.x0, sel.x1), y1: Math.max(sel.y0, sel.y1) }; }
+// Objets entièrement dans la sélection : ils sont copiés, coupés, supprimés, tournés et retournés avec les tuiles.
+function objsIn(r) { return room.objets.filter(o => objTiles(o).every(([x, y]) => x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1)); }
 function copySel(cut) {
   const r = selRect(); if (!r) return;
   const w = r.x1 - r.x0 + 1, h = r.y1 - r.y0 + 1, g = [];
   for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) g.push(at(x, y));
-  clip = { w, h, g };
-  if (cut) { pushUndo(); for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) room.g[y * room.W + x] = secondary; changed(); }
-  toast((cut ? "Coupé : " : "Copié : ") + w + " × " + h);
+  const inn = objsIn(r);
+  clip = { w, h, g, objs: inn.map(o => Object.assign(clone(o), { x: o.x - r.x0, y: o.y - r.y0 })) };
+  if (cut) { pushUndo(); for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) room.g[y * room.W + x] = secondary; room.objets = room.objets.filter(o => !inn.includes(o)); lumSel = objSel = -1; renderLum(); changed(); }
+  toast((cut ? "Coupé : " : "Copié : ") + w + " × " + h + (inn.length ? " et " + inn.length + " objet(s)" : ""));
 }
-function clearSel() { const r = selRect(); if (!r) return; pushUndo(); for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) room.g[y * room.W + x] = secondary; changed(); }
+function clearSel() {
+  const r = selRect(); if (!r) return; pushUndo();
+  for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) room.g[y * room.W + x] = secondary;
+  const inn = objsIn(r); room.objets = room.objets.filter(o => !inn.includes(o)); lumSel = objSel = -1; renderLum(); changed();
+}
+// Rotation dont le côté avant (FACE) est le vecteur donné : sert aux miroirs et aux rotations d'une sélection.
+function rotFacing(v) { for (const k in FACE) if (FACE[k][0] === v[0] && FACE[k][1] === v[1]) return +k; return 0; }
+function objDims(o) { const a = assets[o.asset]; return a ? rotDims(a.d, o.rot) : [1, 1]; }
 function startPaste() { if (!clip) { toast("Rien à coller : sélectionne (M) puis Ctrl+C"); return; } paste = true; setTool("select"); draw(); }
-function clipFlip(h) { if (!clip) return; const { w, h: hh, g } = clip, n = []; for (let y = 0; y < hh; y++) for (let x = 0; x < w; x++) n.push(h ? g[y * w + (w - 1 - x)] : g[(hh - 1 - y) * w + x]); clip.g = n; draw(); }
-function clipRot() { if (!clip) return; const { w, h, g } = clip, n = []; for (let y = 0; y < w; y++) for (let x = 0; x < h; x++) n.push(g[(h - 1 - x) * w + y]); clip = { w: h, h: w, g: n }; draw(); }
+function clipFlip(h) {
+  if (!clip) return; const { w, h: hh, g } = clip, n = [];
+  for (let y = 0; y < hh; y++) for (let x = 0; x < w; x++) n.push(h ? g[y * w + (w - 1 - x)] : g[(hh - 1 - y) * w + x]);
+  clip.g = n;
+  for (const o of clip.objs || []) {
+    const f = FACE[o.rot] || [0, 1], [ow, oh] = objDims(o);
+    o.rot = rotFacing(h ? [-f[0], f[1]] : [f[0], -f[1]]);
+    if (h) o.x = w - o.x - ow; else o.y = hh - o.y - oh;
+  }
+  draw();
+}
+function clipRot() {   // quart de tour dans le sens horaire : (x, y) -> (h - 1 - y, x)
+  if (!clip) return; const { w, h, g } = clip, n = [];
+  for (let y = 0; y < w; y++) for (let x = 0; x < h; x++) n.push(g[(h - 1 - x) * w + y]);
+  for (const o of clip.objs || []) {
+    const f = FACE[o.rot] || [0, 1], [, oh] = objDims(o), ox = o.x;
+    o.rot = rotFacing([-f[1], f[0]]); o.x = h - o.y - oh; o.y = ox;
+  }
+  clip = { w: h, h: w, g: n, objs: clip.objs }; draw();
+}
 function dropPaste(cx, cy) {
   pushUndo();
   const ox = cx - (clip.w >> 1), oy = cy - (clip.h >> 1);
   for (let y = 0; y < clip.h; y++) for (let x = 0; x < clip.w; x++) { const a = ox + x, b = oy + y; if (at(a, b) !== null) room.g[b * room.W + a] = clip.g[y * clip.w + x]; }
+  let out = 0;
+  for (const c of clip.objs || []) { const o = Object.assign(clone(c), { x: c.x + ox, y: c.y + oy }); if (objTiles(o).some(([x, y]) => at(x, y) === null)) out++; else room.objets.push(o); }
+  if (out) toast(out + " objet(s) hors de la salle n'ont pas été collés");
   changed();
 }
 
@@ -1046,6 +1176,8 @@ function analyse() {
   const f = FORMES[room.forme];
   if (room.forme && f && (f[0] !== W || f[1] !== H)) iss.push({ lvl: "warn", t: "La forme « " + room.forme + " » fait " + f[0] + " × " + f[1] + ", la salle fait " + W + " × " + H + ".", fix: "forme" });
   if (!(Number(room.poids) > 0)) iss.push({ lvl: "warn", t: "Poids 0 : le générateur ne tirera jamais cette salle." });
+  else if (room.role === "DEPART" && !room.rolesEnPlus.length) iss.push({ lvl: "warn", t: "Le jeu ne tire jamais de salle Départ : le départ d'un étage est le C.O.M." });
+  else if (!servedPairs(room).length) iss.push({ lvl: "warn", t: "Le générateur ne demande jamais la forme « " + room.forme + " » pour " + [room.role].concat(room.rolesEnPlus).join(", ") + " : la salle ne sera jamais tirée (onglet Salles > Couverture)." });
 
   // Portes : celles posées, sinon les 4 du milieu (comme le jeu).
   const sides = ext.length ? ext.map(p => [p.cote, extDoorTiles(p)]) : "NSEW".split("").map(c => [c, autoDoorTiles(c)]);
@@ -1193,6 +1325,10 @@ function draw() {
   if (symY) { ctx.strokeStyle = "rgba(62,199,184,.8)"; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(-10, H * z / 2); ctx.lineTo(W * z + 10, H * z / 2); ctx.stroke(); ctx.setLineDash([]); }
   // objets posés
   for (const o of room.objets) drawObject(ctx, o, z, false, false);
+  if (tool === "object" && objSel >= 0 && room.objets[objSel]) {
+    const tl = objTiles(room.objets[objSel]), xs = tl.map(t => t[0]), ys = tl.map(t => t[1]), x0 = Math.min(...xs), y0 = Math.min(...ys);
+    ctx.save(); ctx.strokeStyle = "#3ec7b8"; ctx.lineWidth = 2; ctx.strokeRect(x0 * z - 1, y0 * z - 1, (Math.max(...xs) - x0 + 1) * z + 2, (Math.max(...ys) - y0 + 1) * z + 2); ctx.restore();
+  }
   drawLights(ctx, z);
   // portes
   const ext = room.portes.filter(p => p.type === "exterieure");
@@ -1253,7 +1389,9 @@ function drawPreview() {
       const ox = hover.x - (clip.w >> 1), oy = hover.y - (clip.h >> 1);
       ctx.globalAlpha = .7;
       for (let y = 0; y < clip.h; y++) for (let x = 0; x < clip.w; x++) if (at(ox + x, oy + y) !== null) drawTile(ctx, clip.g[y * clip.w + x], (ox + x) * z, (oy + y) * z, z, ox + x, oy + y);
-      ctx.globalAlpha = 1; ctx.strokeStyle = "#fff"; ctx.setLineDash([4, 3]); ctx.strokeRect(ox * z, oy * z, clip.w * z, clip.h * z); ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+      for (const c of clip.objs || []) drawObject(ctx, Object.assign({}, c, { x: c.x + ox, y: c.y + oy }), z, true, false);
+      ctx.strokeStyle = "#fff"; ctx.setLineDash([4, 3]); ctx.strokeRect(ox * z, oy * z, clip.w * z, clip.h * z); ctx.setLineDash([]);
     } else if (tool === "brush" || tool === "erase") {
       const r0 = Math.floor((brush - 1) / 2), sx = hover.x - r0, sy = hover.y - r0, W = room.W, H = room.H;
       const org = [[sx, sy]];
@@ -1647,17 +1785,16 @@ function onDown(ev) {
   if (tool === "object") {
     if (!inside) return;
     const i = objectAt(c.x, c.y);
-    if (btn === 2) { if (i >= 0) { pushUndo(); room.objets.splice(i, 1); lumSel = -1; renderLum(); changed(); } return; }
-    if (!assets[assetSel]) {
-      // Sans asset choisi : un clic sur un objet le reprend (pour le déplacer).
-      if (i >= 0) { pushUndo(); const o = room.objets.splice(i, 1)[0]; assetSel = o.asset; objRot = o.rot; renderAssets(); changed(); }
-      else { toast("Choisis un asset dans l'onglet Objets"); showTab("obj"); }
-      return;
+    if (btn === 2) { if (i >= 0) { pushUndo(); room.objets.splice(i, 1); lumSel = objSel = -1; renderLum(); changed(); } return; }
+    if (i >= 0 && ev.shiftKey) { pushUndo(); const o = room.objets.splice(i, 1)[0]; assetSel = o.asset; objRot = o.rot; if (o.lumiere) lumNext = lumClean(o.lumiere); lumSel = objSel = -1; renderAssets(); renderLum(); changed(); return; }
+    // Clic sur un objet posé : il est sélectionné (R tourne, Suppr efface ; une lumière se règle dans l'onglet Objets) et se
+    // déplace en glissant. Ctrl + clic pose l'asset choisi par-dessus (lumière sur un terminal, par exemple).
+    if (i >= 0 && !(ev.ctrlKey || ev.metaKey)) {
+      objSel = i; lumSel = objLum(room.objets[i]) ? i : -1; if (lumSel >= 0) { lumUndo = false; showTab("obj"); } renderLum();
+      const o = room.objets[i]; drag = { kind: "moveobj", i, a: c, ox: o.x, oy: o.y, snap: snapshot(), moved: false }; draw(); return;
     }
-    if (i >= 0 && ev.shiftKey) { pushUndo(); const o = room.objets.splice(i, 1)[0]; assetSel = o.asset; objRot = o.rot; if (o.lumiere) lumNext = lumClean(o.lumiere); lumSel = -1; renderAssets(); renderLum(); changed(); return; }
-    // Clic sur une lumière posée : on la règle (onglet Objets).
-    if (i >= 0 && objLum(room.objets[i])) { lumSel = i; lumUndo = false; showTab("obj"); renderLum(); draw(); return; }
-    lumSel = -1;
+    if (!assets[assetSel]) { objSel = -1; toast("Choisis un asset dans l'onglet Objets"); showTab("obj"); draw(); return; }
+    lumSel = objSel = -1;
     const o = placeAt(c.x, c.y);
     if (objTiles(o).some(([x, y]) => at(x, y) === null)) { toast("L'objet dépasse de la salle"); return; }
     pushUndo(); room.objets.push(o); changed(); return;
@@ -1678,6 +1815,10 @@ function onMove(ev) {
     drag.b = b; draw(); return;
   }
   if (drag.kind === "sel") { sel.x1 = clampX(c.x); sel.y1 = clampY(c.y); draw(); }
+  if (drag.kind === "moveobj") {
+    const o = room.objets[drag.i], nx = drag.ox + c.x - drag.a.x, ny = drag.oy + c.y - drag.a.y;
+    if (nx !== o.x || ny !== o.y) { o.x = nx; o.y = ny; drag.moved = true; draw(); }
+  }
 }
 function onUp() {
   if (!drag) return;
@@ -1685,6 +1826,11 @@ function onUp() {
   if (d.kind === "rect") { pushUndo(); const col = d.btn === 2 ? secondary : primary; rectCells(d.a, d.b, rectOutline, (x, y) => setTile(x, y, col)); changed(); }
   else if (d.kind === "line") { pushUndo(); const col = d.btn === 2 ? secondary : primary; line(d.a.x, d.a.y, d.b.x, d.b.y, (x, y) => setTile(x, y, col)); changed(); }
   else if (d.kind === "indoor") { pushUndo(); room.portes.push(inDoorFromDrag(d.a, d.b)); changed(); }
+  else if (d.kind === "moveobj" && d.moved) {
+    const o = room.objets[d.i];
+    if (objTiles(o).some(([x, y]) => at(x, y) === null)) { o.x = d.ox; o.y = d.oy; toast("L'objet dépasserait de la salle : remis à sa place"); draw(); }
+    else { pushUndo(d.snap); changed(); }
+  }
   else draw();
 }
 function onWheel(ev) {
@@ -1736,7 +1882,7 @@ function renderOptbar() {
   if (tool === "select") h += '<button class="btn" id="oCopy">Copier</button><button class="btn" id="oCut">Couper</button><button class="btn" id="oPaste">Coller</button><button class="btn" id="oFH" title="H">↔</button><button class="btn" id="oFV" title="V">↕</button><button class="btn" id="oRot" title="T">⟳</button>';
   const hints = { brush: "Clic gauche / droit : tuiles G / D · Alt + clic : pipette", rect: "Glisser pour tracer", line: "Maj : ligne droite", fill: "Remplit la zone de même tuile",
     erase: "Remet du sol", pick: "Clic gauche → tuile G, clic droit → tuile D", select: paste ? "Clic : poser le collage · clic droit : annuler" : "Glisser pour sélectionner · Suppr efface",
-    object: "Clic : poser · R : tourner · clic droit : supprimer · Maj + clic : reprendre un objet pour le déplacer",
+    object: "Clic : poser · clic sur un objet : le choisir, glisser pour le déplacer · R : tourner · Suppr ou clic droit : supprimer · Ctrl + clic : poser par-dessus",
     pan: "Glisser pour déplacer la vue", extdoor: "Clic près d'un bord : la porte s'y place (2 tuiles). Une seule par côté.", indoor: "Glisser une ligne de 1 à 8 tuiles en travers du passage" };
   h += '<span class="hint">' + (hints[tool] || "") + "</span>";
   o.innerHTML = h;
@@ -1770,7 +1916,7 @@ function syncProps() {
   R.value = room.role;
   const C = $("pRoles"); C.innerHTML = "";
   // + rôles d'étage servis par une autre salle (Trésor, Irruption -> Calme ; Cartographe -> Événement) et rôles inconnus du fichier
-  const extra = ["TRESOR", "IRRUPTION", "CARTO"];
+  const extra = [];
   for (const r of ROLES.concat(extra, room.rolesEnPlus.filter(x => !ROLES.includes(x) && !extra.includes(x)))) {
     const ch =document.createElement("span"); ch.className = "chip" + (room.rolesEnPlus.includes(r) ? " on" : "") + (r === room.role ? " dis" : ""); ch.textContent = r;
     ch.onclick = () => { if (r === room.role) return; pushUndo(); const i = room.rolesEnPlus.indexOf(r); if (i >= 0) room.rolesEnPlus.splice(i, 1); else room.rolesEnPlus.push(r); syncProps(); changed(); };
@@ -1856,7 +2002,7 @@ window.addEventListener("keydown", e => {
   if (mod && k === "o") { e.preventDefault(); openFiles(); return; }
   if (mod && k === "n") { e.preventDefault(); openNew(); return; }
   if (isTyping(e)) { if (e.key === "Enter" && $("mNew").classList.contains("on")) createNew(); return; }
-  if (e.key === "Escape") { document.querySelectorAll(".modal-bg").forEach(m => m.classList.remove("on")); paste = false; sel = null; drag = null; draw(); return; }
+  if (e.key === "Escape") { document.querySelectorAll(".modal-bg").forEach(m => m.classList.remove("on")); paste = false; sel = null; drag = null; objSel = -1; draw(); return; }
   if ($("mNew").classList.contains("on") || $("mHelp").classList.contains("on")) return;
   if (mod && k === "z") { e.preventDefault(); e.shiftKey ? doRedo() : doUndo(); return; }
   if (mod && k === "y") { e.preventDefault(); doRedo(); return; }
@@ -1866,11 +2012,14 @@ window.addEventListener("keydown", e => {
   if (mod && k === "a") { e.preventDefault(); setTool("select"); sel = { x0: 0, y0: 0, x1: room.W - 1, y1: room.H - 1 }; draw(); return; }
   if (mod) return;
   if (e.key === " ") { e.preventDefault(); if (!spaceDown) { spaceDown = true; cv.style.cursor = "grab"; } return; }
-  if (e.key === "Delete" || e.key === "Backspace") { clearSel(); return; }
+  if (e.key === "Delete" || e.key === "Backspace") {
+    if (tool === "object" && objSel >= 0 && room.objets[objSel]) { pushUndo(); room.objets.splice(objSel, 1); lumSel = objSel = -1; renderLum(); changed(); return; }
+    clearSel(); return;
+  }
   if (paste && k === "h") { clipFlip(true); return; }
   if (paste && k === "v") { clipFlip(false); return; }
   if (paste && k === "t") { clipRot(); return; }
-  if (tool === "object" && k === "r") { rotateObj(e.shiftKey ? -1 : 1); return; }
+  if (tool === "object" && k === "r") { if (objSel >= 0 && room.objets[objSel]) rotatePlaced(e.shiftKey ? -1 : 1); else rotateObj(e.shiftKey ? -1 : 1); return; }
   if (k === "a") { setTool("object"); showTab("obj"); return; }
   const map = { b: "brush", r: "rect", l: "line", g: "fill", e: "erase", i: "pick", m: "select", p: "extdoor", o: "indoor", h: "pan" };
   if (map[k]) { setTool(map[k]); return; }
@@ -1894,6 +2043,7 @@ cv.addEventListener("contextmenu", e => e.preventDefault());
 window.addEventListener("resize", () => { resizeCanvas(); });
 window.addEventListener("beforeunload", e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
 
+$("bCouv").onclick = renderCouverture; $("bVerifTout").onclick = verifTout;
 $("bNew").onclick = openNew; $("bOpen").onclick = openFiles; $("bDir").onclick = openDir; $("bDir2").onclick = openDir; $("bRefresh").onclick = refreshLib;
 $("bSave").onclick = () => save(false); $("bSaveAs").onclick = () => save(true);
 $("bUndo").onclick = doUndo; $("bRedo").onclick = doRedo; $("bFit").onclick = fit; $("bPng").onclick = exportPng;

@@ -8,300 +8,36 @@
   "poids": 1.0,
   "portes": [],
   "objets": [
-    {
-      "asset": "Dynamiques/Lumieres/Neon_mural",
-      "x": 8,
-      "y": 0,
-      "rot": 0,
-      "lumiere": {
-        "mode": "fixe",
-        "couleur": "#3ef2e0",
-        "rayon_px": 52,
-        "intensite": 0.8
-      }
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Neon_mural",
-      "x": 9,
-      "y": 0,
-      "rot": 0,
-      "lumiere": {
-        "mode": "clignote",
-        "couleur": "#3ef2e0",
-        "rayon_px": 52,
-        "intensite": 0.8
-      }
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Neon_mural",
-      "x": 18,
-      "y": 0,
-      "rot": 0,
-      "lumiere": {
-        "mode": "clignote",
-        "couleur": "#3ef2e0",
-        "rayon_px": 52,
-        "intensite": 0.8
-      }
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Neon_mural",
-      "x": 19,
-      "y": 0,
-      "rot": 0,
-      "lumiere": {
-        "mode": "fixe",
-        "couleur": "#3ef2e0",
-        "rayon_px": 52,
-        "intensite": 0.8
-      }
-    },
-    {
-      "asset": "moniteur/Computer_hitech_V7",
-      "x": 8,
-      "y": 1,
-      "rot": 0
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Point_lumineux",
-      "x": 8,
-      "y": 1,
-      "rot": 0,
-      "lumiere": {
-        "mode": "fixe",
-        "couleur": "#ff6a3d",
-        "rayon_px": 26,
-        "intensite": 0.45
-      }
-    },
-    {
-      "asset": "highttech/Assets_Hitech_small/Hitech_small_V9",
-      "x": 13,
-      "y": 1,
-      "rot": 0
-    },
-    {
-      "asset": "moniteur/Computer_hitech_V8",
-      "x": 14,
-      "y": 1,
-      "rot": 0
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Point_lumineux",
-      "x": 14,
-      "y": 1,
-      "rot": 0,
-      "lumiere": {
-        "mode": "fixe",
-        "couleur": "#ffc23d",
-        "rayon_px": 26,
-        "intensite": 0.45
-      }
-    },
-    {
-      "asset": "highttech/Assets_Hitech_small/Hitech_small_V11",
-      "x": 20,
-      "y": 1,
-      "rot": 0
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Neon_mural",
-      "x": 4,
-      "y": 5,
-      "rot": 0,
-      "lumiere": {
-        "mode": "vacille",
-        "couleur": "#3ef2e0",
-        "rayon_px": 52,
-        "intensite": 0.8
-      }
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Neon_mural",
-      "x": 6,
-      "y": 5,
-      "rot": 0,
-      "lumiere": {
-        "mode": "clignote",
-        "couleur": "#3ef2e0",
-        "rayon_px": 52,
-        "intensite": 0.8
-      }
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Lampe_sol",
-      "x": 13,
-      "y": 5,
-      "rot": 0,
-      "lumiere": {
-        "mode": "fixe",
-        "couleur": "#3ef2e0",
-        "rayon_px": 24,
-        "intensite": 0.5
-      }
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Neon_mural",
-      "x": 25,
-      "y": 5,
-      "rot": 0,
-      "lumiere": {
-        "mode": "vacille",
-        "couleur": "#3ef2e0",
-        "rayon_px": 52,
-        "intensite": 0.8
-      }
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Neon_mural",
-      "x": 27,
-      "y": 5,
-      "rot": 0,
-      "lumiere": {
-        "mode": "clignote",
-        "couleur": "#3ef2e0",
-        "rayon_px": 52,
-        "intensite": 0.8
-      }
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Neon_mural",
-      "x": 28,
-      "y": 5,
-      "rot": 0,
-      "lumiere": {
-        "mode": "fixe",
-        "couleur": "#3ef2e0",
-        "rayon_px": 52,
-        "intensite": 0.8
-      }
-    },
-    {
-      "asset": "highttech/Assets_Hitech_small/Hitech_small_V11",
-      "x": 3,
-      "y": 6,
-      "rot": 0
-    },
-    {
-      "asset": "highttech/Assets_Hitech_small/Hitech_small_V11",
-      "x": 4,
-      "y": 6,
-      "rot": 0
-    },
-    {
-      "asset": "highttech/Assets_Hitech_small/Hitech_small_V11",
-      "x": 6,
-      "y": 6,
-      "rot": 0
-    },
-    {
-      "asset": "highttech/Assets_Hitech_small/Hitech_small_V11",
-      "x": 7,
-      "y": 6,
-      "rot": 0
-    },
-    {
-      "asset": "moniteur/Computer_hitech_V6",
-      "x": 28,
-      "y": 6,
-      "rot": 0
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Point_lumineux",
-      "x": 28,
-      "y": 6,
-      "rot": 0,
-      "lumiere": {
-        "mode": "fixe",
-        "couleur": "#3ef2e0",
-        "rayon_px": 26,
-        "intensite": 0.45
-      }
-    },
-    {
-      "asset": "moniteur/Computer_hitech_V4",
-      "x": 29,
-      "y": 6,
-      "rot": 0
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Point_lumineux",
-      "x": 29,
-      "y": 6,
-      "rot": 0,
-      "lumiere": {
-        "mode": "fixe",
-        "couleur": "#3ef2e0",
-        "rayon_px": 26,
-        "intensite": 0.45
-      }
-    },
-    {
-      "asset": "highttech/Assets_Hitech_small/Hitech_small_V10",
-      "x": 30,
-      "y": 6,
-      "rot": 0
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Lampe_sol",
-      "x": 16,
-      "y": 7,
-      "rot": 0,
-      "lumiere": {
-        "mode": "fixe",
-        "couleur": "#3ef2e0",
-        "rayon_px": 24,
-        "intensite": 0.5
-      }
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Lampe_sol",
-      "x": 17,
-      "y": 10,
-      "rot": 0,
-      "lumiere": {
-        "mode": "fixe",
-        "couleur": "#3ef2e0",
-        "rayon_px": 24,
-        "intensite": 0.5
-      }
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Lampe_sol",
-      "x": 23,
-      "y": 10,
-      "rot": 0,
-      "lumiere": {
-        "mode": "fixe",
-        "couleur": "#3ef2e0",
-        "rayon_px": 24,
-        "intensite": 0.5
-      }
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Lampe_sol",
-      "x": 23,
-      "y": 12,
-      "rot": 0,
-      "lumiere": {
-        "mode": "fixe",
-        "couleur": "#3ef2e0",
-        "rayon_px": 24,
-        "intensite": 0.5
-      }
-    },
-    {
-      "asset": "Dynamiques/Lumieres/Lampe_sol",
-      "x": 15,
-      "y": 13,
-      "rot": 0,
-      "lumiere": {
-        "mode": "fixe",
-        "couleur": "#3ef2e0",
-        "rayon_px": 24,
-        "intensite": 0.5
-      }
-    }
+    {"asset": "Dynamiques/Lumieres/Neon_mural", "x": 8, "y": 0, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 52, "intensite": 0.8}},
+    {"asset": "Dynamiques/Lumieres/Neon_mural", "x": 9, "y": 0, "rot": 0, "lumiere": {"mode": "clignote", "couleur": "#3ef2e0", "rayon_px": 52, "intensite": 0.8}},
+    {"asset": "Dynamiques/Lumieres/Neon_mural", "x": 18, "y": 0, "rot": 0, "lumiere": {"mode": "clignote", "couleur": "#3ef2e0", "rayon_px": 52, "intensite": 0.8}},
+    {"asset": "Dynamiques/Lumieres/Neon_mural", "x": 19, "y": 0, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 52, "intensite": 0.8}},
+    {"asset": "moniteur/Computer_hitech_V7", "x": 8, "y": 1, "rot": 0},
+    {"asset": "Dynamiques/Lumieres/Point_lumineux", "x": 8, "y": 1, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ff6a3d", "rayon_px": 26, "intensite": 0.45}},
+    {"asset": "highttech/Assets_Hitech_small/Hitech_small_V9", "x": 13, "y": 1, "rot": 0},
+    {"asset": "moniteur/Computer_hitech_V8", "x": 14, "y": 1, "rot": 0},
+    {"asset": "Dynamiques/Lumieres/Point_lumineux", "x": 14, "y": 1, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ffc23d", "rayon_px": 26, "intensite": 0.45}},
+    {"asset": "highttech/Assets_Hitech_small/Hitech_small_V11", "x": 20, "y": 1, "rot": 0},
+    {"asset": "Dynamiques/Lumieres/Neon_mural", "x": 4, "y": 5, "rot": 0, "lumiere": {"mode": "vacille", "couleur": "#3ef2e0", "rayon_px": 52, "intensite": 0.8}},
+    {"asset": "Dynamiques/Lumieres/Neon_mural", "x": 6, "y": 5, "rot": 0, "lumiere": {"mode": "clignote", "couleur": "#3ef2e0", "rayon_px": 52, "intensite": 0.8}},
+    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 13, "y": 5, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 24, "intensite": 0.5}},
+    {"asset": "Dynamiques/Lumieres/Neon_mural", "x": 25, "y": 5, "rot": 0, "lumiere": {"mode": "vacille", "couleur": "#3ef2e0", "rayon_px": 52, "intensite": 0.8}},
+    {"asset": "Dynamiques/Lumieres/Neon_mural", "x": 27, "y": 5, "rot": 0, "lumiere": {"mode": "clignote", "couleur": "#3ef2e0", "rayon_px": 52, "intensite": 0.8}},
+    {"asset": "Dynamiques/Lumieres/Neon_mural", "x": 28, "y": 5, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 52, "intensite": 0.8}},
+    {"asset": "highttech/Assets_Hitech_small/Hitech_small_V11", "x": 3, "y": 6, "rot": 0},
+    {"asset": "highttech/Assets_Hitech_small/Hitech_small_V11", "x": 4, "y": 6, "rot": 0},
+    {"asset": "highttech/Assets_Hitech_small/Hitech_small_V11", "x": 6, "y": 6, "rot": 0},
+    {"asset": "highttech/Assets_Hitech_small/Hitech_small_V11", "x": 7, "y": 6, "rot": 0},
+    {"asset": "moniteur/Computer_hitech_V6", "x": 28, "y": 6, "rot": 0},
+    {"asset": "Dynamiques/Lumieres/Point_lumineux", "x": 28, "y": 6, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 26, "intensite": 0.45}},
+    {"asset": "moniteur/Computer_hitech_V4", "x": 29, "y": 6, "rot": 0},
+    {"asset": "Dynamiques/Lumieres/Point_lumineux", "x": 29, "y": 6, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 26, "intensite": 0.45}},
+    {"asset": "highttech/Assets_Hitech_small/Hitech_small_V10", "x": 30, "y": 6, "rot": 0},
+    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 16, "y": 7, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 24, "intensite": 0.5}},
+    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 17, "y": 10, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 24, "intensite": 0.5}},
+    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 23, "y": 10, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 24, "intensite": 0.5}},
+    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 23, "y": 12, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 24, "intensite": 0.5}},
+    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 15, "y": 13, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 24, "intensite": 0.5}}
   ],
   "plan": [
     "################################",

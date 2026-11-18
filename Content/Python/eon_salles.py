@@ -271,11 +271,22 @@ def bp_to_dict(bp):
     }
 
 
+def _lignes(a):
+    return "[\n" + ",\n".join("    " + json.dumps(o, ensure_ascii=False) for o in a) + "\n  ]" if a else "[]"
+
+
+def file_text(d):
+    """Texte d'un .eonsalle : une porte, un objet, une rangée du plan par ligne (même texte que toFileText de l'éditeur)."""
+    head = [(k, d[k]) for k in ("format", "version", "nom", "role", "rolesEnPlus", "forme")]
+    txt = "{\n" + ",\n".join("  %s: %s" % (json.dumps(k), json.dumps(v, ensure_ascii=False)) for k, v in head)
+    txt += ',\n  "poids": %r' % float(d["poids"])
+    txt += ',\n  "portes": ' + _lignes(d.get("portes", [])) + ',\n  "objets": ' + _lignes(d.get("objets", []))
+    txt += ',\n  "plan": ' + _lignes(d["plan"]) + "\n}\n"
+    return txt
+
+
 def write_file(d, path):
-    # Une rangée du plan par ligne : le fichier reste lisible et se compare bien dans Git.
-    txt = json.dumps({k: v for k, v in d.items() if k != "plan"}, ensure_ascii=False, indent=2)
-    plan = ",\n".join("    " + json.dumps(r) for r in d["plan"])
-    txt = txt[:-2] + ',\n  "plan": [\n' + plan + "\n  ]\n}\n"
+    txt = file_text(d)
     json.loads(txt)
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write(txt)
