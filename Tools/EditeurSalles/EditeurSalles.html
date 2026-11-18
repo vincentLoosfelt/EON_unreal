@@ -140,6 +140,8 @@ select.inp { padding: 0 4px; }
 .preset { padding: 8px; border-radius: 8px; background: var(--panel2); border: 1px solid var(--line2); cursor: pointer; text-align: center; }
 .preset.on { border-color: var(--acc); background: #24413e; }
 .preset small { display: block; color: var(--txt3); }
+.presets.departs { grid-template-columns: repeat(2, 1fr); }
+.presets.departs .preset { text-align: left; }
 .keys { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; }
 .keys kbd { background: var(--bg2); border: 1px solid var(--line2); border-radius: 4px; padding: 1px 6px; font-family: inherit; font-size: 12px; white-space: nowrap; justify-self: start; }
 .toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); background: #2b3138; border: 1px solid var(--line2); border-radius: 8px; padding: 9px 14px; box-shadow: 0 8px 30px rgba(0,0,0,.4); display: none; align-items: center; gap: 10px; z-index: 60; }
@@ -254,7 +256,7 @@ select.inp { padding: 0 4px; }
   <div class="field"><label>Forme</label><div class="presets" id="nPresets"></div></div>
   <div class="field"><label>Taille</label><div class="size"><input class="inp" id="nW" type="number" min="8" max="999" value="32"> × <input class="inp" id="nH" type="number" min="6" max="999" value="20"> <span class="muted">tuiles</span></div></div>
   <div class="field"><label>Rôle</label><select class="inp" id="nRole"></select></div>
-  <div class="field"><label>Départ</label><select class="inp" id="nFill"><option value="room">Sol entouré de murs</option><option value="wall">Tout en murs (on creuse)</option><option value="floor">Tout en sol</option></select></div>
+  <div class="field"><label>Départ</label><div class="presets departs" id="nFill"></div></div>
   <div class="actions"><button class="btn" data-close>Annuler</button><button class="btn primary" id="nOk">Créer</button></div>
 </div></div>
 
@@ -1957,7 +1959,10 @@ function showTab(id) {
 }
 
 // --- nouvelle salle
-let newForme = "std";
+let newForme = "std", newFill = "scratch";
+// Départs : « à partir de zéro » = grille vierge (tout en sol, sans mur), outil Objet prêt, onglet Objets ouvert.
+const DEPARTS = [["scratch", "À partir de zéro", "Grille vierge : on pose les assets"], ["room", "Sol entouré de murs", "Le cadre est déjà là"],
+  ["wall", "Tout en murs", "On creuse les pièces"], ["floor", "Tout en sol", "Sans mur, outils de tuiles"]];
 function openNew() {
   if (!confirmLose()) return;
   const P = $("nPresets"); P.innerHTML = "";
@@ -1967,17 +1972,25 @@ function openNew() {
     d.onclick = () => { newForme = k; if (v[0]) { $("nW").value = v[0]; $("nH").value = v[1]; } openNewRefresh(); };
     P.appendChild(d);
   }
+  const F = $("nFill"); F.innerHTML = "";
+  for (const [k, nm, ds] of DEPARTS) {
+    const d = document.createElement("div"); d.className = "preset" + (k === newFill ? " on" : "");
+    d.innerHTML = "<b></b><small></small>"; d.querySelector("b").textContent = nm; d.querySelector("small").textContent = ds;
+    d.onclick = () => { newFill = k; [...F.children].forEach((e, i) => e.classList.toggle("on", DEPARTS[i][0] === k)); };
+    F.appendChild(d);
+  }
   const R = $("nRole"); R.innerHTML = ""; for (const r of ROLES) { const o = document.createElement("option"); o.value = r; o.textContent = (ROLE_FR[r] || r) + "  ·  " + r; R.appendChild(o); }
   $("mNew").classList.add("on"); $("nNom").focus(); $("nNom").select();
 }
 function openNewRefresh() { [...$("nPresets").children].forEach((d, i) => d.classList.toggle("on", Object.keys(FORMES)[i] === newForme)); }
 function createNew() {
   const W = Math.max(8, +$("nW").value | 0), H = Math.max(6, +$("nH").value | 0);
-  const f = FORMES[newForme];
-  room = blankRoom($("nNom").value.trim() || "Salle_Nouvelle", W, H, $("nFill").value, $("nRole").value, f && f[0] === W && f[1] === H ? newForme : "");
+  const f = FORMES[newForme], zero = newFill === "scratch";
+  room = blankRoom($("nNom").value.trim() || "Salle_Nouvelle", W, H, zero ? "floor" : newFill, $("nRole").value, f && f[0] === W && f[1] === H ? newForme : "");
   fileHandle = null; fileName = null; undo = []; redo = []; sel = null; paste = false;
   $("mNew").classList.remove("on");
   syncProps(); fit(); changed(true); renderLib();
+  if (zero) { assetSel = null; setTool("object"); showTab("obj"); toast("Grille vierge : choisis un asset dans l'onglet Objets puis clique sur la grille"); }
 }
 
 // --- PNG
