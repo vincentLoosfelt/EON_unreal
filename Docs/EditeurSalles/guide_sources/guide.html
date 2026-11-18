@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>EON — Éditeur de salles : guide de démarrage</title>
+<style>
+@page { size: A4; margin: 16mm 15mm 18mm 15mm; }
+@page :first { margin: 0; }
+:root { --acc: #1f9e91; --acc2: #ff9a3d; --ink: #1b2126; --mute: #5b6670; --line: #d9dfe3; --soft: #f1f5f6; }
+* { box-sizing: border-box; }
+body { font: 10.4pt/1.5 "Segoe UI", system-ui, sans-serif; color: var(--ink); margin: 0; }
+h1, h2, h3 { font-family: "Segoe UI Semibold", "Segoe UI", system-ui, sans-serif; color: #0f1a1f; }
+h2 { font-size: 17pt; margin: 0 0 3mm; padding-bottom: 2mm; border-bottom: 2.5px solid var(--acc); break-after: avoid; }
+h2 .n { display: inline-block; width: 9mm; height: 9mm; line-height: 9mm; text-align: center; border-radius: 50%; background: var(--acc); color: #fff; font-size: 13pt; margin-right: 3mm; vertical-align: 1px; }
+h3 { font-size: 12pt; margin: 5mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.4mm; }
+.chap { break-before: page; }
+.cover { height: 297mm; padding: 0; position: relative; background: #0d1114; color: #e8eef0; overflow: hidden; }
+.cover .band { position: absolute; left: 0; right: 0; top: 0; height: 9mm; background: var(--acc); }
+.cover .txt { position: absolute; left: 18mm; right: 18mm; top: 34mm; }
+.cover .eon { font: 700 13pt "Segoe UI"; letter-spacing: 5px; color: var(--acc); }
+.cover h1 { color: #fff; font-size: 34pt; line-height: 1.1; margin: 4mm 0 3mm; }
+.cover .sub { font-size: 14pt; color: #9fb3b9; }
+.cover img { position: absolute; left: 18mm; right: 18mm; top: 112mm; width: 174mm; border-radius: 3mm; box-shadow: 0 0 0 1px #2b3a40, 0 8mm 20mm rgba(0,0,0,.6); }
+.cover .foot { position: absolute; left: 18mm; right: 18mm; bottom: 16mm; font-size: 10pt; color: #7c9096; display: flex; justify-content: space-between; }
+.shot { width: 100%; border-radius: 2mm; box-shadow: 0 0 0 1px var(--line); margin: 1.5mm 0 1mm; display: block; }
+.shot.m { width: 82%; margin-left: auto; margin-right: auto; }
+.side { display: grid; grid-template-columns: 1fr 58mm; gap: 6mm; align-items: start; }
+.side img { width: 58mm; }
+.shot.half { width: 50%; margin-left: auto; margin-right: auto; }
+.cap { font-size: 8.8pt; color: var(--mute); text-align: center; margin: 0 0 3.5mm; }
+figure { margin: 0; break-inside: avoid; }
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 2mm 0 3mm; }
+.steps li { counter-increment: s; position: relative; padding: 0 0 2mm 9mm; break-inside: avoid; }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: .2mm; width: 6mm; height: 6mm; line-height: 6mm; border-radius: 50%; background: var(--acc2); color: #2a1500; font-weight: 700; font-size: 9pt; text-align: center; }
+ul { margin: 1mm 0 3mm; padding-left: 5mm; }
+li { margin-bottom: 1mm; }
+.box { border-radius: 2mm; padding: 2.6mm 3.5mm; margin: 3mm 0; break-inside: avoid; font-size: 9.8pt; }
+.box b.t { display: block; font-size: 9pt; letter-spacing: .6px; text-transform: uppercase; margin-bottom: .8mm; }
+.tip { background: #e8f6f4; border-left: 4px solid var(--acc); } .tip b.t { color: #157a70; }
+.warn { background: #fff3e6; border-left: 4px solid var(--acc2); } .warn b.t { color: #b8620f; }
+kbd { font: 600 8.6pt Consolas, monospace; background: #fff; border: 1px solid #b9c3c8; border-bottom-width: 2px; border-radius: 1.2mm; padding: 0 1.4mm; white-space: nowrap; }
+code { font: 8.8pt Consolas, monospace; background: var(--soft); padding: .2mm 1.2mm; border-radius: 1mm; }
+table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 9.3pt; break-inside: avoid; }
+th { text-align: left; background: #0f1a1f; color: #fff; font-weight: 600; padding: 1.6mm 2.2mm; }
+td { padding: 1.4mm 2.2mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:nth-child(even) td { background: #f7f9fa; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+.legend { columns: 2; column-gap: 7mm; padding: 0; list-style: none; margin: 2mm 0; }
+.legend li { break-inside: avoid; padding-left: 8mm; position: relative; margin-bottom: 2mm; }
+.legend li span { position: absolute; left: 0; top: 0; width: 6mm; height: 6mm; line-height: 6mm; border-radius: 50%; background: var(--acc2); color: #2a1500; font-weight: 700; text-align: center; font-size: 9pt; }
+.toc { list-style: none; padding: 0; margin: 3mm 0; font-size: 10pt; columns: 2; column-gap: 8mm; }
+.toc li { display: flex; gap: 3mm; padding: 1.2mm 0; break-inside: avoid; border-bottom: 1px dotted var(--line); }
+.toc li b { color: var(--acc); width: 7mm; }
+.lead { font-size: 11.2pt; color: #33404a; }
+.flow { display: flex; gap: 2mm; align-items: stretch; margin: 4mm 0; }
+.flow div { flex: 1; background: var(--soft); border-radius: 2mm; padding: 2.5mm; text-align: center; font-size: 9pt; }
+.flow div b { display: block; font-size: 10.5pt; color: #0f1a1f; margin-bottom: .6mm; }
+.flow i { align-self: center; font-style: normal; color: var(--acc); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="band"></div>
+  <div class="txt">
+    <div class="eon">E · O · N</div>
+    <h1>Éditeur de salles<br>Guide de démarrage</h1>
+    <div class="sub">De la page blanche à une salle jouable dans le jeu, pas à pas.<br>Pour quelqu'un qui n'a jamais ouvert l'outil.</div>
+  </div>
+  <img src="06_construite.png" alt="">
+  <div class="foot"><span>Version 1 · 18 novembre 2026</span><span>Tools/EditeurSalles/EditeurSalles.html</span></div>
+</section>
+
+<section class="chap">
+  <h2>Avant de commencer</h2>
+  <p class="lead">Dans EON, chaque étage est assemblé par le jeu à partir de <b>salles</b>. L'éditeur sert à dessiner ces salles vues de dessus, sur une grille où <b>une case = un mètre</b>. Tu poses des murs, des portes, du décor et des objets ; Unreal transforme ensuite le dessin en Blueprint que le générateur d'étage tire au hasard.</p>
+  <div class="flow">
+    <div><b>1. Dessiner</b>dans l'éditeur (navigateur)</div><i>→</i>
+    <div><b>2. Enregistrer</b>un fichier <code>.eonsalle</code></div><i>→</i>
+    <div><b>3. Importer</b>dans Unreal : <code>BP_nom</code></div><i>→</i>
+    <div><b>4. Jouer</b>le générateur tire la salle</div>
+  </div>
+  <h3>Ce qu'il te faut</h3>
+  <ul>
+    <li><b>Google Chrome ou Microsoft Edge</b>. Firefox ne sait pas ouvrir un dossier : il ne pourrait ni enregistrer directement ni lister les salles.</li>
+    <li>Le <b>Drive</b> monté sur le PC (lecteur <code>G:</code>). Le dossier de travail est <code>G:\My Drive\EON_EditeurSalles</code> : il contient l'éditeur, le dossier <code>Salles</code> (le dossier maître des salles) et le dossier <code>Bibliotheque</code> (les assets à poser).</li>
+    <li>Pour voir la salle dans le jeu : le projet Unreal <code>EON</code> ouvert dans l'éditeur Unreal.</li>
+  </ul>
+  <h3>Ouvrir l'éditeur</h3>
+  <ul class="steps">
+    <li>Double-clique sur <code>EditeurSalles.html</code> dans <code>G:\My Drive\EON_EditeurSalles</code> (il s'ouvre dans ton navigateur). Depuis Unreal, le menu <b>EON Salles › Ouvrir l'éditeur de salles</b> fait la même chose.</li>
+    <li>Clique sur <b>Dossier</b> (en haut) et choisis <code>G:\My Drive\EON_EditeurSalles\Salles</code>. Le navigateur demande l'autorisation de modifier les fichiers : accepte. Les salles existantes apparaissent dans l'onglet <b>Salles</b>.</li>
+    <li>Onglet <b>Objets</b> › <b>Ouvrir la bibliothèque d'assets…</b> et choisis <code>G:\My Drive\EON_EditeurSalles\Bibliotheque</code>. Les vignettes des assets (néons, terminaux, barrières…) s'affichent.</li>
+  </ul>
+  <div class="box tip"><b class="t">Bon à savoir</b>Le navigateur se souvient de ces deux dossiers : les fois suivantes, un clic suffit. Ton travail en cours est aussi gardé en brouillon : si tu fermes l'onglet par erreur, la salle revient à la réouverture.</div>
+  <h3>Ce guide en un coup d'œil</h3>
+  <ul class="toc">
+    <li><b>1</b>L'écran de l'éditeur</li>
+    <li><b>2</b>Créer une salle à partir de zéro : le canevas</li>
+    <li><b>3</b>Tracer les murs, poser les portes, construire la salle</li>
+    <li><b>4</b>Le décor : caisses, cuves, fossés et vides</li>
+    <li><b>5</b>Les objets et les lumières</li>
+    <li><b>6</b>Rôle, forme et poids : quand le jeu tire ta salle</li>
+    <li><b>7</b>La vérification et l'onglet Salles</li>
+    <li><b>8</b>Enregistrer et importer dans Unreal</li>
+    <li><b>9</b>Aperçu 3D, raccourcis et problèmes courants</li>
+  </ul>
+</section>
+
+<section class="chap">
+  <h2><span class="n">1</span>L'écran de l'éditeur</h2>
+  <figure><img class="shot" src="01_ecran.png" alt=""><figcaption class="cap">Une salle de combat ouverte, avec les huit zones de l'écran.</figcaption></figure>
+  <ul class="legend">
+    <li><span>1</span><b>Barre du haut</b> : Nouvelle, Ouvrir, Dossier, Enregistrer, annuler / refaire, cadrer la vue, export PNG, aide <kbd>?</kbd>. Le nom du fichier est à droite ; un point orange = modifications non enregistrées.</li>
+    <li><span>2</span><b>Outils</b> : pinceau, rectangle, ligne, remplissage, gomme, pipette, sélection, main, porte de sortie, porte intérieure, objet. La lettre du raccourci est dans le coin de chaque bouton.</li>
+    <li><span>3</span><b>Tuiles</b> : ce que peignent les outils. Clic gauche = tuile <b>G</b>, clic droit = tuile <b>D</b> ; les touches <kbd>1</kbd> à <kbd>7</kbd> les choisissent.</li>
+    <li><span>4</span><b>Barre d'options</b> : réglages de l'outil choisi (taille du pinceau, contour du rectangle, rotation d'un objet…) et rappel de son mode d'emploi.</li>
+    <li><span>5</span><b>La grille</b> : la salle vue de dessus. Molette = zoom, <kbd>Espace</kbd> + glisser = déplacer la vue, <kbd>F</kbd> = tout cadrer.</li>
+    <li><span>6</span><b>Onglets</b> : <b>Salle</b> (nom, rôle, forme, poids, taille, portes), <b>Objets</b> (bibliothèque d'assets, lumières), <b>Salles</b> (toutes tes salles), <b>Aperçu 3D</b>.</li>
+    <li><span>7</span><b>Vérification</b> : les règles du jeu contrôlées en direct. Vert = Unreal peut importer la salle telle quelle.</li>
+    <li><span>8</span><b>Barre d'état</b> : case et tuile sous la souris, taille de la salle en mètres, nombre de tuiles de sol, zoom.</li>
+  </ul>
+  <div class="box tip"><b class="t">Les portes « auto »</b>Les portes en pointillé marquées <i>N auto</i>, <i>S auto</i>… ne sont pas posées : elles montrent où le jeu mettra une porte si tu n'en poses aucune (au milieu de chaque côté qui touche une salle voisine).</div>
+</section>
+
+<section class="chap">
+  <h2><span class="n">2</span>Créer une salle à partir de zéro</h2>
+  <p>Clique sur <b>Nouvelle</b> (ou <kbd>Ctrl</kbd>+<kbd>N</kbd>). La fenêtre te demande quatre choses.</p>
+  <figure><img class="shot half" style="width:36%" src="02_nouvelle.png" alt=""><figcaption class="cap">La fenêtre Nouvelle salle, départ « À partir de zéro ».</figcaption></figure>
+  <ul>
+    <li><b>Nom</b> : il devient le nom du fichier (<code>Salle_MaPremiere.eonsalle</code>) et du Blueprint (<code>BP_Salle_MaPremiere</code>). Pas d'espace, pas de point, pas d'accent de préférence : <code>Salle_Combat_E</code>, <code>Salle_Calme_Labo</code>…</li>
+    <li><b>Forme</b> : la taille de la case d'étage que la salle remplira (voir chapitre 6). Pour un canevas, prends <b>Libre</b> et une grille un peu plus grande que la salle voulue (par exemple 44 × 28) : la salle sera recadrée sur tes murs à la fin.</li>
+    <li><b>Rôle</b> : le type de salle (Combat, Calme, Marchand…). Modifiable plus tard.</li>
+    <li><b>Départ</b> : <b>À partir de zéro</b> ouvre un canevas vide. Les trois autres partent d'un sol déjà entouré de murs, d'un bloc plein à creuser, ou d'un sol sans mur.</li>
+  </ul>
+  <p>Clique sur <b>Créer</b>. Tu obtiens le <b>canevas</b> : une grille sombre où rien n'est encore défini. L'outil Ligne est prêt, avec la tuile Mur.</p>
+  <figure><img class="shot m" style="width:56%" src="03_canevas.png" alt=""><figcaption class="cap">Le canevas vide. Le bouton « Construire la salle » reste en haut tant que la salle n'est pas construite.</figcaption></figure>
+</section>
+
+<section class="chap">
+  <h2><span class="n">3</span>Murs, portes, puis « Construire la salle »</h2>
+  <h3>Tracer les murs</h3>
+  <ul class="steps">
+    <li>Outil <b>Rectangle</b> (<kbd>R</kbd>), case <b>Contour seulement</b> cochée : glisse d'un coin à l'autre pour tracer le cadre de la salle.</li>
+    <li>Outil <b>Ligne</b> (<kbd>L</kbd>) pour les murs intérieurs ; garde <kbd>Maj</kbd> appuyée pour une ligne bien droite.</li>
+    <li>Une erreur ? <kbd>Ctrl</kbd>+<kbd>Z</kbd>, ou la <b>Gomme</b> (<kbd>E</kbd>) qui remet du canevas.</li>
+  </ul>
+  <figure><img class="shot m" style="width:54%" src="04_murs.png" alt=""><figcaption class="cap">Un cadre de murs et un mur intérieur.</figcaption></figure>
+  <h3>Poser les portes de sortie</h3>
+  <ul class="steps">
+    <li>Outil <b>Porte extérieure</b> (<kbd>P</kbd>). En survolant un mur, un fantôme orange montre la porte (2 tuiles) et sa flèche vers l'extérieur.</li>
+    <li>Clic sur le mur = la porte est posée. <b>Clic sur une porte</b> = elle tourne (N → E → S → W). Clic droit = elle est supprimée.</li>
+    <li>Une seule porte par côté (nord, sud, est, ouest), et toujours sur le <b>contour</b> de la salle : c'est par là que le jeu relie la salle à ses voisines.</li>
+  </ul>
+  <figure><img class="shot m" style="width:54%" src="05_portes.png" alt=""><figcaption class="cap">Portes N et W posées ; le fantôme montre la porte S proposée sous la souris.</figcaption></figure>
+  <div class="box tip"><b class="t">Porte intérieure</b>L'outil <b>Porte intérieure</b> (<kbd>O</kbd>) pose une porte que le joueur ouvre avec Interagir : glisse une ligne de 1 à 8 tuiles en travers d'un passage, dans un mur intérieur. Le sens (horizontal ou vertical) suit ton geste.</div>
+</section>
+
+<section class="chap">
+  <h3 style="margin-top:0">Construire la salle</h3>
+  <p>Clique sur <b>Construire la salle</b> (en haut à gauche de la grille). L'éditeur :</p>
+  <ul>
+    <li>met du <b>sol</b> partout à l'intérieur de tes murs, et du mur plein à l'extérieur ;</li>
+    <li><b>recadre</b> la salle sur ses murs et reconnaît la forme si la taille colle (32 × 20 devient « Standard ») ;</li>
+    <li>convertit tes portes au format du jeu et déplace tes objets avec la salle.</li>
+  </ul>
+  <figure><img class="shot m" src="06_construite.png" alt=""><figcaption class="cap">La salle construite : 32 × 20, forme Standard, portes N et W, porte intérieure dans le mur du bas.</figcaption></figure>
+  <div class="box warn"><b class="t">Si la construction refuse</b>
+    <b>« Les murs ne ferment aucune pièce »</b> : il manque un bout de mur, l'intérieur fuit vers l'extérieur. Cherche le trou dans le contour.<br>
+    <b>« La porte n'est pas sur le bord »</b> : une porte de sortie est sur un mur intérieur. Déplace-la sur le contour.<br>
+    <b>« Deux portes côté N »</b> : un seul passage par côté ; supprime l'une des deux (clic droit).</div>
+  <p>Pas besoin de penser à construire : <b>Enregistrer</b> construit aussi la salle. Et <kbd>Ctrl</kbd>+<kbd>Z</kbd> juste après ramène au canevas.</p>
+</section>
+
+<section class="chap">
+  <h2><span class="n">4</span>Le décor en tuiles</h2>
+  <p>Une fois la salle construite, tu peux peindre des tuiles par-dessus le sol avec le <b>Pinceau</b> (<kbd>B</kbd>, taille avec <kbd>[</kbd> <kbd>]</kbd>), le <b>Rectangle</b> (décoche « Contour seulement » pour remplir) ou le <b>Remplissage</b> (<kbd>G</kbd>).</p>
+  <table>
+    <tr><th style="width:24%">Tuile (touche)</th><th>Dans le jeu</th></tr>
+    <tr><td><b>Mur</b> (1)</td><td>Bloque tout : joueur, ennemis, tirs.</td></tr>
+    <tr><td><b>Sol</b> (2)</td><td>On marche dessus.</td></tr>
+    <tr><td><b>Vide</b> (3)</td><td>Un trou : on y tombe.</td></tr>
+    <tr><td><b>Fossé</b> (4)</td><td>Un vide qu'on franchit d'un dash.</td></tr>
+    <tr><td><b>Caisse</b> (5)</td><td>Décor solide, sert de couverture.</td></tr>
+    <tr><td><b>Cuve</b> (6)</td><td>Décor solide rond.</td></tr>
+    <tr><td><b>Canevas</b> (7)</td><td>Pas encore défini : n'existe qu'avant « Construire la salle ».</td></tr>
+  </table>
+  <figure><img class="shot m" src="07_decor.png" alt=""><figcaption class="cap">Caisses dans les coins du haut, deux cuves, un fossé de 4 × 4 au centre.</figcaption></figure>
+  <div class="box tip"><b class="t">Gagner du temps</b><b>Symétrie</b> (à gauche) : Gauche/droite et Haut/bas recopient chaque coup de pinceau en miroir. <b>Sélection</b> (<kbd>M</kbd>) : copie, coupe et colle une zone avec ses objets ; pendant le collage, <kbd>H</kbd> / <kbd>V</kbd> font un miroir et <kbd>T</kbd> tourne d'un quart de tour. <b>Pipette</b> : <kbd>Alt</kbd> + clic reprend la tuile sous la souris.</div>
+</section>
+
+<section class="chap">
+  <h2><span class="n">5</span>Les objets et les lumières</h2>
+  <p>Les objets sont les vrais modèles 3D du jeu : terminaux, barrières, néons, lampes, cuves, armes à ramasser… Ils viennent de la bibliothèque d'assets (onglet <b>Objets</b>).</p>
+  <ul class="steps">
+    <li>Onglet <b>Objets</b> : filtre par catégorie (Lumières, Moniteurs, Barrières…) ou cherche par nom, puis clique sur une vignette. L'outil Objet (<kbd>A</kbd>) se choisit tout seul.</li>
+    <li>Un fantôme suit la souris (rouge s'il ne tient pas). <kbd>R</kbd> le tourne de 90° avant de le poser. Clic = posé.</li>
+    <li>Les néons et appliques se posent <b>sur un mur</b>, face tournée vers la salle (<kbd>R</kbd> pour l'orienter) ; le reste se pose sur le sol libre.</li>
+  </ul>
+  <figure><img class="shot m" src="08_objets.png" alt=""><figcaption class="cap">Deux terminaux et deux néons posés ; un moniteur en cours de placement (fantôme sous la souris).</figcaption></figure>
+  <h3>Modifier un objet posé</h3>
+  <table>
+    <tr><th style="width:34%">Geste (outil Objet)</th><th>Effet</th></tr>
+    <tr><td>Clic sur l'objet</td><td>Il est choisi (contour turquoise).</td></tr>
+    <tr><td>Glisser l'objet</td><td>Il se déplace.</td></tr>
+    <tr><td><kbd>R</kbd> (objet choisi)</td><td>Il tourne sur place.</td></tr>
+    <tr><td><kbd>Suppr</kbd> ou clic droit</td><td>Il est supprimé.</td></tr>
+    <tr><td><kbd>Maj</kbd> + clic</td><td>Il est repris en main pour être reposé ailleurs.</td></tr>
+    <tr><td><kbd>Ctrl</kbd> + clic</td><td>Pose l'asset choisi par-dessus un autre (une lumière sur un terminal).</td></tr>
+  </table>
+</section>
+
+<section class="chap">
+  <h3 style="margin-top:0">Régler une lumière</h3>
+  <p>Clique sur un néon ou une lampe déjà posé : ses réglages s'ouvrent en haut de l'onglet Objets.</p>
+  <figure><img class="shot" src="09_lumiere.png" alt=""><figcaption class="cap">Un néon choisi : mode, couleur, portée et intensité.</figcaption></figure>
+  <ul>
+    <li><b>Mode</b> : Fixe, Clignote ou Vacille.</li>
+    <li><b>Couleur</b> : pastilles prêtes ou couleur libre.</li>
+    <li><b>Portée</b> et <b>Intensité</b> : jusqu'où la lumière porte et sa force.</li>
+    <li><b>Valeurs de l'asset</b> : revient aux réglages d'origine.</li>
+  </ul>
+  <div class="box tip"><b class="t">Habiller comme le proto</b>Le bouton <b>Habiller comme le proto</b> pose d'un coup, sur les cases libres, les néons du mur du haut, des lampes au sol et du matériel au pied du mur, avec les règles du prototype. Pratique pour démarrer ; <kbd>Ctrl</kbd>+<kbd>Z</kbd> l'annule en entier.</div>
+</section>
+
+<section class="chap">
+  <h2><span class="n">6</span>Rôle, forme et poids</h2>
+  <p>Ces réglages, dans l'onglet <b>Salle</b>, décident <b>quand</b> le générateur d'étage choisit ta salle.</p>
+  <div class="side"><div>
+  <ul>
+    <li><b>Rôle dans l'étage</b> : le type de case que la salle remplit. <b>Peut aussi servir de</b> : d'autres rôles qu'elle accepte (une salle Combat peut aussi servir en Tension).</li>
+    <li><b>Forme de case demandée</b> : la taille exacte de la case d'étage. La salle doit avoir cette taille, sinon la Vérification le signale (un clic sur l'alerte corrige).</li>
+    <li><b>Poids du tirage</b> : plus il est haut, plus la salle sort souvent face aux autres salles du même rôle. 0 = jamais tirée.</li>
+    <li><b>Portes posées</b> : avec des portes posées, la salle ne sera tirée que pour des cases dont les sorties sont parmi les siennes. Sans porte posée, elle va partout.</li>
+  </ul>
+  </div>
+  <figure><img class="shot" src="10_proprietes.png" alt=""><figcaption class="cap">L'onglet Salle.</figcaption></figure>
+  </div>
+  <table>
+    <tr><th>Forme</th><th>Taille</th><th>Demandée par le jeu pour…</th></tr>
+    <tr><td>Standard (std)</td><td>32 × 20</td><td>Combat, Tension, Calme, Ascenseur, Sécurité, Marchand, Faille, Événement, Trésor, Irruption, Cartographe</td></tr>
+    <tr><td>Large</td><td>40 × 26</td><td>Combat, Tension, Faille</td></tr>
+    <tr><td>Petite (small)</td><td>24 × 16</td><td>Combat, Calme, Opportunité</td></tr>
+    <tr><td>Couloir horizontal (corH)</td><td>50 × 9</td><td>Corridor ; Combat, Tension, Calme quand la case n'a que deux portes en ligne</td></tr>
+    <tr><td>Couloir vertical (corV)</td><td>12 × 32</td><td>idem, dans l'autre sens</td></tr>
+    <tr><td>Libre</td><td>au choix</td><td>Toutes les cases du rôle, quelle que soit leur forme</td></tr>
+  </table>
+  <div class="box warn"><b class="t">Attention</b>La forme <b>Carrée</b> (32 × 32) et le rôle <b>Départ</b> ne sont jamais demandés par le jeu (le départ d'un étage est le C.O.M) : une telle salle ne sortirait jamais. L'éditeur le signale.</div>
+</section>
+
+<section class="chap">
+  <h2><span class="n">7</span>La vérification et l'onglet Salles</h2>
+  <p>La Vérification (en bas à droite) relit la salle à chaque modification avec les règles du jeu : au moins 8 × 6 tuiles et 12 tuiles de sol, une porte de sortie au plus par côté, du sol qu'on peut atteindre depuis les portes, des objets qui tiennent dans la salle. Un clic sur une alerte centre la vue sur le problème.</p>
+  <figure><img class="shot m" style="width:64%" src="11_verif.png" alt=""><figcaption class="cap">Un petit local fermé par des murs : son sol, inaccessible, est en rouge et la Vérification l'explique.</figcaption></figure>
+  <div class="side">
+    <div>
+      <h3>Onglet Salles</h3>
+      <ul>
+        <li>La liste de toutes les salles du dossier ; un clic en ouvre une.</li>
+        <li><b>Tout vérifier</b> : la Vérification passe sur toutes les salles d'un coup.</li>
+        <li><b>Couverture</b> : pour chaque rôle et chaque forme que le jeu demande, combien de salles dessinées peuvent servir. <i>repli</i> = le jeu prendra une salle d'un autre rôle ; une case vide = le jeu génère la salle lui-même.</li>
+      </ul>
+      <div class="box tip"><b class="t">À quoi ça sert</b>La Couverture dit où dessiner en priorité : une case vide est une salle que le joueur ne verra jamais dessinée à la main.</div>
+    </div>
+    <figure><img class="shot" src="12_couverture.png" alt=""><figcaption class="cap">Le tableau de couverture.</figcaption></figure>
+  </div>
+</section>
+
+<section class="chap">
+  <h2><span class="n">8</span>Enregistrer et importer dans Unreal</h2>
+  <h3>Enregistrer</h3>
+  <ul class="steps">
+    <li><kbd>Ctrl</kbd>+<kbd>S</kbd> (ou <b>Enregistrer</b>) écrit <code>Nom.eonsalle</code> dans le dossier ouvert avec <b>Dossier</b>, c'est-à-dire <code>G:\My Drive\EON_EditeurSalles\Salles</code>.</li>
+    <li><b>Enregistrer sous…</b> crée une copie sous un autre nom : pratique pour faire une variante d'une salle existante.</li>
+    <li>Le point orange à côté du nom disparaît : c'est enregistré.</li>
+  </ul>
+  <h3>Importer dans Unreal</h3>
+  <p>Dans l'éditeur Unreal, menu <b>EON Salles</b> :</p>
+  <table>
+    <tr><th style="width:42%">Commande</th><th>Ce qu'elle fait</th></tr>
+    <tr><td><b>Importer les salles modifiées</b></td><td>Crée ou met à jour <code>/Game/EON/Salles/BP_nom</code> pour chaque fichier changé depuis le dernier import. C'est la commande de tous les jours.</td></tr>
+    <tr><td><b>Réimport automatique (marche / arrêt)</b></td><td>Toutes les 2 secondes, réimporte ce que tu viens d'enregistrer : chaque <kbd>Ctrl</kbd>+<kbd>S</kbd> met Unreal à jour tout seul.</td></tr>
+    <tr><td>Importer toutes les salles</td><td>Réimporte tout le dossier.</td></tr>
+    <tr><td>Exporter les Blueprints vers .eonsalle</td><td>Le chemin inverse, après une retouche faite dans Unreal.</td></tr>
+    <tr><td>Générer la bibliothèque d'assets</td><td>Après l'ajout de nouveaux modèles 3D : crée leurs fiches pour l'éditeur.</td></tr>
+    <tr><td>Publier la bibliothèque sur le Drive</td><td>Recopie bibliothèque, textures et éditeur sur le Drive.</td></tr>
+  </table>
+  <p>Ensuite, lance le jeu : le générateur d'étage pioche ta salle quand une case demande son rôle et sa forme. Plus le poids est haut, plus elle sort souvent.</p>
+  <div class="box warn"><b class="t">Fermer le jeu avant d'importer</b>Si une partie de test tourne, Unreal ne peut pas réécrire les Blueprints. Quitte la partie, importe, puis relance.</div>
+</section>
+
+<section class="chap">
+  <h2><span class="n">9</span>Aperçu 3D, raccourcis et problèmes courants</h2>
+  <figure><img class="shot" src="13_apercu3d.png" alt=""><figcaption class="cap">L'onglet Aperçu 3D : glisser pour tourner, clic droit ou Maj + glisser pour déplacer, molette pour zoomer.</figcaption></figure>
+  <p>L'aperçu montre les vrais modèles, couleurs et lumières des assets, avec la vue du jeu ou de dessus. Le rendu final (toon, peinture, Lumen) reste celui d'Unreal.</p>
+</section>
+
+<section class="chap">
+  <h3 style="margin-top:0">Raccourcis</h3>
+  <table>
+    <tr><th style="width:26%">Touche</th><th>Action</th><th style="width:26%">Touche</th><th>Action</th></tr>
+    <tr><td><kbd>B</kbd></td><td>Pinceau (<kbd>[</kbd> <kbd>]</kbd> taille)</td><td><kbd>1</kbd> … <kbd>7</kbd></td><td>Choisir une tuile</td></tr>
+    <tr><td><kbd>R</kbd></td><td>Rectangle</td><td><kbd>X</kbd></td><td>Échanger tuiles G et D</td></tr>
+    <tr><td><kbd>L</kbd></td><td>Ligne (<kbd>Maj</kbd> = droite)</td><td>Molette</td><td>Zoom</td></tr>
+    <tr><td><kbd>G</kbd></td><td>Remplissage</td><td><kbd>F</kbd></td><td>Cadrer la salle</td></tr>
+    <tr><td><kbd>E</kbd></td><td>Gomme</td><td><kbd>Espace</kbd></td><td>Main (déplacer la vue)</td></tr>
+    <tr><td><kbd>I</kbd></td><td>Pipette (ou <kbd>Alt</kbd> + clic)</td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></td><td>Annuler / refaire</td></tr>
+    <tr><td><kbd>M</kbd></td><td>Sélection</td><td><kbd>Ctrl</kbd>+<kbd>C</kbd> <kbd>X</kbd> <kbd>V</kbd></td><td>Copier, couper, coller</td></tr>
+    <tr><td><kbd>P</kbd></td><td>Porte de sortie</td><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Enregistrer</td></tr>
+    <tr><td><kbd>O</kbd></td><td>Porte intérieure</td><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Ouvrir</td></tr>
+    <tr><td><kbd>A</kbd></td><td>Objet</td><td><kbd>Ctrl</kbd>+<kbd>N</kbd></td><td>Nouvelle salle</td></tr>
+  </table>
+  <p>Le bouton <kbd>?</kbd> en haut à droite de l'éditeur rappelle tout cela à tout moment.</p>
+  <h3>Problèmes courants</h3>
+  <table>
+    <tr><th style="width:38%">Ce que tu vois</th><th>Quoi faire</th></tr>
+    <tr><td>« Ce navigateur n'ouvre pas de dossier »</td><td>Ouvre l'éditeur dans Chrome ou Edge.</td></tr>
+    <tr><td>Aucune vignette dans l'onglet Objets</td><td><b>Ouvrir la bibliothèque d'assets…</b> et choisis le dossier <code>Bibliotheque</code> du Drive. Après de nouveaux assets, le bouton ⟳ relit tout.</td></tr>
+    <tr><td>Du sol en rouge</td><td>Ce sol n'est relié à aucune porte : ouvre un passage (porte intérieure) ou remplis-le de mur.</td></tr>
+    <tr><td>« Le générateur ne demande jamais la forme… »</td><td>Choisis une forme du tableau du chapitre 6, ou Libre, et mets la salle à la bonne taille (<b>Taille de la forme</b>).</td></tr>
+    <tr><td>« L'objet dépasse de la salle »</td><td>L'objet est plus grand que la place libre : tourne-le (<kbd>R</kbd>) ou pose-le ailleurs.</td></tr>
+    <tr><td>Un fichier s'ouvre avec des corrections</td><td>Il était abîmé (tuile inconnue, rangée trop courte…) : l'éditeur liste ce qu'il a réparé. Vérifie puis enregistre.</td></tr>
+    <tr><td>La salle n'apparaît pas dans le jeu</td><td>Vérifie le poids (pas 0), le rôle, la forme, puis <b>EON Salles › Importer les salles modifiées</b> dans Unreal.</td></tr>
+  </table>
+  <div class="box tip"><b class="t">Ta première salle, en résumé</b>Nouvelle › À partir de zéro › Créer › Rectangle (contour) pour le cadre › P pour les portes › Construire la salle › décor et objets › Ctrl+S › Unreal : EON Salles › Importer les salles modifiées › jouer.</div>
+</section>
+
+</body>
+</html>
