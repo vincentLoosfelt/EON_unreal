@@ -322,6 +322,7 @@ const TILES = [
   { c: "=", nm: "Fossé", d: "Vide franchissable au dash", k: "4" },
   { c: "X", nm: "Caisse", d: "Décor solide", k: "5" },
   { c: "K", nm: "Cuve", d: "Décor solide", k: "6" },
+  { c: "?", nm: "Canevas", d: "Pas encore défini", k: "7" },
 ];
 const TILE_BY = Object.fromEntries(TILES.map(t => [t.c, t]));
 
@@ -345,7 +346,7 @@ function blankRoom(nom, W, H, fill, role, forme) {
   const g = new Array(W * H);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const border = x === 0 || y === 0 || x === W - 1 || y === H - 1;
-    g[y * W + x] = fill === "wall" ? "#" : fill === "floor" ? "." : (border ? "#" : ".");
+    g[y * W + x] = fill === "scratch" ? "?" : fill === "wall" ? "#" : fill === "floor" ? "." : (border ? "#" : ".");
   }
   return { nom, role: role || "COMBAT", rolesEnPlus: [], forme: forme || "", poids: 1, W, H, g, portes: [], objets: [] };
 }
@@ -441,6 +442,7 @@ async function save(as) {
     if (!n) return;
     if (n !== room.nom) { pushUndo(); room.nom = n; syncProps(); changed(); }
   }
+  if (!construireSalle(true)) return;
   const txt = toFileText(room);
   const name = room.nom + ".eonsalle";
   try {
@@ -995,7 +997,7 @@ function confirmLose() { return !dirty || confirm("La salle en cours a des modif
 let draftTimer = 0;
 function changed(mark = true) {
   if (mark) setDirty(true);
-  analyse(); updateStatus(); renderIssues(); renderDoorsInfo(); draw(); V3.dirty = true;
+  analyse(); if (!!$("oBuild") !== isCanvas()) renderOptbar(); updateStatus(); renderIssues(); renderDoorsInfo(); draw(); V3.dirty = true;
   $("bUndo").disabled = !undo.length; $("bRedo").disabled = !redo.length;
   $("docName").textContent = (fileName || room.nom + ".eonsalle");
   clearTimeout(draftTimer);
@@ -1046,6 +1048,7 @@ function extDoorFromCell(x, y) {
   return { type: "exterieure", cote, pos: Math.max(1, Math.min(len - 3, along)) };
 }
 function extDoorTiles(p) {
+  if (p.canevas) return p.cote === "N" || p.cote === "S" ? [[p.x, p.y], [p.x + 1, p.y]] : [[p.x, p.y], [p.x, p.y + 1]];
   const W = room.W, H = room.H, q = p.pos;
   return p.cote === "N" ? [[q, 0], [q + 1, 0]] : p.cote === "S" ? [[q, H - 1], [q + 1, H - 1]] : p.cote === "W" ? [[0, q], [0, q + 1]] : [[W - 1, q], [W - 1, q + 1]];
 }
@@ -1053,6 +1056,87 @@ function autoDoorTiles(cote) {
   const W = room.W, H = room.H, cx = W >> 1, cy = H >> 1;
   return cote === "N" ? [[cx - 1, 0], [cx, 0]] : cote === "S" ? [[cx - 1, H - 1], [cx, H - 1]] : cote === "W" ? [[0, cy - 1], [0, cy]] : [[W - 1, cy - 1], [W - 1, cy]];
 }
+// ======================================================================= canevas
+// Salle « à partir de zéro » : les cases « ? » ne sont pas encore définies (on ne voit que la grille). On trace les murs, on pose
+// les portes de sortie sur les murs avec leur orientation, puis construireSalle() en déduit la salle : sol à l'intérieur des murs,
+// mur plein dehors, recadrage sur les murs, portes converties en côté + position comme dans les fichiers .eonsalle.
+const isCanvas = () => !!room && room.g.includes("?");
+function canvasOutside() {
+  // dehors = cases « ? » reliées au bord de la grille sans traverser un mur ni une porte
+  const W = room.W, H = room.H, out = new Uint8Array(W * H), door = new Set(), st = [];
+  for (const p of room.portes) if (p.type === "exterieure" && p.canevas) for (const [a, b] of extDoorTiles(p)) door.add(b * W + a);
+  for (let x = 0; x < W; x++) st.push([x, 0], [x, H - 1]);
+  for (let y = 0; y < H; y++) st.push([0, y], [W - 1, y]);
+  while (st.length) {
+    const [a, b] = st.pop();
+    if (a < 0 || b < 0 || a >= W || b >= H) continue;
+    const i = b * W + a;
+    if (out[i] || room.g[i] !== "?" || door.has(i)) continue;
+    out[i] = 1; st.push([a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]);
+  }
+  return out;
+}
+function canvasDoorAt(x, y) {
+  // porte de 2 tuiles le long du mur cliqué, tournée vers le dehors (sinon vers le bord de grille le plus proche)
+  const W = room.W, H = room.H, out = canvasOutside(), isOut = (a, b) => a < 0 || b < 0 || a >= W || b >= H || out[b * W + a];
+  // côté dehors dont le côté opposé ne l'est pas (si le mur fuit, les deux le sont : on prend alors le bord de grille le plus proche)
+  let cote = [["N", 0, -1], ["S", 0, 1], ["W", -1, 0], ["E", 1, 0]].find(([, dx, dy]) => isOut(x + dx, y + dy) && !isOut(x - dx, y - dy));
+  cote = cote ? cote[0] : [[y, "N"], [H - 1 - y, "S"], [x, "W"], [W - 1 - x, "E"]].sort((p, q) => p[0] - q[0])[0][1];
+  const p = { type: "exterieure", cote, x, y, canevas: true };
+  if (cote === "N" || cote === "S") { if (at(x + 1, y) !== "#" && at(x - 1, y) === "#") p.x = x - 1; }
+  else if (at(x, y + 1) !== "#" && at(x, y - 1) === "#") p.y = y - 1;
+  return p;
+}
+function turnCanvasDoor(p) {
+  p.cote = { N: "E", E: "S", S: "W", W: "N" }[p.cote];
+}
+function construireSalle(quiet) {
+  if (!isCanvas()) return true;
+  const W = room.W, H = room.H, out = canvasOutside();
+  let x0 = W, y0 = H, x1 = -1, y1 = -1, inner = 0;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x; if (out[i]) continue;
+    if (room.g[i] !== "#") inner++;
+    x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
+  }
+  if (!inner) { toast("Les murs ne ferment aucune pièce : trace un contour fermé (une porte compte comme du mur)"); return false; }
+  const nW = x1 - x0 + 1, nH = y1 - y0 + 1, errs = [];
+  if (nW < 8 || nH < 6) errs.push("la salle fait " + nW + " × " + nH + ", il faut au moins 8 × 6");
+  const g = new Array(nW * nH);
+  for (let y = 0; y < nH; y++) for (let x = 0; x < nW; x++) {
+    const i = (y + y0) * W + x + x0, c = room.g[i];
+    g[y * nW + x] = out[i] ? "#" : c === "?" ? "." : c;
+  }
+  const portes = [], cotes = {};
+  for (const p of room.portes) {
+    if (p.type === "interieure") { portes.push({ ...p, x: p.x - x0, y: p.y - y0 }); continue; }
+    if (!p.canevas) { errs.push("une porte posée avant le canevas"); continue; }
+    // sur le bord, le côté est imposé par la salle : on garde l'orientation choisie si elle colle, sinon le bord où est la porte
+    // (dans un coin, l'orientation choisie départage)
+    const onSide = c => { const q = { ...p, cote: c }, t = extDoorTiles(q).map(([a, b]) => [a - x0, b - y0]);
+      return t.every(([a, b]) => a >= 0 && b >= 0 && a < nW && b < nH && (c === "N" ? b === 0 : c === "S" ? b === nH - 1 : c === "W" ? a === 0 : a === nW - 1)) ? t : null; };
+    const cote = onSide(p.cote) ? p.cote : "NSWE".split("").find(onSide);
+    if (!cote) { errs.push("une porte (" + p.x + ", " + p.y + ") n'est pas sur le bord de la salle"); continue; }
+    p.cote = cote; const t = onSide(cote);
+    if (cotes[p.cote]) { errs.push("deux portes côté " + p.cote); continue; }
+    cotes[p.cote] = 1;
+    const along = p.cote === "N" || p.cote === "S" ? t[0][0] : t[0][1], len = p.cote === "N" || p.cote === "S" ? nW : nH;
+    portes.push({ type: "exterieure", cote: p.cote, pos: Math.max(1, Math.min(len - 3, along)) });
+  }
+  if (errs.length) { toast("Impossible de construire : " + errs.join(" ; ")); return false; }
+  pushUndo();
+  const objets = room.objets.map(o => ({ ...o, x: o.x - x0, y: o.y - y0 }));
+  room.W = nW; room.H = nH; room.g = g; room.portes = portes;
+  room.objets = objets.filter(o => objTiles(o).every(([a, b]) => at(a, b) !== null));
+  const perdus = objets.length - room.objets.length;
+  if (!(FORMES[room.forme] && FORMES[room.forme][0] === nW && FORMES[room.forme][1] === nH))
+    room.forme = (Object.entries(FORMES).find(([k, v]) => k && v[0] === nW && v[1] === nH) || [""])[0];
+  objSel = lumSel = -1; sel = null;
+  syncProps(); fit(); changed(); renderOptbar();
+  if (!quiet || perdus) toast("Salle construite : " + nW + " × " + nH + ", forme « " + (room.forme || "libre") + " »" + (perdus ? " ; " + perdus + " objet(s) hors des murs retiré(s)" : ""));
+  return true;
+}
+
 function inDoorTiles(p) {
   const out = [];
   for (let k = 0; k < p.largeur; k++) out.push(p.sens === "vertical" ? [p.x, p.y + k] : [p.x + k, p.y]);
@@ -1169,6 +1253,10 @@ function dropPaste(cx, cy) {
 // ======================================================================= analyse (règles du jeu)
 function analyse() {
   const W = room.W, H = room.H, iss = [];
+  if (isCanvas()) {
+    iss.push({ lvl: "info", t: "Canevas : trace les murs (L ligne, R rectangle), pose les portes de sortie sur les murs (P ; clic sur une porte = la tourner), puis « Construire la salle ». L'enregistrement construit aussi la salle." });
+    analysis = { unreachable: new Set(), issues: iss, nFloor: 0 }; return;
+  }
   const nFloor = room.g.filter(c => c === ".").length;
   if (W < 8 || H < 6) iss.push({ lvl: "err", t: "Taille " + W + " × " + H + " : il faut au moins 8 × 6." });
   if (nFloor < 12) iss.push({ lvl: "err", t: "Seulement " + nFloor + " tuile(s) de sol : il en faut au moins 12." });
@@ -1229,7 +1317,7 @@ function renderIssues() {
 
 function renderDoorsInfo() {
   const ext = room.portes.filter(p => p.type === "exterieure"), inn = room.portes.filter(p => p.type === "interieure");
-  $("pDoors").innerHTML = (ext.length ? "Extérieures : " + ext.map(p => p.cote + " (tuile " + p.pos + ")").join(", ") : "Extérieures : automatiques (milieu des côtés)") +
+  $("pDoors").innerHTML = (ext.length ? "Extérieures : " + ext.map(p => p.cote + (p.canevas ? " (canevas)" : " (tuile " + p.pos + ")")).join(", ") : "Extérieures : automatiques (milieu des côtés)") +
     "<br>Intérieures : " + (inn.length ? inn.length + " (" + inn.map(p => p.largeur + " t. " + (p.sens === "vertical" ? "vert." : "horiz.")).join(", ") + ")" : "aucune") +
     '<br><span class="muted">Outil P ou O ; clic droit sur une porte pour la supprimer.</span>';
 }
@@ -1271,6 +1359,9 @@ function drawTile(g, c, px, py, z, x, y) {
       break;
     }
     case ".": g.fillStyle = ((x + y) & 1) ? "#a2a99f" : "#a9b0a6"; g.fillRect(px, py, z, z); break;
+    case "?": g.fillStyle = "#15191e"; g.fillRect(px, py, z, z);
+      if (z >= 5) { g.strokeStyle = "rgba(150,175,185,.16)"; g.lineWidth = 1; g.strokeRect(px + .5, py + .5, z - 1, z - 1); }
+      break;
     case "_": g.fillStyle = "#06070a"; g.fillRect(px, py, z, z);
       if (z >= 12) { g.strokeStyle = "rgba(255,255,255,.05)"; g.lineWidth = 1; g.beginPath(); g.moveTo(px, py + z); g.lineTo(px + z, py); g.stroke(); }
       break;
@@ -1360,7 +1451,7 @@ function drawExtDoor(tl, cote, ghost) {
   ctx.fillStyle = ghost ? "#ff9a3d" : "#2a1500"; ctx.beginPath();
   ctx.moveTo(cx + v[0] * a, cy + v[1] * a); ctx.lineTo(cx - v[1] * a * .7 - v[0] * a * .2, cy + v[0] * a * .7 - v[1] * a * .2); ctx.lineTo(cx + v[1] * a * .7 - v[0] * a * .2, cy - v[0] * a * .7 - v[1] * a * .2); ctx.fill();
   if (z >= 14) { ctx.fillStyle = ghost ? "#ffb878" : "#fff"; ctx.font = "600 " + Math.min(14, z * .5) + "px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    const off = z * 1.1; ctx.fillText(cote + (ghost ? " auto" : ""), cx - v[0] * off * (ghost ? 1.6 : 1), cy - v[1] * off); }
+    const off = z * 1.1; ctx.fillText(cote + (ghost === true ? " auto" : ""), cx - v[0] * off * (ghost === true ? 1.6 : 1), cy - v[1] * off); }
   ctx.restore();
 }
 function drawInDoor(p, ghost) {
@@ -1404,6 +1495,8 @@ function drawPreview() {
       for (const [a, b] of org) ctx.strokeRect(a * z + .5, b * z + .5, brush * z - 1, brush * z - 1);
     } else if (tool === "object" && assets[assetSel]) {
       const o = placeAt(hover.x, hover.y); drawObject(ctx, o, z, true, placeBad(o));
+    } else if (tool === "extdoor" && isCanvas()) {
+      if (at(hover.x, hover.y) === "#" && doorAt(hover.x, hover.y) < 0) { const p = canvasDoorAt(hover.x, hover.y); drawExtDoor(extDoorTiles(p), p.cote, "pose"); }
     } else if (tool === "extdoor") {
       const p = extDoorFromCell(hover.x, hover.y); drawExtDoor(extDoorTiles(p), p.cote, true);
     } else {
@@ -1765,12 +1858,20 @@ function onDown(ev) {
   const col = btn === 2 ? secondary : primary;
   if (tool === "brush" || tool === "erase") {
     if (!inside) return;
-    pushUndo(); const t = tool === "erase" ? "." : col; stamp(c.x, c.y, t); drag = { kind: "brush", last: c, t }; changed(); return;
+    pushUndo(); const t = tool === "erase" ? (isCanvas() ? "?" : ".") : col; stamp(c.x, c.y, t); drag = { kind: "brush", last: c, t }; changed(); return;
   }
   if (tool === "rect") { if (inside) drag = { kind: "rect", a: c, b: c, btn }; draw(); return; }
   if (tool === "line") { if (inside) drag = { kind: "line", a: c, b: c, btn }; draw(); return; }
   if (tool === "fill") { if (inside) { pushUndo(); flood(c.x, c.y, col); changed(); } return; }
   if (tool === "select") { if (btn === 2) { sel = null; draw(); return; } sel = { x0: clampX(c.x), y0: clampY(c.y), x1: clampX(c.x), y1: clampY(c.y) }; drag = { kind: "sel" }; draw(); return; }
+  if (tool === "extdoor" && isCanvas()) {
+    if (!inside) return;
+    const i = doorAt(c.x, c.y), q = room.portes[i];
+    if (btn === 2) { if (i >= 0) { pushUndo(); room.portes.splice(i, 1); changed(); } return; }
+    if (q && q.canevas) { pushUndo(); turnCanvasDoor(q); changed(); return; }
+    if (at(c.x, c.y) !== "#") { toast("Pose la porte sur un mur"); return; }
+    pushUndo(); room.portes.push(canvasDoorAt(c.x, c.y)); changed(); return;
+  }
   if (tool === "extdoor") {
     if (!inside) return;
     const i = doorAt(c.x, c.y);
@@ -1872,7 +1973,7 @@ function setTool(id) {
 }
 function renderOptbar() {
   const o = $("optbar"), t = TOOLS.find(t => t.id === tool);
-  let h = '<b style="color:var(--txt)">' + t.t + "</b>";
+  let h = (isCanvas() ? '<button class="btn primary" id="oBuild" title="Sol dans les murs, recadrage, portes converties">Construire la salle</button>' : "") + '<b style="color:var(--txt)">' + t.t + "</b>";
   if (tool === "brush" || tool === "erase") h += '<label>Taille <input type="range" id="oBrush" min="1" max="9" value="' + brush + '"><span id="oBrushV">' + brush + "</span></label>";
   if (tool === "rect") h += '<label><input type="checkbox" id="oOutline"' + (rectOutline ? " checked" : "") + "> Contour seulement</label>";
   if (tool === "fill") h += '<label><input type="checkbox" id="oFillAll"' + (fillAll ? " checked" : "") + "> Toutes les tuiles de ce type</label>";
@@ -1886,6 +1987,8 @@ function renderOptbar() {
     erase: "Remet du sol", pick: "Clic gauche → tuile G, clic droit → tuile D", select: paste ? "Clic : poser le collage · clic droit : annuler" : "Glisser pour sélectionner · Suppr efface",
     object: "Clic : poser · clic sur un objet : le choisir, glisser pour le déplacer · R : tourner · Suppr ou clic droit : supprimer · Ctrl + clic : poser par-dessus",
     pan: "Glisser pour déplacer la vue", extdoor: "Clic près d'un bord : la porte s'y place (2 tuiles). Une seule par côté.", indoor: "Glisser une ligne de 1 à 8 tuiles en travers du passage" };
+  if (isCanvas()) Object.assign(hints, { extdoor: "Clic sur un mur : porte de sortie (2 tuiles) · clic sur une porte : la tourner · clic droit : la supprimer",
+    erase: "Remet du canevas", line: "Trace un mur · Maj : ligne droite", rect: "Glisser pour tracer (cocher Contour pour un cadre de murs)" });
   h += '<span class="hint">' + (hints[tool] || "") + "</span>";
   o.innerHTML = h;
   const on = (id, ev, f) => { const e = $(id); if (e) e.addEventListener(ev, f); };
@@ -1893,7 +1996,7 @@ function renderOptbar() {
   on("oOutline", "change", e => { rectOutline = e.target.checked; });
   on("oFillAll", "change", e => { fillAll = e.target.checked; });
   on("oCopy", "click", () => copySel(false)); on("oCut", "click", () => copySel(true)); on("oPaste", "click", startPaste);
-  on("oRotL", "click", () => rotateObj(-1)); on("oRotR", "click", () => rotateObj(1));
+  on("oBuild", "click", () => construireSalle()); on("oRotL", "click", () => rotateObj(-1)); on("oRotR", "click", () => rotateObj(1));
   on("oFH", "click", () => clipFlip(true)); on("oFV", "click", () => clipFlip(false)); on("oRot", "click", clipRot);
 }
 function renderTiles() {
@@ -1961,7 +2064,7 @@ function showTab(id) {
 // --- nouvelle salle
 let newForme = "std", newFill = "scratch";
 // Départs : « à partir de zéro » = grille vierge (tout en sol, sans mur), outil Objet prêt, onglet Objets ouvert.
-const DEPARTS = [["scratch", "À partir de zéro", "Grille vierge : on pose les assets"], ["room", "Sol entouré de murs", "Le cadre est déjà là"],
+const DEPARTS = [["scratch", "À partir de zéro", "Canevas : murs, portes, puis la salle est déduite"], ["room", "Sol entouré de murs", "Le cadre est déjà là"],
   ["wall", "Tout en murs", "On creuse les pièces"], ["floor", "Tout en sol", "Sans mur, outils de tuiles"]];
 function openNew() {
   if (!confirmLose()) return;
@@ -1986,11 +2089,11 @@ function openNewRefresh() { [...$("nPresets").children].forEach((d, i) => d.clas
 function createNew() {
   const W = Math.max(8, +$("nW").value | 0), H = Math.max(6, +$("nH").value | 0);
   const f = FORMES[newForme], zero = newFill === "scratch";
-  room = blankRoom($("nNom").value.trim() || "Salle_Nouvelle", W, H, zero ? "floor" : newFill, $("nRole").value, f && f[0] === W && f[1] === H ? newForme : "");
+  room = blankRoom($("nNom").value.trim() || "Salle_Nouvelle", W, H, newFill, $("nRole").value, f && f[0] === W && f[1] === H ? newForme : "");
   fileHandle = null; fileName = null; undo = []; redo = []; sel = null; paste = false;
   $("mNew").classList.remove("on");
   syncProps(); fit(); changed(true); renderLib();
-  if (zero) { assetSel = null; setTool("object"); showTab("obj"); toast("Grille vierge : choisis un asset dans l'onglet Objets puis clique sur la grille"); }
+  if (zero) { primary = "#"; secondary = "?"; rectOutline = true; renderTiles(); setTool("line"); showTab("props"); toast("Canevas : trace les murs, pose les portes sur les murs (P), puis « Construire la salle »"); }
 }
 
 // --- PNG
