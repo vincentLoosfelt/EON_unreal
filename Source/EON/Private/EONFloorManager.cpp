@@ -39,6 +39,7 @@
 #include "HAL/IConsoleManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Character.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 
 namespace
@@ -186,9 +187,31 @@ namespace
 			}
 			UE_LOG(LogEON, Display, TEXT("eon.cache %s %d : %d composant(s)"), *Args[0], bShow ? 1 : 0, N);
 		}));
-	TAutoConsoleVariable<FString> CVarEONDebut(TEXT("eon.debut"), TEXT(""), TEXT("eon.debut \"cmd1;cmd2\" : commandes lancées 2 s après le début (tests, ExecCmds trop tôt)"));
+	TAutoConsoleVariable<FString> CVarEONDebut(TEXT("eon.debut"), TEXT(""), TEXT("eon.debut \"cmd1;cmd2\" : commandes lancées 2 s après le début (tests, ExecCmds trop tôt) ; « attendre N » entre deux commandes"));
 	TAutoConsoleVariable<int32> CVarEONTresor(TEXT("eon.tresor"), 0, TEXT("eon.tresor 1 : les trésors sont des stocks piégés (le Dormeur des pièces) ; 2 : des carnages ; 0 : au hasard (tests)"));
-	TAutoConsoleVariable<int32> CVarEONTrace(TEXT("eon.trace"), 0, TEXT("eon.trace 1 : eon.ou toutes les 2 s"));
+	TAutoConsoleVariable<int32> CVarEONTrace(TEXT("eon.trace"), 0, TEXT("eon.trace 1 : eon.ou toutes les 2 s ; 2 : eon.ou et eon.murs"));
+	FAutoConsoleCommandWithWorldAndArgs GEONCmdMurs(TEXT("eon.murs"), TEXT("eon.murs : balaie la capsule de Jira vers les 4 directions et dit ce qui l'arrête (collision des murs, sans clavier)"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>&, UWorld* World)
+		{
+			const ACharacter* Ch = Cast<ACharacter>(UGameplayStatics::GetPlayerPawn(World, 0));
+			if (!Ch) { return; }
+			const UCapsuleComponent* Cap = Ch->GetCapsuleComponent();
+			const FVector P = Ch->GetActorLocation();
+			AEONTileRoom* Rm = AEONTileRoom::FindTileRoomAt(World, P);
+			FCollisionQueryParams Q(TEXT("EONMurs"), false, Ch);
+			const FCollisionShape Shape = FCollisionShape::MakeCapsule(Cap->GetScaledCapsuleRadius(), Cap->GetScaledCapsuleHalfHeight());
+			static const TCHAR* Noms[] = { TEXT("+X"), TEXT("-X"), TEXT("+Y"), TEXT("-Y") };
+			const FVector Dirs[] = { FVector(1, 0, 0), FVector(-1, 0, 0), FVector(0, 1, 0), FVector(0, -1, 0) };
+			for (int32 I = 0; I < 4; ++I)
+			{
+				FHitResult Hit;
+				const bool bHit = World->SweepSingleByChannel(Hit, P, P + Dirs[I] * 4000.f, FQuat::Identity, Cap->GetCollisionObjectType(), Shape, Q);
+				const FVector2D HPx = (Rm && bHit) ? Rm->WorldToRoomPx(Hit.ImpactPoint - Hit.ImpactNormal * 2.f) : FVector2D::ZeroVector;
+				UE_LOG(LogEON, Display, TEXT("EON murs %s : %s %s (%s) a %.0f cm, case solide %d, visible %d"), Noms[I], bHit ? TEXT("arret par") : TEXT("rien"),
+					bHit && Hit.GetActor() ? *Hit.GetActor()->GetName() : TEXT("-"), bHit && Hit.GetComponent() ? *Hit.GetComponent()->GetName() : TEXT("-"),
+					bHit ? Hit.Distance : -1.f, (Rm && bHit) ? (int32)Rm->SolidAtPx(HPx) : -1, bHit && Hit.GetComponent() ? (int32)Hit.GetComponent()->IsVisible() : -1);
+			}
+		}));
 	FAutoConsoleCommandWithWorldAndArgs GEONCmdOu(TEXT("eon.ou"), TEXT("eon.ou : position de Jira, de son mesh et de la caméra dans le log"),
 		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>&, UWorld* World)
 		{
@@ -203,6 +226,12 @@ namespace
 				(PC && PC->PlayerCameraManager) ? *PC->PlayerCameraManager->GetCameraLocation().ToCompactString() : TEXT("-"));
 			// Ennemis : position en px de salle, vivant, ciblable.
 			AEONTileRoom* Rm = P ? AEONTileRoom::FindTileRoomAt(World, P->GetActorLocation()) : nullptr;
+			if (Rm && P)
+			{
+				// Jira dans un mur (solide 1) = la collision des murs ne tient plus.
+				const FVector2D JPx = Rm->WorldToRoomPx(P->GetActorLocation());
+				UE_LOG(LogEON, Display, TEXT("EON ou : Jira px (%.0f, %.0f) salle %s solide %d"), JPx.X, JPx.Y, *Rm->GetName(), (int32)Rm->SolidAtPx(JPx));
+			}
 			for (TActorIterator<AEONEnemy> It(World); It; ++It)
 			{
 				const FVector2D Px = Rm ? Rm->WorldToRoomPx(It->GetActorLocation()) : FVector2D::ZeroVector;
@@ -295,15 +324,21 @@ void AEONFloorManager::BeginPlay()
 	{
 		bDebutDone = true;
 		TWeakObjectPtr<UWorld> W(GetWorld());
-		double* Left = new double(2.0);
-		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([W, Left](float Dt)
+		// File de commandes ; « attendre N » suspend la file N secondes (temps réel, même jeu en pause).
+		// La liste est lue au premier passage : ExecCmds remplit eon.debut après le BeginPlay.
+		struct FDebut { double Left = 2.0; TArray<FString> Cmds; int32 I = -1; };
+		TSharedRef<FDebut> D = MakeShared<FDebut>();
+		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([W, D](float Dt)
 		{
-			if (!W.IsValid()) { delete Left; return false; }
-			if ((*Left -= Dt) > 0.0) { return true; }
-			delete Left;
-			TArray<FString> Cmds;
-			CVarEONDebut.GetValueOnGameThread().ParseIntoArray(Cmds, TEXT(";"));
-			for (const FString& Cm : Cmds) { if (GEngine) { GEngine->Exec(W.Get(), *Cm.TrimStartAndEnd()); } }
+			if (!W.IsValid()) { return false; }
+			if ((D->Left -= Dt) > 0.0) { return true; }
+			if (D->I < 0) { CVarEONDebut.GetValueOnGameThread().ParseIntoArray(D->Cmds, TEXT(";")); D->I = 0; }
+			while (D->I < D->Cmds.Num())
+			{
+				const FString Cm = D->Cmds[D->I++].TrimStartAndEnd();
+				if (Cm.StartsWith(TEXT("attendre "))) { D->Left = FCString::Atod(*Cm.RightChop(9)); return true; }
+				if (GEngine) { GEngine->Exec(W.Get(), *Cm); }
+			}
 			return false;
 		}));
 	}
@@ -1276,6 +1311,7 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 	{
 		TraceT = 2.f;
 		if (GEngine) { GEngine->Exec(GetWorld(), TEXT("eon.ou")); }
+		if (GEngine && CVarEONTrace.GetValueOnGameThread() > 1) { GEngine->Exec(GetWorld(), TEXT("eon.murs")); }
 	}
 	// Transition : à mi-course (0,18 s) on charge la salle, puis on rouvre.
 	if (TransT > 0.f)
