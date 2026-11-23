@@ -1,4 +1,5 @@
 #include "EONEnemyProjectile.h"
+#include "EONStatics.h"
 #include "EONTileRoom.h"
 #include "EONTypes.h"
 #include "Components/StaticMeshComponent.h"
@@ -40,6 +41,7 @@ AEONEnemyProjectile::AEONEnemyProjectile()
 	Visual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Visual"));
 	RootComponent = Visual;
 	MakeFlatSphere(this, Visual);
+	UEONStatics::MarkCelComponent(Visual);
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	if (SphereMesh.Succeeded()) { Visual->SetStaticMesh(SphereMesh.Object); }
 }
@@ -87,6 +89,7 @@ AEONEnemyEgg::AEONEnemyEgg()
 	Visual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Visual"));
 	RootComponent = Visual;
 	MakeFlatSphere(this, Visual);
+	UEONStatics::MarkCelComponent(Visual);
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	if (SphereMesh.Succeeded()) { Visual->SetStaticMesh(SphereMesh.Object); }
 }

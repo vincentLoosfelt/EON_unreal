@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<title>EON — Étude colorimétrique Orbitals</title>
+<style>
+@page { size: A4; margin: 16mm 15mm; }
+body { font-family: "Segoe UI", Arial, sans-serif; color: #222; font-size: 10.5pt; line-height: 1.45; }
+h1 { font-size: 20pt; margin: 0 0 4pt; color: #1d2b44; }
+h2 { font-size: 13.5pt; color: #1d2b44; border-bottom: 2px solid #c9a46b; padding-bottom: 2pt; margin-top: 18pt; }
+h3 { font-size: 11pt; margin: 12pt 0 4pt; color: #6b3d1f; }
+.sous { color: #666; font-size: 9.5pt; margin-bottom: 10pt; }
+table { border-collapse: collapse; width: 100%; font-size: 9pt; margin: 6pt 0; }
+th, td { border: 1px solid #ccc; padding: 3pt 5pt; text-align: center; }
+th { background: #1d2b44; color: #fff; }
+tr.eon td { background: #f6efe3; }
+tr.reco td { background: #e3f0e6; font-weight: 600; }
+img { max-width: 100%; display: block; margin: 6pt auto; border: 1px solid #bbb; }
+.cap { text-align: center; font-size: 8.5pt; color: #666; margin-top: -2pt; }
+.bloc { background: #f4f1ea; border-left: 4px solid #c9a46b; padding: 6pt 10pt; margin: 8pt 0; }
+.reco { background: #e9f3ec; border-left: 4px solid #3f8a55; padding: 6pt 10pt; margin: 8pt 0; }
+.saut { page-break-before: always; }
+ul { margin: 3pt 0 3pt 16pt; padding: 0; }
+li { margin: 2pt 0; }
+code { font-family: Consolas, monospace; font-size: 9pt; background: #eee; padding: 0 3pt; }
+</style></head><body>
+
+<h1>Étude colorimétrique : Orbitals → EON</h1>
+<div class="sous">Fond et celluloïds : valeurs, saturation, teinte, trait. Version 1, 23/11/2026. Projet EON_UE, branche portage-j1-j7.</div>
+
+<div class="bloc"><b>Demande de Vincent (23/11).</b> Plan serré, personnages plus visibles. Étudier des captures d'Orbitals pour en tirer une colorimétrie et un comportement pour le décor, et un autre pour les celluloïds. Son intuition : le décor est un peu moins saturé, avec une valeur moyenne plus sombre ; les celluloïds sont plus clairs, avec un trait sombre qui les détache.</div>
+
+<h2>1. Sources et méthode</h2>
+<ul>
+<li><b>Captures en jeu</b> : les 14 images de l'article technique Unreal « Stepping inside a retro anime-inspired game: a look into the rendering of Orbitals » (J. Varmedal, 03/09/2026). J'en mesure trois, qui ont des personnages et du décor dans le même plan : le couloir (Omura et un mécanicien), le chat dans le hangar, et la salle de contrôle. Les illustrations du site officiel sont des affiches, pas du jeu : je ne les ai pas mesurées.</li>
+<li><b>Mesure</b> : en CIE L*a*b*. <b>L*</b> est la clarté perçue, de 0 (noir) à 100 (blanc). <b>C*</b> est la saturation perçue. La teinte est donnée en degrés (90 ≈ jaune-olive, 250–290 ≈ bleu à violet).
+  <ul><li>Fond : toute l'image, sauf les boîtes des personnages (cadres rouges ci-dessous).</li>
+  <li>Celluloïds : des aplats choisis à l'intérieur des personnages (cadres verts), donc sans le trait.</li>
+  <li>Trait : les 2 % de pixels les plus sombres dans les boîtes des personnages.</li></ul></li>
+<li><b>EON</b> : le même relevé sur le plan rapproché du HUB tel qu'il est enregistré (aquarelle B), puis sur chaque proposition. Script : <code>Saved/Scripts/eon_etude_couleur.py</code>, résultats dans <code>mesures.json</code>.</li>
+</ul>
+<img src="zones_Orbitals_couloir.jpg" style="width:49%;display:inline-block"><img src="zones_Orbitals_chat.jpg" style="width:49%;display:inline-block">
+<img src="zones_Orbitals_salle.jpg" style="width:49%;display:inline-block"><img src="zones_EON_P0.jpg" style="width:49%;display:inline-block">
+<div class="cap">Zones mesurées : rouge = boîtes des personnages (exclues du fond), vert = aplats des celluloïds. En bas à droite : EON actuel.</div>
+
+<h2>2. Mesures</h2>
+<table>
+<tr><th>Image</th><th>Fond L*</th><th>Fond L* p10–p90</th><th>Fond C*</th><th>Fond teinte</th><th>Cel L*</th><th>Cel C*</th><th>Écart L* cel − fond</th><th>Trait L*</th></tr>
+<tr><td>Orbitals couloir</td><td>4,3</td><td>0,5–11,7</td><td>7,7</td><td>290° violet-bleu</td><td>58,0</td><td>32,3</td><td><b>+53,7</b></td><td>0,0</td></tr>
+<tr><td>Orbitals chat</td><td>17,7</td><td>5,2–26,6</td><td>10,3</td><td>247° bleu</td><td>60,1</td><td>25,6</td><td><b>+42,5</b></td><td>7,6</td></tr>
+<tr><td>Orbitals salle</td><td>13,4</td><td>0,0–35,6</td><td>9,0</td><td>266° bleu</td><td>41,4</td><td>20,7</td><td><b>+28,0</b></td><td>0,0</td></tr>
+<tr class="eon"><td>EON actuel (P0)</td><td>15,6</td><td>2,0–26,0</td><td>9,2</td><td>89° olive</td><td>20,8</td><td>22,7</td><td><b>+5,1</b></td><td>0,6</td></tr>
+</table>
+<img src="palettes.png" style="width:88%">
+<div class="cap">Les 6 couleurs dominantes du fond et des celluloïds. Chez Orbitals, le fond est bleu-noir, marine ou sarcelle, et les personnages sont pastel et clairs. Chez EON, le fond est olive-kaki et les personnages sont bruns et rouges sombres.</div>
+
+<h2>3. Ce que fait Orbitals</h2>
+<h3>Le décor</h3>
+<ul>
+<li><b>La valeur moyenne est basse</b> (L* 4 à 18), mais avec de vraies plages claires (p90 jusqu'à 36) : quelques zones éclairées dans beaucoup de sombre. Notre fond est déjà dans cette plage (15,6). Le problème n'est donc pas d'abord sa valeur.</li>
+<li><b>La saturation est faible</b> (C* 8 à 10) et la teinte <b>froide</b> : bleu, marine, sarcelle, violet. Les seules couleurs vives du décor sont des sources lumineuses : écrans, néons, voyants rouges.</li>
+<li><b>Notre décor a la même saturation chiffrée (9,2), mais elle est jaune-olive</b> (teinte 89°), à cause des bandes jaunes et noires et de la teinte kaki des murs. Une couleur chaude se lit comme un premier plan et entre en concurrence avec les personnages, qui sont chauds eux aussi.</li>
+</ul>
+<h3>Les celluloïds</h3>
+<ul>
+<li><b>Ils sont beaucoup plus clairs que le fond</b> : L* 41 à 60, soit 28 à 54 points au-dessus. Chez nous, l'écart n'est que de 5 points. C'est la principale raison pour laquelle nos personnages se fondent dans le décor.</li>
+<li><b>Leur saturation est moyenne</b> (C* 21 à 32), avec des teintes <b>pastel</b> : pêche, lilas, rose pâle, bleu ciel. C'est de la clarté, pas de la couleur criarde. Le rapport de saturation cel / fond vaut 2,3 à 4,2.</li>
+<li><b>Ils ont leur propre éclairage.</b> D'après l'article Unreal, un canal de lumière est réservé aux celluloïds, ce qui explique qu'ils restent lisibles dans un couloir presque noir. C'est le comportement à reproduire : la valeur d'un personnage ne doit pas dépendre de l'obscurité du décor.</li>
+<li><b>Une ombre portée sombre en ellipse</b> les pose au sol (le chat, le couloir). Elle sépare nettement le personnage du sol.</li>
+</ul>
+<h3>Le trait</h3>
+<ul>
+<li><b>Le trait est presque noir</b> (L* 0 à 8), légèrement brun ou marine, et fait 2 à 3 px à 1080p. Il ne détache le personnage que <b>parce que le personnage est clair</b>. Sur un personnage sombre, comme chez nous aujourd'hui, le même trait se perd.</li>
+<li>Notre trait est déjà à la bonne valeur (L* 0,6, encre à 2 %) et à la bonne épaisseur (3,9 px en 4K). <b>Il n'y a rien à changer sur le trait : c'est la clarté des personnages qui doit le faire ressortir.</b></li>
+</ul>
+
+
+<h2>4. Propositions testées</h2>
+<p>J'ai ajouté au post-process du décor (<code>M_PP_EON_Decor</code>) un <b>étalonnage séparé</b>, neutre par défaut. Il ne s'applique qu'aux celluloïds, ou qu'au décor, grâce au stencil :</p>
+<ul>
+<li><code>CelExpo</code> (diaphs) et <code>CelSat</code> : clarté et saturation des personnages ;</li>
+<li><code>FondExpo</code>, <code>FondSat</code> et <code>FondFroid</code> : valeur, saturation et glissement vers le bleu du décor. Les néons et écrans ne sont pas touchés par le glissement vers le bleu.</li>
+</ul>
+<table>
+<tr><th>Prop.</th><th>Réglage</th><th>Fond L*</th><th>Fond C*</th><th>Cel L*</th><th>Cel C*</th><th>Écart L*</th></tr>
+<tr class="eon"><td>P0</td><td>actuel</td><td>15,6</td><td>9,2</td><td>20,8</td><td>22,7</td><td>+5,1</td></tr>
+<tr><td>P1</td><td>cel +1,5 diaph</td><td>16,1</td><td>9,1</td><td>34,5</td><td>32,7</td><td>+18,3</td></tr>
+<tr><td>P2</td><td>P1 + fond −0,3 diaph, sat. 70 %</td><td>14,2</td><td>5,8</td><td>34,5</td><td>32,6</td><td>+20,2</td></tr>
+<tr><td>P3</td><td>cel +2,2, sat. 110 % ; fond −0,5, sat. 60 %, un peu bleuté</td><td>13,0</td><td>4,1</td><td>41,9</td><td>42,0</td><td>+28,9</td></tr>
+<tr><td>P4</td><td>pastel : cel +2,5, sat. 85 % ; fond −0,5, sat. 50 %, bleuté</td><td colspan="5">plan serré seulement (voir planche)</td></tr>
+<tr class="reco"><td>P5</td><td>cel +2, sat. 90 % ; fond −0,3, sat. 60 %, bleuté</td><td colspan="5">plan serré seulement (voir planche)</td></tr>
+<tr><td colspan="2"><i>Cible Orbitals</i></td><td><i>4–18</i></td><td><i>8–10, froid</i></td><td><i>41–60</i></td><td><i>21–32</i></td><td><i>+28 à +54</i></td></tr>
+</table>
+<img src="EON_Etalonnage_Serre_Planche_4K.jpg">
+<div class="cap">Plan serré (4K) : P0, P3, P4, P5. La planche PNG 4K complète est dans Saved/Shots/DecorPeint/Etalonnage.</div>
+
+<h2>5. Analyse</h2>
+<ul>
+<li><b>P1 et P2</b> : nets progrès de lisibilité, mais l'écart de valeur (+18 à +20) reste en dessous d'Orbitals.</li>
+<li><b>P3</b> atteint l'écart d'Orbitals (+29), mais la saturation des personnages passe à 42 : ils deviennent orange vif et criards, ce qui n'est pas le registre pastel d'Orbitals. Le décor à 4 de saturation devient un peu gris.</li>
+<li><b>P4</b> est le plus proche d'Orbitals : personnages clairs et pastel, décor plus sombre et bleuté. Il faut surveiller les teintes chair, qui pâlissent.</li>
+<li><b>P5</b> est l'intermédiaire : la lisibilité de P4 avec un peu plus de couleur sur les personnages.</li>
+</ul>
+
+<h2>6. Recommandation</h2>
+<div class="reco">
+<b>Décor</b> : valeur moyenne −0,3 à −0,5 diaph, saturation à 50–60 %, teinte glissée vers le bleu-sarcelle. Les sources lumineuses (néons, écrans) restent saturées : ce sont les seuls accents vifs du décor.<br>
+<b>Celluloïds</b> : clarté indépendante du décor, +2 à +2,5 diaphs, saturation à 85–90 % pour rester pastel ; cible L* 40–55.<br>
+<b>Trait</b> : inchangé (encre brun foncé à 2 %, 3,9 px en 4K). Il ressortira de lui-même sur des personnages clairs.<br>
+<b>Point de départ conseillé : P5</b>, à pousser vers P4 si tu veux plus de contraste.
+</div>
+<h3>Pour aller plus loin (non fait)</h3>
+<ul>
+<li><b>Un vrai éclairage propre aux celluloïds</b>, comme Orbitals (canal de lumière réservé) : une lumière clé et une lumière d'ambiance dédiées aux personnages, au lieu d'un gain en post-process. Le rendu serait plus juste dans les zones très sombres ou très claires.</li>
+<li><b>L'ombre portée en ellipse</b> sous chaque personnage (decal sombre et doux) : elle les pose au sol et les détache encore mieux.</li>
+<li><b>Les couleurs du décor du HUB</b> : refroidir les murs kaki directement dans les MI_Peint (BC1) plutôt qu'en post-process, et réserver les bandes jaunes et noires aux zones de danger.</li>
+</ul>
+<p style="font-size:8.5pt;color:#777;margin-top:14pt">Sources : Unreal Engine Tech Blog, 03/09/2026 (captures © Kepler Interactive / Shapefarm, utilisées pour mesure interne seulement) ; recherche précédente Docs/Rendu/Recherche_Orbitals_Rendu_Anime.pdf.</p>
+</body></html>

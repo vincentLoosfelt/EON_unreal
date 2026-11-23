@@ -3,6 +3,8 @@
 #include "Engine/StaticMesh.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "Engine/ToonProfile.h"
+#include "Components/ShapeComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "BoneContainer.h"
 #include "UObject/UObjectHash.h"
@@ -59,6 +61,30 @@ bool UEONStatics::SetMeshSectionCollision(UStaticMesh* Mesh, int32 LodIndex, int
 #endif
 }
 
+void UEONStatics::MarkCelComponent(UPrimitiveComponent* C)
+{
+	if (!C || C->IsA<UShapeComponent>()) { return; }
+	C->SetRenderCustomDepth(true);
+	C->SetCustomDepthStencilValue(1);
+	// Animation en paliers : le squelette n'est évalué que CelAnimFps fois par seconde (temps cumulé transmis au tick),
+	// le déplacement de l'acteur reste fluide. Uniquement en jeu.
+	if (USkeletalMeshComponent* S = Cast<USkeletalMeshComponent>(C))
+	{
+		if (S->GetWorld() && S->GetWorld()->IsGameWorld())
+		{
+			const float Fps = GetGameFeel(S).CelAnimFps;
+			S->SetComponentTickInterval(Fps > 0.f ? 1.f / Fps : 0.f);
+		}
+	}
+}
+
+void UEONStatics::MarkCel(AActor* Actor)
+{
+	if (!Actor) { return; }
+	TInlineComponentArray<UPrimitiveComponent*> Comps(Actor);
+	for (UPrimitiveComponent* C : Comps) { MarkCelComponent(C); }
+}
+
 bool UEONStatics::ConfigureToonProfile(UToonProfile* Profile, float Threshold, float Smooth, FLinearColor ShadowColor, float DiffuseIndirectScale, bool bRampIncludesShadow)
 {
 #if WITH_EDITOR
@@ -83,6 +109,42 @@ bool UEONStatics::ConfigureToonProfile(UToonProfile* Profile, float Threshold, f
 
 		FRichCurve& Spec = S.SpecularRamp.ColorCurves[c];
 		Spec.Reset(); Spec.AddKey(0.f, c < 3 ? 0.f : 1.f); Spec.AddKey(1.f, c < 3 ? 0.f : 1.f);
+	}
+	S.DiffuseIndirectScale = DiffuseIndirectScale;
+	S.SpecularIndirectScale = 0.f;
+	S.bDiffuseRampIncludeShadow = bRampIncludesShadow;
+	Profile->PostEditChange();
+	Profile->MarkPackageDirty();
+	return true;
+#else
+	return false;
+#endif
+}
+
+bool UEONStatics::ConfigureToonProfile3(UToonProfile* Profile, float T1, float T2, float Soft, FLinearColor ShadowColor, FLinearColor MidColor,
+	float HiT, float HiStrength, float DiffuseIndirectScale, bool bRampIncludesShadow)
+{
+#if WITH_EDITOR
+	if (!Profile) { return false; }
+	FToonProfileStruct& S = Profile->Settings;
+	const float H = FMath::Max(Soft, 0.001f) * 0.5f;
+	const float A = FMath::Clamp(T1, H, 1.f - H), B = FMath::Clamp(FMath::Max(T2, T1 + 2.f * H), H, 1.f - H);
+	for (int32 c = 0; c < 4; ++c)
+	{
+		const float Lo = c < 3 ? ShadowColor.Component(c) : 1.f;
+		const float Mi = c < 3 ? MidColor.Component(c) : 1.f;
+		FRichCurve& Diff = S.DiffuseRamp.ColorCurves[c];
+		Diff.Reset();
+		Diff.AddKey(0.f, Lo); Diff.AddKey(A - H, Lo); Diff.AddKey(A + H, Mi);
+		Diff.AddKey(B - H, Mi); Diff.AddKey(B + H, 1.f); Diff.AddKey(1.f, 1.f);
+		for (auto It = Diff.GetKeyHandleIterator(); It; ++It) { Diff.SetKeyInterpMode(*It, RCIM_Linear); }
+
+		FRichCurve& Spec = S.SpecularRamp.ColorCurves[c];
+		Spec.Reset();
+		const float V = c < 3 ? HiStrength : 1.f;
+		const float Hs = FMath::Clamp(HiT, 0.01f, 0.98f);
+		Spec.AddKey(0.f, c < 3 ? 0.f : 1.f); Spec.AddKey(Hs, c < 3 ? 0.f : 1.f); Spec.AddKey(FMath::Min(Hs + 0.02f, 1.f), V); Spec.AddKey(1.f, V);
+		for (auto It = Spec.GetKeyHandleIterator(); It; ++It) { Spec.SetKeyInterpMode(*It, RCIM_Linear); }
 	}
 	S.DiffuseIndirectScale = DiffuseIndirectScale;
 	S.SpecularIndirectScale = 0.f;

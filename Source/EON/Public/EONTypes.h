@@ -64,9 +64,11 @@ struct EON_API FEONGameFeelRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendu") bool Ambient = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interface") bool LockUI = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mouvement") float DashMul = 1.f;
-	// Post-process des cartes (PP_Etage, PP_HUB) : filtre peinture seul, ou tout le volume (exposition, bloom).
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendu") bool PPPaint = false;   // coupé le 15/11 (Vincent)
+	// Post-process des cartes (PP_Etage, PP_HUB) : PPPaint = post-process anime (M_PP_EON_Trait + M_PP_EON_Film), PPAll = tout le volume (exposition, bloom).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendu") bool PPPaint = false;   // DT_GameFeel : True depuis le 23/11 (trait celluloïd)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendu") bool PPAll = true;
+	// Celluloïds animés en paliers (Vincent, 24/11 : « les persos c'est toujours 12 fps », comme Orbitals) ; 0 = fluide.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendu") float CelAnimFps = 12.f;
 	// Texte de debug en haut à gauche (entrée, énergie, vitesse...) : caché par défaut (Vincent, 15/11), menu Tweak.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interface") bool DebugText = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ennemis") float EnemyHp = 1.f;

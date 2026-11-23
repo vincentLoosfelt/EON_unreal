@@ -1,4 +1,5 @@
 #include "EONTrainingDummy.h"
+#include "EONStatics.h"
 #include "EONTuningSubsystem.h"
 #include "EONTypes.h"
 #include "Components/CapsuleComponent.h"
@@ -44,6 +45,8 @@ AEONTrainingDummy::AEONTrainingDummy()
 	Post->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	if (CylMesh.Succeeded()) { Post->SetStaticMesh(CylMesh.Object); }
 	Post->SetRelativeScale3D(FVector(0.1f, 0.1f, CenterZ / 100.f));
+	UEONStatics::MarkCelComponent(Body);
+	UEONStatics::MarkCelComponent(Post);
 	Post->SetRelativeLocation(FVector(0.f, 0.f, CenterZ * 0.5f));
 }
 

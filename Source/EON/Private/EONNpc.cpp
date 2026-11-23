@@ -1,4 +1,5 @@
 #include "EONNpc.h"
+#include "EONStatics.h"
 #include "EONTypes.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
@@ -21,6 +22,8 @@ AEONNpc::AEONNpc()
 	Head->SetupAttachment(Root);
 	Head->SetStaticMesh(Sph.Object);
 	Head->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	UEONStatics::MarkCelComponent(Body);
+	UEONStatics::MarkCelComponent(Head);
 	BaseMaterial = Mat.Object;
 }
 

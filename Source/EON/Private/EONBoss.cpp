@@ -47,6 +47,7 @@ UStaticMeshComponent* AEONBoss::NewPart(const TCHAR* Name, UStaticMesh* Mesh, UM
 	C->SetUsingAbsoluteRotation(true);
 	C->SetUsingAbsoluteScale(true);
 	if (Mat) { C->SetMaterial(0, Mat); }
+	UEONStatics::MarkCelComponent(C);   // celluloïd
 	return C;
 }
 

@@ -1,4 +1,5 @@
 #include "EONProjectile.h"
+#include "EONStatics.h"
 #include "EONFx.h"
 #include "EONTrainingDummy.h"
 #include "EONEnemy.h"
@@ -29,6 +30,7 @@ AEONProjectile::AEONProjectile()
 	Visual->SetupAttachment(Sphere);
 	Visual->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Visual->SetCastShadow(false);
+	UEONStatics::MarkCelComponent(Visual);
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	if (SphereMesh.Succeeded()) { Visual->SetStaticMesh(SphereMesh.Object); }
 	// Trait allongé dans le sens du tir : 0,5 m de long, 0,1 m de large.

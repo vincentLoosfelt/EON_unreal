@@ -93,7 +93,7 @@ void FEONDevMenu::Rebuild()
 		Val(TEXT("Armure : mutation"), TEXT("ArmMut"), 0.02f);
 		Val(TEXT("Dégâts de chute (x)"), TEXT("FallDmg"), 0.1f);
 		Sec(TEXT("Rendu"));
-		Sw(TEXT("Filtre peinture (post-process)"), TEXT("PPPaint"));
+		Sw(TEXT("Post-process anime (trait + film)"), TEXT("PPPaint"));
 		Sw(TEXT("Post-process complet (expo, bloom)"), TEXT("PPAll"));
 		Sec(TEXT("Interface"));
 		Sw(TEXT("Texte de debug (haut gauche)"), TEXT("DebugText"));

@@ -123,6 +123,7 @@ void AEONCharacter::BeginPlay()
 	DashCharges = DashMax;
 	MeshBaseLocation = GetMesh()->GetRelativeLocation();
 	MeshBaseScale = GetMesh()->GetRelativeScale3D();
+	UEONStatics::MarkCel(this);   // celluloïd : stencil (trait et ombre en post-process)
 	ResetRun();
 }
 

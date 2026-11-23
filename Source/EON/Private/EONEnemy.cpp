@@ -51,6 +51,8 @@ namespace
 		float AttackRate = 1.f;
 		const TCHAR* Explode = nullptr;   // Onibi : s'arme puis explose, l'anim continue sur le cadavre
 		TArray<const TCHAR*> Deaths;   // une au hasard sur le cadavre (BeginCorpse)
+		float ModelHCm = 0.f;          // > 0 : hauteur du modèle imposée en cm ; hitbox HH/HR mise à la même échelle (Vincent, 23/11 :
+		                               // Nuke 40, Onibi 150, Kama 180, Ubume 200, Ikiryo 180 ; Jira 181)
 	};
 	// Anim du studio : /Game/EON/Ennemis/<Nom>/Anims/A_<Nom>_<Anim>
 #define EON_ANIM(N, A) TEXT("/Game/EON/Ennemis/" N "/Anims/A_" N "_" A ".A_" N "_" A)
@@ -58,17 +60,17 @@ namespace
 	{
 		static const TArray<FLook> L = {
 			{ TEXT("goule"), { TEXT("/Game/EON/Ennemis/Nuke/SK_Nuke.SK_Nuke") }, EON_ANIM("Nuke", "Walk"), -90.f, 1.f, 0.f,
-				nullptr, EON_ANIM("Nuke", "Attack"), 1.5f, nullptr, { EON_ANIM("Nuke", "Death_01"), EON_ANIM("Nuke", "Death_02"), EON_ANIM("Nuke", "Death_03") } },
+				nullptr, EON_ANIM("Nuke", "Attack"), 1.5f, nullptr, { EON_ANIM("Nuke", "Death_01"), EON_ANIM("Nuke", "Death_02"), EON_ANIM("Nuke", "Death_03") }, 40.f },
 			{ TEXT("gouleP"), { TEXT("/Game/EON/Ennemis/Nuke/SK_Nuke.SK_Nuke") }, EON_ANIM("Nuke", "Walk"), -90.f, 1.f, 0.f,
-				nullptr, EON_ANIM("Nuke", "Attack_V0"), 1.5f, nullptr, { EON_ANIM("Nuke", "Death_V0"), EON_ANIM("Nuke", "Death_01") } },
-			{ TEXT("sniper"), { TEXT("/Game/EON/Ennemis/Ikiryo/SK_Ikiryo.SK_Ikiryo") }, nullptr, -90.f, 1.f, 0.f },
+				nullptr, EON_ANIM("Nuke", "Attack_V0"), 1.5f, nullptr, { EON_ANIM("Nuke", "Death_V0"), EON_ANIM("Nuke", "Death_01") }, 25.f },   // petite goule : 10/16 de la goule (HH du proto)
+			{ TEXT("sniper"), { TEXT("/Game/EON/Ennemis/Ikiryo/SK_Ikiryo.SK_Ikiryo") }, nullptr, -90.f, 1.f, 0.f, nullptr, nullptr, 1.f, nullptr, {}, 180.f },
 			{ TEXT("brainless"), { TEXT("/Game/EON/Unity/import/fbx/chara/Brain_Crawler.Brain_Crawler") }, TEXT("/Game/EON/Unity/import/fbx/chara/Brain_CrawlerArmature_Armature_Armature_Armature_Unreal_Take_baselayer.Brain_CrawlerArmature_Armature_Armature_Armature_Unreal_Take_baselayer"), -90.f, 1.f, 0.f },
 			{ TEXT("slasher"), { TEXT("/Game/EON/Ennemis/Kama/SK_Kama.SK_Kama") }, EON_ANIM("Kama", "Run"), -90.f, 1.f, 0.f,
-				nullptr, EON_ANIM("Kama", "Attack"), 1.f, nullptr, { EON_ANIM("Kama", "Death") } },
+				nullptr, EON_ANIM("Kama", "Attack"), 1.f, nullptr, { EON_ANIM("Kama", "Death") }, 180.f },
 			{ TEXT("kamikaze"), { TEXT("/Game/EON/Ennemis/Onibi/SK_Onibi.SK_Onibi") }, EON_ANIM("Onibi", "Run"), -90.f, 1.f, 0.f,
-				EON_ANIM("Onibi", "Walk"), nullptr, 1.f, EON_ANIM("Onibi", "Explosion"), { EON_ANIM("Onibi", "Death_01"), EON_ANIM("Onibi", "Death_02") } },
+				EON_ANIM("Onibi", "Walk"), nullptr, 1.f, EON_ANIM("Onibi", "Explosion"), { EON_ANIM("Onibi", "Death_01"), EON_ANIM("Onibi", "Death_02") }, 150.f },
 			{ TEXT("invocateur"), { TEXT("/Game/EON/Ennemis/Ubume/SK_Ubume.SK_Ubume") }, EON_ANIM("Ubume", "Walk"), -90.f, 1.f, 0.f,
-				EON_ANIM("Ubume", "Idle"), EON_ANIM("Ubume", "Attack"), 2.f, nullptr, {} },
+				EON_ANIM("Ubume", "Idle"), EON_ANIM("Ubume", "Attack"), 2.f, nullptr, {}, 200.f },
 			{ TEXT("meduse"), { TEXT("/Game/EON/Unity/import/fbx/xeno/Meshy_AI_Unyielding_Chimera_0111100029_generate.Meshy_AI_Unyielding_Chimera_0111100029_generate") }, nullptr, -90.f, 1.f, 6.f },
 			{ TEXT("dummy"), { TEXT("/Engine/BasicShapes/Cylinder.Cylinder") }, nullptr, 0.f, 1.f, 0.f },
 			{ TEXT("gen"), { TEXT("/Engine/BasicShapes/Cube.Cube") }, nullptr, 0.f, 1.f, 0.f },
@@ -118,6 +120,13 @@ bool AEONEnemy::Init(AEONCombatDirector* InDirector, AEONTileRoom* InRoom, FName
 		return false;
 	}
 	Spd = Row->Spd; Mass = Row->Mass; HH = Row->HH; HR = Row->HR; bContact = Row->Contact; bFly = Row->Fly; Adn = Row->Adn;
+	// Hitbox alignée sur la taille imposée du modèle (Vincent, 23/11) : HH = hauteur du modèle en px, HR à la même échelle.
+	// R (rayon de déplacement contre murs et ennemis) reste celui du proto.
+	if (const FLook* Lk = Looks().FindByPredicate([&InType](const FLook& L) { return InType == FName(L.Type); }); Lk && Lk->ModelHCm > 0.f && HH > 0.f)
+	{
+		const float K = (Lk->ModelHCm / EON::CmPerPx) / HH;
+		HH *= K; HR *= K;
+	}
 	DisplayName = ShortName(Row->OfficialName.IsEmpty() ? InType.ToString() : Row->OfficialName);
 
 	// mkEnemy : sc = 1 + combatN × 0,07 ; hp = ceil(d.hp × sc)
@@ -154,7 +163,7 @@ void AEONEnemy::BuildModel()
 	const FLook* Lk = Looks().FindByPredicate([this](const FLook& L) { return Type == FName(L.Type); });
 	if (!Lk) { UE_LOG(LogEON, Warning, TEXT("EON_ENEMY pas de modèle 3D pour %s"), *Type.ToString()); return; }
 	YawOff = Lk->YawOff;
-	const float TargetH = EON::PxToCm(HH > 0.f ? HH : 16.f) * Lk->HeightK;
+	const float TargetH = Lk->ModelHCm > 0.f ? Lk->ModelHCm : EON::PxToCm(HH > 0.f ? HH : 16.f) * Lk->HeightK;
 	FBoxSphereBounds B0(ForceInit);
 	bool bFirst = true;
 	for (const TCHAR* Path : Lk->Meshes)
@@ -192,6 +201,7 @@ void AEONEnemy::BuildModel()
 		for (int32 I = 0; I < C->GetNumMaterials(); ++I) { OrigMats.Add(C->GetMaterial(I)); }
 	}
 	if (bFirst) { return; }
+	for (UMeshComponent* M : Meshes) { UEONStatics::MarkCelComponent(M); }   // celluloïd
 	auto LoadAnim = [](const TCHAR* P) -> UAnimSequence*
 	{
 		UAnimSequence* A = P ? LoadObject<UAnimSequence>(nullptr, P) : nullptr;

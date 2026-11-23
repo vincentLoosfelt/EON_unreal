@@ -49,9 +49,26 @@ public:
 	/** Outil éditeur : rampe toon à deux tons (BG.shadergraph d'Unity) dans un ToonProfile.
 	 *  Entrée de la rampe = N·L × 0,5 + 0,5 (comme Unity). Ombre = ShadowColor (par canal : teinte d'ombre Unity), éclairé = 1, transition
 	 *  de Threshold à Threshold + Smooth. Spéculaire coupé (Unity n'en a pas). */
+	/** Rampe toon 3 tons des celluloïds (Vincent, 23/11) : entrée = N·L × 0,5 + 0,5 (ombres portées incluses si
+	 *  bRampIncludesShadow). Ombre = ShadowColor sous T1, ton moyen = MidColor de T1 à T2, lumière = 1 au-dessus de T2 ;
+	 *  chaque passage adouci sur Soft. Reflet : rampe spéculaire à 0 sous HiT puis HiStrength (0 = pas de reflet). */
+	UFUNCTION(BlueprintCallable, Category = "EON|Outils")
+	static bool ConfigureToonProfile3(UToonProfile* Profile, float T1, float T2, float Soft, FLinearColor ShadowColor, FLinearColor MidColor,
+		float HiT, float HiStrength, float DiffuseIndirectScale, bool bRampIncludesShadow);
+
 	UFUNCTION(BlueprintCallable, Category = "EON|Outils")
 	static bool ConfigureToonProfile(UToonProfile* Profile, float Threshold, float Smooth, FLinearColor ShadowColor,
 		float DiffuseIndirectScale = 0.35f, bool bRampIncludesShadow = true);
+
+	/** Rendu hybride (Vincent, 23/11) : marque un élément animé comme « celluloïd » (CustomStencil = 1). Le post-process
+	 *  M_PP_EON_Trait y trace le line art (brun, adaptatif) et porte l'ombre décalée du cel sur le décor.
+	 *  Les collisions (formes) sont ignorées. Les effets translucides passent après le filtre (translucidité après DOF). */
+	UFUNCTION(BlueprintCallable, Category = "EON|Rendu")
+	static void MarkCel(AActor* Actor);
+
+	/** Idem pour un seul composant (constructeurs, pièces créées à la volée). */
+	UFUNCTION(BlueprintCallable, Category = "EON|Rendu")
+	static void MarkCelComponent(UPrimitiveComponent* Component);
 
 	/** Outil éditeur : profil toon propre à une instance (ToonProfileOverride n'est pas exposé à Python). */
 	UFUNCTION(BlueprintCallable, Category = "EON|Outils")
