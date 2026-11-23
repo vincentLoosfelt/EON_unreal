@@ -76,7 +76,10 @@ def make_mi(dest, name, tex):
 # Parties qui ont leur propre texture (nom de l'emplacement de matériau -> suffixe de texture)
 PARTS = {"Ubume": ["Body", "Tentacles", "Glasses"]}
 
+SEUL = os.environ.get("EON_SEUL")   # ex. EON_SEUL=Kama : réimporte ce seul ennemi (sans l'écran du C.O.M)
 for nom in sorted(os.listdir(SRC)):
+    if SEUL and nom != SEUL:
+        continue
     d = os.path.join(SRC, nom)
     dest = "/Game/EON/Ennemis/" + nom
     texs = {}
@@ -131,10 +134,11 @@ for nom in sorted(os.listdir(SRC)):
         log("   %s : %s" % (an, "%.2f s" % a.get_play_length() if isinstance(a, unreal.AnimSequence) else "ÉCHEC %s" % r))
 
 # Écran mural du C.O.M (module de salle)
-fn = os.path.join(ROOT, "SourceAssets", "Modules", "Com", "SM_Ecran_Com.fbx")
-r = task(fn, "/Game/EON/Meshes/COM", "SM_Ecran_Com", sm_options())
-sm = unreal.load_asset("/Game/EON/Meshes/COM/SM_Ecran_Com")
-log("Ecran_Com : %s" % ("ok, %d triangles, %d matériaux, taille %s" % (sm.get_num_triangles(0), len(sm.get_editor_property("static_materials")), sm.get_bounds().box_extent * 2) if sm else "ÉCHEC %s" % r))
+if not SEUL:
+  fn = os.path.join(ROOT, "SourceAssets", "Modules", "Com", "SM_Ecran_Com.fbx")
+  r = task(fn, "/Game/EON/Meshes/COM", "SM_Ecran_Com", sm_options())
+  sm = unreal.load_asset("/Game/EON/Meshes/COM/SM_Ecran_Com")
+  log("Ecran_Com : %s" % ("ok, %d triangles, %d matériaux, taille %s" % (sm.get_num_triangles(0), len(sm.get_editor_property("static_materials")), sm.get_bounds().box_extent * 2) if sm else "ÉCHEC %s" % r))
 
 EAL.save_directory("/Game/EON/Ennemis", False, True)
 EAL.save_directory("/Game/EON/Meshes/COM", False, True)

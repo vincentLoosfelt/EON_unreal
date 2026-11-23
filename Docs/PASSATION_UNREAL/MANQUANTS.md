@@ -35,6 +35,11 @@ Légende : ❌ rien · 🟡 existe mais pas prêt pour Unreal · 🔲 placeholde
 > - Lacet -90 vérifié à l'image : tous regardent devant.
 > - Non utilisés : Onibi `Attack`, `Run_Anticipation`, `Run_Variation` ; Kama `Taunt`. Aucun état du proto ne leur correspond.
 > - L'Ikiryo n'a toujours aucune anim.
+>
+> **Matériau et UV (23/11)**
+> - Les ennemis utilisent `M_EON_ToonEnnemi` : Substrate Toon opaque, sans normal map (demande de Vincent).
+> - Kama : le rig du studio (`Slasher_mode_MASTER.blend`, 26/07) portait d'anciennes UV, 36 % des faces tombaient hors des îlots peints. Les UV du corps de `Slasher_mode_MASTER_UV.blend` y sont reportées (`Saved/Scripts/blender_kama_uv.py`, copie `Slasher_rig_UV_EON.blend`) : 0,6 % hors îlots. Les boucles (`curves`) et la mâchoire (`jaw`) n'ont pas d'UV sur cette texture et restent rayées. Sur le rendu du studio, les boucles sont vertes et la mâchoire blanche. ❌
+> - Ikiryo : aucun fichier .blend ni FBX du Drive n'a le dépliage de `T_Shooter_Base_Color_V1/V2` (23 % hors îlots). Ce dépliage n'existe que dans `T_Shooter_V1/V2.spp` (Substance Painter). ❌
 
 ## 2. Personnages et créatures à produire
 
