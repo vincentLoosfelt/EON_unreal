@@ -1,4 +1,4 @@
-﻿# Manquants — liste vivante
+# Manquants — liste vivante
 
 **Ce fichier est tenu à jour par le Claude de Vincent.** Chaque placeholder posé dans Unreal y gagne une ligne. Chaque asset livré passe à ✅. C'est la liste que Sabri et les artistes suivent pour savoir quoi produire.
 
@@ -10,26 +10,30 @@ Légende : ❌ rien · 🟡 existe mais pas prêt pour Unreal · 🔲 placeholde
 
 | Asset | Où il est | État |
 |---|---|---|
-| Nuke : modèle, rig, 3 anims (walk, attack, death) | `RIG/Ghoul.rig_MASTER.blend`, `Fichier_blend/Animation/Ghoul/` | 🟡 |
-| Onibi : modèle, rig, 5 anims | `RIG/Kamikaze.rig_MASTER.blend`, `Fichier_blend/Animation/Kamikaz/` | 🟡 |
-| Kama : modèle, rig, 5 anims | `Fichier_blend/Slasher.mode_MASTER.blend`, `Fichier_blend/Animation/Slasher/` | 🟡 |
-| Ubume : modèle | `Fichier_blend/Mage.mode_MASTER.blend` | 🟡 |
+| Nuke : modèle, rig, 7 anims (walk, attack ×2, death ×4) | `RIG/Ghoul.rig_MASTER.blend`, `Fichier_blend/Animation/Ghoul/` → `/Game/EON/Ennemis/Nuke` (23/11) | ✅ |
+| Onibi : modèle, rig, 8 anims (walk, run ×3, attack, explosion, death ×2) | `RIG/Kamikaze.rig_MASTER.blend`, `Fichier_blend/Animation/Kamikaz/` → `/Game/EON/Ennemis/Onibi` (23/11) | ✅ |
+| Kama : modèle, rig, 4 anims (run, attack, taunt, death) | `Fichier_blend/Slasher.mode_MASTER.blend`, `Fichier_blend/Animation/Slasher/` → `/Game/EON/Ennemis/Kama` (23/11) | ✅ |
+| Ubume : modèle, rig, 3 anims (idle, walk, attack) | Drive `Invocateur` → `/Game/EON/Ennemis/Ubume` (23/11) | ✅ |
+| Ikiryo : modèle riggé (sans anim) | Drive `Shooter` → `/Game/EON/Ennemis/Ikiryo/SK_Ikiryo` (23/11, remplace les pièces statiques) | ✅ |
+| Drone (pas encore de type d'ennemi en jeu) | Drive `Drone` → `/Game/EON/Ennemis/Drone/SM_Drone` (statique, Nanite) | ✅ importé, non branché |
 | Table d'opération | `Fichier_blend/Asset_Futuristic_operating_table.blend` | 🟡 |
 | Générateur | `Fichier_blend/Asset_Generator.blend` | 🟡 |
 | Mur | `Fichier_blend/Asset_Wall.blend` | 🟡 |
-| Écran mural | `Fichier_blend/Asset_Ecran_Com.blend` | 🟡 |
+| Écran mural (module du C.O.M) | `Fichier_blend/Asset_Ecran_Com.blend` → `/Game/EON/Meshes/COM/SM_Ecran_Com` (907 k triangles, Nanite) | ✅ importé, pas encore posé |
 | Passerelle | `Fichier_blend/UV/Asset_Pont_UV.blend` | 🟡 |
 
-> **15/11/2026 : plus aucun sprite pixel.** Les ennemis sont en 3D (table `Looks` de `EONEnemy.cpp`). En attendant les exports :
-> Nuke = Ghoul d'Unity (vrai modèle, anim de marche) ; Onibi = Minion (Unity) ; Kama = Mutant (Unity, anim) ; Ikiryo = `Shooter_mode.fbx` du studio importé dans `/Game/EON/Ennemis/Ikiryo` (corps, bras, mâchoire, sans anim).
-> Le lacet de chaque modèle (`YawOff`) reste à vérifier à l'image.
+> **23/11/2026 : modèles du studio branchés** dans la table `Looks` de `EONEnemy.cpp`.
+> - Export Blender : `Saved/Scripts/blender_ennemis_export.py`. Sources renommées dans `SourceAssets/Ennemis/<Nom>`. Import : `Saved/Scripts/eon_ennemis_import.py`.
+> - En jeu, chaque ennemi joue une anim en boucle : Nuke `A_Nuke_Walk`, Onibi `A_Onibi_Run`, Kama `A_Kama_Run`, Ubume `A_Ubume_Walk`. L'Ikiryo n'a pas d'anim.
+> - Lacet -90 vérifié à l'image : tous regardent devant.
+> - Les anims d'attaque, de mort, d'explosion et de provocation sont importées mais pas encore jouées : `AEONEnemy` ne joue qu'une boucle.
 
 ## 2. Personnages et créatures à produire
 
 | Asset | Détail | Placeholder | État |
 |---|---|---|---|
 | Ikiryo : animations | Marche, marche arrière, visée, tir, mort | Modèle FBX sans anim | ❌ |
-| Ubume : rig et animations | Marche, ponte, mort | 🔲 Monster05 (Unity, xeno), sans anim | 🔲 |
+| Ubume : animations manquantes | Ponte, mort | Idle, marche, attaque livrées | 🟡 |
 | **Méduse** | Design 2D, modèle, rig, anims (flottement, tir, mort) | 🔲 Chimera Meshy (Unity, xeno), flotte, sans anim | 🔲 |
 | **Brainless** | Design 2D, modèle, rig, anims (marche, verrouillage, charge, étourdi, mort) | 🔲 Brain_Crawler (Unity) avec son anim | 🔲 |
 | **Le Tentaculaire** | Corps en 3 phases, 4 tentacules au repos, tentacules d'attaque, œil, sortie de cuve | 🔲 Formes simples 3D (AEONBoss) : boule de chair, œil qui suit Jira, tentacules en chapelets de sphères, vitre de cuve en cylindre | 🔲 |

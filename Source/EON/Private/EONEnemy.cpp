@@ -35,8 +35,9 @@ namespace
 		return N.FindChar(TEXT('('), I) ? N.Left(I).TrimEnd() : N;
 	}
 
-	/** Modèle 3D de chaque mob. Placeholders (MANQUANTS.md §2) : les modèles du studio ne sont pas encore exportés,
-	 *  sauf l'Ikiryo (Shooter_mode.fbx, sans anim) ; Nuke = Ghoul d'Unity (le vrai modèle), le reste = meshes Unity approchants. */
+	/** Modèle 3D de chaque mob. Modèles du studio (Drive BRISCARD_PROD/3D, 23/11 : Saved/Scripts/blender_ennemis_export.py
+	 *  puis eon_ennemis_import.py) : Nuke = Ghoul, Onibi = Kamikaze, Kama = Slasher, Ubume = Invocateur, Ikiryo = Shooter
+	 *  (rig sans anim). Brainless et Méduse restent des meshes Unity approchants (MANQUANTS.md §2). */
 	struct FLook
 	{
 		const TCHAR* Type;
@@ -49,13 +50,13 @@ namespace
 	const TArray<FLook>& Looks()
 	{
 		static const TArray<FLook> L = {
-			{ TEXT("goule"), { TEXT("/Game/EON/Unity/import/fbx/chara/Ghoul_Anim.Ghoul_Anim") }, TEXT("/Game/EON/Unity/import/fbx/chara/Ghoul_Anim_Anim.Ghoul_Anim_Anim"), -90.f, 1.f, 0.f },
-			{ TEXT("gouleP"), { TEXT("/Game/EON/Unity/import/fbx/chara/Ghoul_Anim.Ghoul_Anim") }, TEXT("/Game/EON/Unity/import/fbx/chara/Ghoul_Anim_Anim.Ghoul_Anim_Anim"), -90.f, 1.f, 0.f },
-			{ TEXT("sniper"), { TEXT("/Game/EON/Ennemis/Ikiryo/body.body"), TEXT("/Game/EON/Ennemis/Ikiryo/shooter_arm.shooter_arm"), TEXT("/Game/EON/Ennemis/Ikiryo/jaws.jaws") }, nullptr, -90.f, 1.f, 0.f },
+			{ TEXT("goule"), { TEXT("/Game/EON/Ennemis/Nuke/SK_Nuke.SK_Nuke") }, TEXT("/Game/EON/Ennemis/Nuke/Anims/A_Nuke_Walk.A_Nuke_Walk"), -90.f, 1.f, 0.f },
+			{ TEXT("gouleP"), { TEXT("/Game/EON/Ennemis/Nuke/SK_Nuke.SK_Nuke") }, TEXT("/Game/EON/Ennemis/Nuke/Anims/A_Nuke_Walk.A_Nuke_Walk"), -90.f, 1.f, 0.f },
+			{ TEXT("sniper"), { TEXT("/Game/EON/Ennemis/Ikiryo/SK_Ikiryo.SK_Ikiryo") }, nullptr, -90.f, 1.f, 0.f },
 			{ TEXT("brainless"), { TEXT("/Game/EON/Unity/import/fbx/chara/Brain_Crawler.Brain_Crawler") }, TEXT("/Game/EON/Unity/import/fbx/chara/Brain_CrawlerArmature_Armature_Armature_Armature_Unreal_Take_baselayer.Brain_CrawlerArmature_Armature_Armature_Armature_Unreal_Take_baselayer"), -90.f, 1.f, 0.f },
-			{ TEXT("slasher"), { TEXT("/Game/EON/Unity/import/fbx/chara/Mutant.Mutant") }, TEXT("/Game/EON/Unity/import/fbx/chara/Mutant_Anim.Mutant_Anim"), -90.f, 1.f, 0.f },
-			{ TEXT("kamikaze"), { TEXT("/Game/EON/Unity/import/fbx/chara/Minion.Minion") }, nullptr, -90.f, 1.f, 0.f },
-			{ TEXT("invocateur"), { TEXT("/Game/EON/Unity/import/fbx/xeno/Monster05.Monster05") }, nullptr, -90.f, 1.f, 0.f },
+			{ TEXT("slasher"), { TEXT("/Game/EON/Ennemis/Kama/SK_Kama.SK_Kama") }, TEXT("/Game/EON/Ennemis/Kama/Anims/A_Kama_Run.A_Kama_Run"), -90.f, 1.f, 0.f },
+			{ TEXT("kamikaze"), { TEXT("/Game/EON/Ennemis/Onibi/SK_Onibi.SK_Onibi") }, TEXT("/Game/EON/Ennemis/Onibi/Anims/A_Onibi_Run.A_Onibi_Run"), -90.f, 1.f, 0.f },
+			{ TEXT("invocateur"), { TEXT("/Game/EON/Ennemis/Ubume/SK_Ubume.SK_Ubume") }, TEXT("/Game/EON/Ennemis/Ubume/Anims/A_Ubume_Walk.A_Ubume_Walk"), -90.f, 1.f, 0.f },
 			{ TEXT("meduse"), { TEXT("/Game/EON/Unity/import/fbx/xeno/Meshy_AI_Unyielding_Chimera_0111100029_generate.Meshy_AI_Unyielding_Chimera_0111100029_generate") }, nullptr, -90.f, 1.f, 6.f },
 			{ TEXT("dummy"), { TEXT("/Engine/BasicShapes/Cylinder.Cylinder") }, nullptr, 0.f, 1.f, 0.f },
 			{ TEXT("gen"), { TEXT("/Engine/BasicShapes/Cube.Cube") }, nullptr, 0.f, 1.f, 0.f },
