@@ -16,6 +16,9 @@ X0, Y0, Z0 = 900.0, -240.0, 464.0
 # EON_ENNEMI=<Nom> : cet ennemi seul, sur l'emplacement dégagé du milieu (une capture par lancement :
 # l'éditeur en arrière-plan cesse de tourner après la première).
 SEUL = os.environ.get("EON_ENNEMI")
+# EON_TOUR=<degrés> : fait tourner l'ennemi seul (ex. 90 = profil) ; la capture prend le suffixe _<degrés>.
+TOUR = float(os.environ.get("EON_TOUR", "0"))
+SUF = ("_%d" % TOUR) if TOUR else ""
 if SEUL:
     # Seul, au-dessus du HUB (ciel en fond, lumière du soleil), sur un sol neutre.
     MOBS = [m for m in MOBS if m[0] == SEUL]
@@ -38,7 +41,7 @@ for i, (nom, anim) in enumerate(MOBS):
     sk = unreal.load_asset("/Game/EON/Ennemis/%s/SK_%s" % (nom, nom))
     h = sk.get_bounds().box_extent.z * 2
     k = 180.0 / max(h, 1.0)
-    a = eas.spawn_actor_from_class(unreal.SkeletalMeshActor, unreal.Vector(X0, Y0 + i * 120, Z0), unreal.Rotator(0, 0, -90))
+    a = eas.spawn_actor_from_class(unreal.SkeletalMeshActor, unreal.Vector(X0, Y0 + i * 120, Z0), unreal.Rotator(0, 0, -90 + TOUR))
     a.set_actor_scale3d(unreal.Vector(k, k, k))
     c = a.skeletal_mesh_component
     c.set_skinned_asset_and_update(sk)
@@ -64,9 +67,9 @@ def tick(dt):
         return
     if state["i"] < len(cams):
         name, cam = cams[state["i"]]
-        unreal.AutomationLibrary.take_high_res_screenshot(900, 1100, "%s/%s.png" % (OUT, name), cam)
+        unreal.AutomationLibrary.take_high_res_screenshot(900, 1100, "%s/%s%s.png" % (OUT, name, SUF), cam)
         state["i"] += 1; state["wait"] = 0
-    elif state["wait"] > 60 and all(os.path.exists("%s/%s.png" % (OUT, n)) for n, _ in cams):
+    elif state["wait"] > 60 and all(os.path.exists("%s/%s%s.png" % (OUT, n, SUF)) for n, _ in cams):
         unreal.unregister_slate_post_tick_callback(handle)
         open(OUT + "/fini.txt", "w").write("ok")
 

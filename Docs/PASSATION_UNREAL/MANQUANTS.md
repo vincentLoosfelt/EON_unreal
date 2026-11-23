@@ -39,7 +39,10 @@ Légende : ❌ rien · 🟡 existe mais pas prêt pour Unreal · 🔲 placeholde
 > **Matériau et UV (23/11)**
 > - Les ennemis utilisent `M_EON_ToonEnnemi` : Substrate Toon opaque, sans normal map (demande de Vincent).
 > - Kama : le rig du studio (`Slasher_mode_MASTER.blend`, 26/07) portait d'anciennes UV, 36 % des faces tombaient hors des îlots peints. Les UV du corps de `Slasher_mode_MASTER_UV.blend` y sont reportées (`Saved/Scripts/blender_kama_uv.py`, copie `Slasher_rig_UV_EON.blend`) : 0,6 % hors îlots. Les boucles (`curves`) et la mâchoire (`jaw`) n'ont pas d'UV sur cette texture et restent rayées. Sur le rendu du studio, les boucles sont vertes et la mâchoire blanche. ❌
-> - Ikiryo : aucun fichier .blend ni FBX du Drive n'a le dépliage de `T_Shooter_Base_Color_V1/V2` (23 % hors îlots). Ce dépliage n'existe que dans `T_Shooter_V1/V2.spp` (Substance Painter). ❌
+> - Ikiryo : aucun fichier .blend ni FBX du Drive n'a le dépliage de `T_Shooter_Base_Color_V2` (23 % hors îlots). Ce dépliage n'existe que dans `T_Shooter_V2.spp`.
+>   - Il a été extrait du projet Painter : `paint/scene.assbin` lu avec h5py, converti en OBJ triangulé `Reference/3D_Studio/Drive_20261123/Shooter/Shooter_spp_V2.obj`.
+>   - Puis il a été reporté sur le rig avec `Saved/Scripts/blender_uv_depuis_obj.py`. Le recalage est exact (écart nul). La copie s'appelle `Shooter_rig_UV_EON.blend`.
+>   - Hors îlots : corps 0,4 %, mâchoires 0 %, bras 1,5 %. ✅
 
 ## 2. Personnages et créatures à produire
 
