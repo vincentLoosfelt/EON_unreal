@@ -34,15 +34,16 @@ AEONTileRoom::AEONTileRoom()
 	bLiftBox = false;
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> Cube(TEXT("/Game/EON/Meshes/SM_Cube_N.SM_Cube_N"));
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> Cyl(TEXT("/Game/EON/Meshes/SM_Cylinder_N.SM_Cylinder_N"));
-	// Sol éclairé (MI_Sol_Eclaire, teinte du sol Unity) pour recevoir les ombres ; décor rouge (pipe), cuves bleues (pipe 1) en M_EON_BG.
+	// Sol éclairé (MI_Sol_Eclaire, teinte du sol Unity) pour recevoir les ombres ; décor rouge (pipe), cuves bleues (pipe 1).
+	// Décor peint aquarelle B (Vincent, 24/11 : l'étage comme le HUB) : MI_Peint_*_B à la place des MI_BG_* (gardés tels quels).
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MFloor(TEXT("/Game/EON/Materials/MI_Sol_Eclaire.MI_Sol_Eclaire"));
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MWall(TEXT("/Game/EON/Materials/BG/MI_BG_walll_painted.MI_BG_walll_painted"));
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MCrate(TEXT("/Game/EON/Materials/BG/MI_BG_Barrier01.MI_BG_Barrier01"));
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MTank(TEXT("/Game/EON/Materials/BG/MI_BG_pipe_1.MI_BG_pipe_1"));
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MDoor(TEXT("/Game/EON/Materials/BG/MI_BG_pipe.MI_BG_pipe"));
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MGap(TEXT("/Game/EON/Materials/BG/MI_BG_Grille01.MI_BG_Grille01"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MWall(TEXT("/Game/EON/Materials/Peint/MI_Peint_walll_painted_B.MI_Peint_walll_painted_B"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MCrate(TEXT("/Game/EON/Materials/Peint/MI_Peint_Barrier01_B.MI_Peint_Barrier01_B"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MTank(TEXT("/Game/EON/Materials/Peint/MI_Peint_pipe_1_B.MI_Peint_pipe_1_B"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MDoor(TEXT("/Game/EON/Materials/Peint/MI_Peint_pipe_B.MI_Peint_pipe_B"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MGap(TEXT("/Game/EON/Materials/Peint/MI_Peint_Grille01_B.MI_Peint_Grille01_B"));
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> HubWall(TEXT("/Game/EON/Unity/import/fbx/enviro/wall/WallA320.WallA320"));
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MHubWall(TEXT("/Game/EON/Materials/BG/MI_BG_walll_painted.MI_BG_walll_painted"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MHubWall(TEXT("/Game/EON/Materials/Peint/MI_Peint_walll_painted_B.MI_Peint_walll_painted_B"));
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MHubNeon(TEXT("/Game/EON/Materials/BG/MI_BG_Room_light.MI_BG_Room_light"));
 	HubWallMesh = HubWall.Object; HubWallMaterial = MHubWall.Object; HubWallLightMaterial = MHubNeon.Object;
 	WallHeightCm = 220.f;
