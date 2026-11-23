@@ -69,7 +69,7 @@ tr:nth-child(even) td { background: #f7f9fa; }
     <div class="sub">De la page blanche à une salle jouable dans le jeu, pas à pas.<br>Pour quelqu'un qui n'a jamais ouvert l'outil.</div>
   </div>
   <img src="06_construite.png" alt="">
-  <div class="foot"><span>Version 1 · 18 novembre 2026</span><span>Tools/EditeurSalles/EditeurSalles.html</span></div>
+  <div class="foot"><span>Version 2 · 23 novembre 2026</span><span>Tools/EditeurSalles/EditeurSalles.html</span></div>
 </section>
 
 <section class="chap">
@@ -83,7 +83,7 @@ tr:nth-child(even) td { background: #f7f9fa; }
   </div>
   <h3>Ce qu'il te faut</h3>
   <ul>
-    <li><b>Google Chrome ou Microsoft Edge</b>. Firefox ne sait pas ouvrir un dossier : il ne pourrait ni enregistrer directement ni lister les salles.</li>
+    <li><b>Google Chrome ou Microsoft Edge</b>, sur PC comme sur Mac. Firefox et Safari ne savent pas ouvrir un dossier : ils ne pourraient ni enregistrer directement ni lister les salles.</li>
     <li>Le <b>Drive</b> monté sur le PC (lecteur <code>G:</code>). Le dossier de travail est <code>G:\My Drive\EON_EditeurSalles</code> : il contient l'éditeur, le dossier <code>Salles</code> (le dossier maître des salles) et le dossier <code>Bibliotheque</code> (les assets à poser).</li>
     <li>Pour voir la salle dans le jeu : le projet Unreal <code>EON</code> ouvert dans l'éditeur Unreal.</li>
   </ul>
@@ -91,7 +91,7 @@ tr:nth-child(even) td { background: #f7f9fa; }
   <ul class="steps">
     <li>Double-clique sur <code>EditeurSalles.html</code> dans <code>G:\My Drive\EON_EditeurSalles</code> (il s'ouvre dans ton navigateur). Depuis Unreal, le menu <b>EON Salles › Ouvrir l'éditeur de salles</b> fait la même chose.</li>
     <li>Clique sur <b>Dossier</b> (en haut) et choisis <code>G:\My Drive\EON_EditeurSalles\Salles</code>. Le navigateur demande l'autorisation de modifier les fichiers : accepte. Les salles existantes apparaissent dans l'onglet <b>Salles</b>.</li>
-    <li>Onglet <b>Objets</b> › <b>Ouvrir la bibliothèque d'assets…</b> et choisis <code>G:\My Drive\EON_EditeurSalles\Bibliotheque</code>. Les vignettes des assets (néons, terminaux, barrières…) s'affichent.</li>
+    <li>Onglet <b>Objets</b> › <b>Ouvrir la bibliothèque d'assets…</b> et choisis :<br>· sur le PC qui a le projet Unreal : le dossier du projet <code>EON_UE</code> (l'éditeur y lit tout seul <code>SourceAssets</code>, toujours à jour) ;<br>· sans Unreal (Mac, autre PC) : <code>EON_EditeurSalles\Bibliotheque</code> sur le Drive.<br>Les vignettes des assets (néons, terminaux, barrières…) s'affichent.</li>
   </ul>
   <div class="box tip"><b class="t">Bon à savoir</b>Le navigateur se souvient de ces deux dossiers : les fois suivantes, un clic suffit. Ton travail en cours est aussi gardé en brouillon : si tu fermes l'onglet par erreur, la salle revient à la réouverture.</div>
   <h3>Ce guide en un coup d'œil</h3>
@@ -280,7 +280,7 @@ tr:nth-child(even) td { background: #f7f9fa; }
   <table>
     <tr><th style="width:42%">Commande</th><th>Ce qu'elle fait</th></tr>
     <tr><td><b>Importer les salles modifiées</b></td><td>Crée ou met à jour <code>/Game/EON/Salles/BP_nom</code> pour chaque fichier changé depuis le dernier import. C'est la commande de tous les jours.</td></tr>
-    <tr><td><b>Réimport automatique (marche / arrêt)</b></td><td>Toutes les 2 secondes, réimporte ce que tu viens d'enregistrer : chaque <kbd>Ctrl</kbd>+<kbd>S</kbd> met Unreal à jour tout seul.</td></tr>
+    <tr><td><b>Réimport automatique (marche / arrêt)</b></td><td>Toutes les 2 secondes, réimporte ce que tu viens d'enregistrer : chaque <kbd>Ctrl</kbd>+<kbd>S</kbd> met Unreal à jour tout seul. Il s'arrête à la fermeture d'Unreal : à rallumer à chaque ouverture.</td></tr>
     <tr><td>Importer toutes les salles</td><td>Réimporte tout le dossier.</td></tr>
     <tr><td>Exporter les Blueprints vers .eonsalle</td><td>Le chemin inverse, après une retouche faite dans Unreal.</td></tr>
     <tr><td>Générer la bibliothèque d'assets</td><td>Après l'ajout de nouveaux modèles 3D : crée leurs fiches pour l'éditeur.</td></tr>
@@ -288,6 +288,16 @@ tr:nth-child(even) td { background: #f7f9fa; }
   </table>
   <p>Ensuite, lance le jeu : le générateur d'étage pioche ta salle quand une case demande son rôle et sa forme. Plus le poids est haut, plus elle sort souvent.</p>
   <div class="box warn"><b class="t">Fermer le jeu avant d'importer</b>Si une partie de test tourne, Unreal ne peut pas réécrire les Blueprints. Quitte la partie, importe, puis relance.</div>
+</section>
+
+<section class="chap">
+  <h3 style="margin-top:0">Travailler à plusieurs (PC ou Mac)</h3>
+  <ul class="steps">
+    <li>Sur drive.google.com, partage le dossier <code>EON_EditeurSalles</code> entier, en <b>Éditeur</b>.</li>
+    <li>L'autre personne installe <b>Google Drive pour ordinateur</b>, ajoute le dossier partagé à son Drive, puis ouvre <code>EditeurSalles.html</code> dans <b>Chrome</b> (pas Safari). Elle choisit <code>Salles</code> avec <b>Dossier</b> et <code>Bibliotheque</code> pour les assets. Unreal ne lui sert à rien.</li>
+    <li>Sur le PC qui a Unreal, le <b>Réimport automatique</b> reste allumé : ses enregistrements arrivent après la synchronisation du Drive (quelques secondes à une minute).</li>
+  </ul>
+  <div class="box tip"><b class="t">Une salle, une personne</b>Le dernier qui enregistre écrase l'autre. Répartissez-vous les salles, ou préfixez vos nouvelles salles (par exemple <code>Salle_Combat_Paul_…</code>). Après de nouveaux assets, pense à <b>EON Salles › Publier la bibliothèque sur le Drive</b>.</div>
 </section>
 
 <section class="chap">
@@ -316,7 +326,8 @@ tr:nth-child(even) td { background: #f7f9fa; }
   <table>
     <tr><th style="width:38%">Ce que tu vois</th><th>Quoi faire</th></tr>
     <tr><td>« Ce navigateur n'ouvre pas de dossier »</td><td>Ouvre l'éditeur dans Chrome ou Edge.</td></tr>
-    <tr><td>Aucune vignette dans l'onglet Objets</td><td><b>Ouvrir la bibliothèque d'assets…</b> et choisis le dossier <code>Bibliotheque</code> du Drive. Après de nouveaux assets, le bouton ⟳ relit tout.</td></tr>
+    <tr><td>Aucune vignette dans l'onglet Objets</td><td><b>Ouvrir la bibliothèque d'assets…</b> et choisis le dossier du projet <code>EON_UE</code>, ou <code>Bibliotheque</code> sur le Drive. Après de nouveaux assets, le bouton ⟳ relit tout.</td></tr>
+    <tr><td>Un fichier <code>Salle (1).eonsalle</code> apparaît</td><td>Deux personnes ont enregistré la même salle en même temps : le Drive a gardé les deux. Compare, garde la bonne, supprime l'autre.</td></tr>
     <tr><td>Du sol en rouge</td><td>Ce sol n'est relié à aucune porte : ouvre un passage (porte intérieure) ou remplis-le de mur.</td></tr>
     <tr><td>« Le générateur ne demande jamais la forme… »</td><td>Choisis une forme du tableau du chapitre 6, ou Libre, et mets la salle à la bonne taille (<b>Taille de la forme</b>).</td></tr>
     <tr><td>« L'objet dépasse de la salle »</td><td>L'objet est plus grand que la place libre : tourne-le (<kbd>R</kbd>) ou pose-le ailleurs.</td></tr>
