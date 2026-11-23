@@ -3,8 +3,8 @@
 // Le gameplay tourne en 2D, en px « salle » (AEONTileRoom), exactement comme le proto ;
 // l'acteur ne fait que suivre (RoomPxToWorld). C'est AEONCombatDirector qui appelle UpdateEnemy
 // dans l'ordre de la liste, comme le proto : l'acteur ne se met pas à jour tout seul.
-// Visuel : modèle 3D (EONEnemy.cpp, table Looks) ; placeholders tirés des meshes Unity tant que les mobs du studio
-// ne sont pas exportés (MANQUANTS.md §2).
+// Visuel : modèle 3D (EONEnemy.cpp, table Looks) : modèles du studio avec anims de déplacement, coup et mort (cadavre) ;
+// Brainless et Méduse restent des meshes Unity (MANQUANTS.md §2).
 #pragma once
 
 #include "CoreMinimal.h"
@@ -17,6 +17,7 @@ class USkeletalMeshComponent;
 class UMeshComponent;
 class UMaterialInterface;
 class UMaterialInstanceDynamic;
+class UAnimSequence;
 class AEONTileRoom;
 class AEONCombatDirector;
 
@@ -66,6 +67,10 @@ public:
 
 	/** Mort sans crédit (Onibi qui explose) ou par killEnemy : coupe la collision. */
 	void MarkDead();
+	/** Retiré de la liste du directeur : joue l'anim de mort (ou d'explosion), s'enfonce dans le sol puis se détruit.
+	 *  Faux si le modèle n'a pas d'anim de mort (ou s'il est tombé dans le vide) : le directeur le détruit tout de suite. */
+	bool BeginCorpse();
+	virtual void Tick(float DeltaSeconds) override;
 
 	// --- État du proto, en px salle et px/s (lu par le directeur pour les vagues, l'AOE, les vols de mates).
 	FName Type;
@@ -121,6 +126,25 @@ protected:
 	float YawOff = 0.f;
 	void BuildModel();
 	void SetFlash(bool bOn);
+
+	// Anims du modèle (table Looks) : boucle de déplacement, attente, coup, explosion (Onibi), morts (une au hasard).
+	UPROPERTY() TObjectPtr<UAnimSequence> AnimMove;
+	UPROPERTY() TObjectPtr<UAnimSequence> AnimIdle;
+	UPROPERTY() TObjectPtr<UAnimSequence> AnimAttack;
+	UPROPERTY() TObjectPtr<UAnimSequence> AnimExplode;
+	UPROPERTY() TArray<TObjectPtr<UAnimSequence>> AnimDeaths;
+	UPROPERTY() TObjectPtr<UAnimSequence> CurAnim;
+	float AttackRate = 1.f;
+	/** Temps restant de l'anim jouée une fois (coup, explosion) : la boucle reprend après. */
+	float ActionT = 0.f;
+	EEONEnemySt PrevSt = EEONEnemySt::Move;
+	void PlayAnim(UAnimSequence* A, bool bLoop, float Rate);
+	void UpdateAnim(float Dt, float DistToTarget);
+	/** Tombé dans le vide (pas de cadavre), explosé (anim d'explosion au lieu de la mort). */
+	bool bFell = false;
+	bool bExploded = false;
+	float CorpseT = 0.f;
+	float SinkT = 0.f;
 
 	TWeakObjectPtr<AEONCombatDirector> Director;
 	TWeakObjectPtr<AEONTileRoom> Room;

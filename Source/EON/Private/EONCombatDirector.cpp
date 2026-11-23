@@ -810,7 +810,8 @@ void AEONCombatDirector::Tick(float Dt)
 		AEONEnemy* E = Enemies[I];
 		if (!E || E->bDead)
 		{
-			if (E) { E->Destroy(); }
+			// Cadavre : l'ennemi joue sa mort et se détruit seul (AEONEnemy::BeginCorpse) ; sinon il disparaît tout de suite.
+			if (E && !E->BeginCorpse()) { E->Destroy(); }
 			Enemies.RemoveAt(I);
 			continue;
 		}

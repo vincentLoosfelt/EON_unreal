@@ -24,9 +24,17 @@ Légende : ❌ rien · 🟡 existe mais pas prêt pour Unreal · 🔲 placeholde
 
 > **23/11/2026 : modèles du studio branchés** dans la table `Looks` de `EONEnemy.cpp`.
 > - Export Blender : `Saved/Scripts/blender_ennemis_export.py`. Sources renommées dans `SourceAssets/Ennemis/<Nom>`. Import : `Saved/Scripts/eon_ennemis_import.py`.
-> - En jeu, chaque ennemi joue une anim en boucle : Nuke `A_Nuke_Walk`, Onibi `A_Onibi_Run`, Kama `A_Kama_Run`, Ubume `A_Ubume_Walk`. L'Ikiryo n'a pas d'anim.
+> - Déplacement en boucle, au rythme de la vitesse : Nuke `Walk`, Onibi `Run`, Kama `Run`, Ubume `Walk`. À l'arrêt : Ubume `Idle`, Onibi `Walk`.
+> - Coup, joué une fois (`AEONEnemy::UpdateAnim`) :
+>   - Nuke `Attack` (petite Nuke `Attack_V0`), au contact de Jira, vitesse ×1,5 ;
+>   - Kama `Attack` à l'élan (Wind) ;
+>   - Ubume `Attack` à la ponte, ×2 ;
+>   - Onibi `Explosion` quand il s'arme : l'anim continue sur le cadavre s'il explose.
+> - Mort : le directeur sort l'ennemi de la liste, puis `BeginCorpse` joue une mort au hasard. Le cadavre reste 0,6 s, s'enfonce dans le sol en 0,5 s, puis disparaît. Il n'y a pas de cadavre pour une chute dans le vide, ni pour un modèle sans anim de mort (Ubume, Ikiryo, Brainless, Méduse).
+> - Vérifié en combat automatique (salle large, combatN 10). Le journal `-LogCmds="LogEON Verbose"` liste `EON_ENEMY coup` et `EON_ENEMY cadavre`.
 > - Lacet -90 vérifié à l'image : tous regardent devant.
-> - Les anims d'attaque, de mort, d'explosion et de provocation sont importées mais pas encore jouées : `AEONEnemy` ne joue qu'une boucle.
+> - Non utilisés : Onibi `Attack`, `Run_Anticipation`, `Run_Variation` ; Kama `Taunt`. Aucun état du proto ne leur correspond.
+> - L'Ikiryo n'a toujours aucune anim.
 
 ## 2. Personnages et créatures à produire
 

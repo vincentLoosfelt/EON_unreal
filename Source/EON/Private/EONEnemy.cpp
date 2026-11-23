@@ -46,28 +46,43 @@ namespace
 		float YawOff;                  // lacet du modèle pour qu'il regarde vers +X
 		float HeightK;                 // hauteur du modèle = HH du proto × HeightK
 		float HoverPx;                 // flotte au-dessus du sol (Méduse)
+		const TCHAR* Idle = nullptr;   // à l'arrêt (sinon la boucle de marche au ralenti)
+		const TCHAR* Attack = nullptr; // joué une fois au début du coup (UpdateAnim)
+		float AttackRate = 1.f;
+		const TCHAR* Explode = nullptr;   // Onibi : s'arme puis explose, l'anim continue sur le cadavre
+		TArray<const TCHAR*> Deaths;   // une au hasard sur le cadavre (BeginCorpse)
 	};
+	// Anim du studio : /Game/EON/Ennemis/<Nom>/Anims/A_<Nom>_<Anim>
+#define EON_ANIM(N, A) TEXT("/Game/EON/Ennemis/" N "/Anims/A_" N "_" A ".A_" N "_" A)
 	const TArray<FLook>& Looks()
 	{
 		static const TArray<FLook> L = {
-			{ TEXT("goule"), { TEXT("/Game/EON/Ennemis/Nuke/SK_Nuke.SK_Nuke") }, TEXT("/Game/EON/Ennemis/Nuke/Anims/A_Nuke_Walk.A_Nuke_Walk"), -90.f, 1.f, 0.f },
-			{ TEXT("gouleP"), { TEXT("/Game/EON/Ennemis/Nuke/SK_Nuke.SK_Nuke") }, TEXT("/Game/EON/Ennemis/Nuke/Anims/A_Nuke_Walk.A_Nuke_Walk"), -90.f, 1.f, 0.f },
+			{ TEXT("goule"), { TEXT("/Game/EON/Ennemis/Nuke/SK_Nuke.SK_Nuke") }, EON_ANIM("Nuke", "Walk"), -90.f, 1.f, 0.f,
+				nullptr, EON_ANIM("Nuke", "Attack"), 1.5f, nullptr, { EON_ANIM("Nuke", "Death_01"), EON_ANIM("Nuke", "Death_02"), EON_ANIM("Nuke", "Death_03") } },
+			{ TEXT("gouleP"), { TEXT("/Game/EON/Ennemis/Nuke/SK_Nuke.SK_Nuke") }, EON_ANIM("Nuke", "Walk"), -90.f, 1.f, 0.f,
+				nullptr, EON_ANIM("Nuke", "Attack_V0"), 1.5f, nullptr, { EON_ANIM("Nuke", "Death_V0"), EON_ANIM("Nuke", "Death_01") } },
 			{ TEXT("sniper"), { TEXT("/Game/EON/Ennemis/Ikiryo/SK_Ikiryo.SK_Ikiryo") }, nullptr, -90.f, 1.f, 0.f },
 			{ TEXT("brainless"), { TEXT("/Game/EON/Unity/import/fbx/chara/Brain_Crawler.Brain_Crawler") }, TEXT("/Game/EON/Unity/import/fbx/chara/Brain_CrawlerArmature_Armature_Armature_Armature_Unreal_Take_baselayer.Brain_CrawlerArmature_Armature_Armature_Armature_Unreal_Take_baselayer"), -90.f, 1.f, 0.f },
-			{ TEXT("slasher"), { TEXT("/Game/EON/Ennemis/Kama/SK_Kama.SK_Kama") }, TEXT("/Game/EON/Ennemis/Kama/Anims/A_Kama_Run.A_Kama_Run"), -90.f, 1.f, 0.f },
-			{ TEXT("kamikaze"), { TEXT("/Game/EON/Ennemis/Onibi/SK_Onibi.SK_Onibi") }, TEXT("/Game/EON/Ennemis/Onibi/Anims/A_Onibi_Run.A_Onibi_Run"), -90.f, 1.f, 0.f },
-			{ TEXT("invocateur"), { TEXT("/Game/EON/Ennemis/Ubume/SK_Ubume.SK_Ubume") }, TEXT("/Game/EON/Ennemis/Ubume/Anims/A_Ubume_Walk.A_Ubume_Walk"), -90.f, 1.f, 0.f },
+			{ TEXT("slasher"), { TEXT("/Game/EON/Ennemis/Kama/SK_Kama.SK_Kama") }, EON_ANIM("Kama", "Run"), -90.f, 1.f, 0.f,
+				nullptr, EON_ANIM("Kama", "Attack"), 1.f, nullptr, { EON_ANIM("Kama", "Death") } },
+			{ TEXT("kamikaze"), { TEXT("/Game/EON/Ennemis/Onibi/SK_Onibi.SK_Onibi") }, EON_ANIM("Onibi", "Run"), -90.f, 1.f, 0.f,
+				EON_ANIM("Onibi", "Walk"), nullptr, 1.f, EON_ANIM("Onibi", "Explosion"), { EON_ANIM("Onibi", "Death_01"), EON_ANIM("Onibi", "Death_02") } },
+			{ TEXT("invocateur"), { TEXT("/Game/EON/Ennemis/Ubume/SK_Ubume.SK_Ubume") }, EON_ANIM("Ubume", "Walk"), -90.f, 1.f, 0.f,
+				EON_ANIM("Ubume", "Idle"), EON_ANIM("Ubume", "Attack"), 2.f, nullptr, {} },
 			{ TEXT("meduse"), { TEXT("/Game/EON/Unity/import/fbx/xeno/Meshy_AI_Unyielding_Chimera_0111100029_generate.Meshy_AI_Unyielding_Chimera_0111100029_generate") }, nullptr, -90.f, 1.f, 6.f },
 			{ TEXT("dummy"), { TEXT("/Engine/BasicShapes/Cylinder.Cylinder") }, nullptr, 0.f, 1.f, 0.f },
 			{ TEXT("gen"), { TEXT("/Engine/BasicShapes/Cube.Cube") }, nullptr, 0.f, 1.f, 0.f },
 		};
 		return L;
 	}
+#undef EON_ANIM
 }
 
 AEONEnemy::AEONEnemy()
 {
-	PrimaryActorTick.bCanEverTick = false;   // piloté par AEONCombatDirector
+	// Piloté par AEONCombatDirector ; le tick ne sert qu'au cadavre (BeginCorpse), une fois sorti de la liste.
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
 
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	RootComponent = Root;
@@ -156,6 +171,7 @@ void AEONEnemy::BuildModel()
 				K->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 				K->PlayAnimation(A, true);
 				K->SetPosition(FMath::FRand() * A->GetPlayLength());
+				AnimMove = CurAnim = A;
 			}
 			Bd = SK->GetBounds();
 			C = K;
@@ -176,6 +192,20 @@ void AEONEnemy::BuildModel()
 		for (int32 I = 0; I < C->GetNumMaterials(); ++I) { OrigMats.Add(C->GetMaterial(I)); }
 	}
 	if (bFirst) { return; }
+	auto LoadAnim = [](const TCHAR* P) -> UAnimSequence*
+	{
+		UAnimSequence* A = P ? LoadObject<UAnimSequence>(nullptr, P) : nullptr;
+		if (P && !A) { UE_LOG(LogEON, Warning, TEXT("EON_ENEMY anim introuvable : %s"), P); }
+		return A;
+	};
+	if (AnimMove)
+	{
+		AnimIdle = LoadAnim(Lk->Idle);
+		AnimAttack = LoadAnim(Lk->Attack);
+		AnimExplode = LoadAnim(Lk->Explode);
+		AttackRate = Lk->AttackRate;
+		for (const TCHAR* P : Lk->Deaths) { if (UAnimSequence* A = LoadAnim(P)) { AnimDeaths.Add(A); } }
+	}
 	// Taille : la hauteur du modèle vaut la hauteur de hitbox du proto ; pieds au sol, centré sur la position.
 	ModelScale = TargetH / FMath::Max(1.f, B0.BoxExtent.Z * 2.f);
 	const FVector Off(-B0.Origin.X * ModelScale, -B0.Origin.Y * ModelScale, -(B0.Origin.Z - B0.BoxExtent.Z) * ModelScale + EON::PxToCm(Lk->HoverPx));
@@ -222,6 +252,85 @@ void AEONEnemy::MarkDead()
 {
 	bDead = true;
 	Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void AEONEnemy::PlayAnim(UAnimSequence* A, bool bLoop, float Rate)
+{
+	if (!A) { return; }
+	for (UMeshComponent* C : Meshes)
+	{
+		if (USkeletalMeshComponent* K = Cast<USkeletalMeshComponent>(C))
+		{
+			if (A != CurAnim || !bLoop) { K->PlayAnimation(A, bLoop); }
+			K->SetPlayRate(Rate);
+		}
+	}
+	CurAnim = A;
+}
+
+void AEONEnemy::UpdateAnim(float Dt, float DistToTarget)
+{
+	if (!AnimMove) { return; }
+	// Début d'un coup : l'anim d'attaque (ou l'explosion de l'Onibi qui s'arme) part une fois, la boucle reprend ensuite.
+	const bool bEnter = St != PrevSt;
+	PrevSt = St;
+	UAnimSequence* Shot = nullptr;
+	float Rate = AttackRate;
+	if (Type == TEXT("kamikaze")) { if (bEnter && St == EEONEnemySt::Arm) { Shot = AnimExplode; Rate = 1.f; } }
+	else if (Type == TEXT("slasher")) { if (bEnter && St == EEONEnemySt::Wind) { Shot = AnimAttack; } }
+	else if (Type == TEXT("invocateur")) { if (bEnter && St == EEONEnemySt::Lay) { Shot = AnimAttack; } }
+	else if (bContact && ActionT <= 0.f && DistToTarget < R + PlayerR + 4.f) { Shot = AnimAttack; }   // Nuke au contact de Jira
+	if (Shot)
+	{
+		PlayAnim(Shot, false, Rate);
+		ActionT = Shot->GetPlayLength() / FMath::Max(0.1f, Rate);
+		UE_LOG(LogEON, Verbose, TEXT("EON_ENEMY coup %s : %s"), *Type.ToString(), *Shot->GetName());
+		return;
+	}
+	if (ActionT > 0.f) { ActionT -= Dt; return; }
+	const float V = Vel.Size();
+	if (V > 8.f) { PlayAnim(AnimMove, true, FMath::Clamp(V / FMath::Max(10.f, Spd), 0.6f, 2.f)); }
+	else if (AnimIdle) { PlayAnim(AnimIdle, true, 1.f); }
+	else { PlayAnim(AnimMove, true, 0.25f); }
+}
+
+bool AEONEnemy::BeginCorpse()
+{
+	if (bFell || !AnimMove) { return false; }
+	UAnimSequence* A = nullptr;
+	float Left = 0.f;
+	if (bExploded && AnimExplode)
+	{
+		// L'Onibi a commencé son explosion en s'armant : elle continue là où elle en est.
+		A = AnimExplode;
+		Left = FMath::Max(0.f, ActionT);
+		if (CurAnim != A) { PlayAnim(A, false, 1.f); Left = A->GetPlayLength(); }
+	}
+	else if (AnimDeaths.Num())
+	{
+		A = AnimDeaths[FMath::RandRange(0, AnimDeaths.Num() - 1)];
+		PlayAnim(A, false, 1.f);
+		Left = A->GetPlayLength();
+	}
+	if (!A) { return false; }
+	UE_LOG(LogEON, Verbose, TEXT("EON_ENEMY cadavre %s : %s, %.2f s"), *Type.ToString(), *A->GetName(), Left);
+	SetFlash(false);
+	// Reste à terre 0,6 s après l'anim, puis s'enfonce en 0,5 s (le proto : fondu immédiat).
+	CorpseT = Left + 0.6f;
+	SinkT = 0.f;
+	SetActorTickEnabled(true);
+	SetLifeSpan(CorpseT + 2.f);   // filet si le tick s'arrête (changement de salle)
+	return true;
+}
+
+void AEONEnemy::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	if (!bDead) { return; }
+	if (CorpseT > 0.f) { CorpseT -= DeltaSeconds; return; }
+	SinkT += DeltaSeconds;
+	ModelRoot->SetRelativeLocation(FVector(0.f, 0.f, -SinkT / 0.5f * EON::PxToCm(Ehh())));
+	if (SinkT >= 0.5f) { Destroy(); }
 }
 
 void AEONEnemy::ApplyHit(float Damage, FVector Dir, float KnockMul)
@@ -311,7 +420,7 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 	{
 		Falling -= Dt;
 		Pos += Knock * Dt * 0.3f;
-		if (Falling <= 0.f) { MarkDead(); Dir->OnEnemyFell(this); }
+		if (Falling <= 0.f) { bFell = true; MarkDead(); Dir->OnEnemyFell(this); }
 		return;
 	}
 	if (bStalk) { StalkUpdate(Dt, Dir->GetJiraPx()); return; }
@@ -406,6 +515,7 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 			if (StT <= 0.f)
 			{
 				// Explose : mort sans crédit, AOE 28 px, 3 dégâts, blesse Jira
+				bExploded = true;
 				MarkDead();
 				Dir->Aoe(Pos, 28.f, 3.f, true, FLinearColor(FColor::FromHex(TEXT("ff7a1a"))));
 				return;
@@ -611,9 +721,13 @@ void AEONEnemy::UpdateVisual(float Dt, const FVector2D& Tg)
 		FaceYaw = FMath::FixedTurn(FaceYaw, Want, 540.f * Dt);
 	}
 	ModelRoot->SetRelativeRotation(FRotator(0.f, FaceYaw + YawOff, 0.f));
-	for (UMeshComponent* C : Meshes)
+	if (AnimMove) { UpdateAnim(Dt, FVector2D::Distance(Tg, Pos)); }
+	else
 	{
-		if (USkeletalMeshComponent* K = Cast<USkeletalMeshComponent>(C)) { K->SetPlayRate(bMoving ? FMath::Clamp(Vel.Size() / FMath::Max(10.f, Spd), 0.6f, 2.f) : 0.25f); }
+		for (UMeshComponent* C : Meshes)
+		{
+			if (USkeletalMeshComponent* K = Cast<USkeletalMeshComponent>(C)) { K->SetPlayRate(bMoving ? FMath::Clamp(Vel.Size() / FMath::Max(10.f, Spd), 0.6f, 2.f) : 0.25f); }
+		}
 	}
 	// Clignotement blanc : coup reçu, et l'Onibi qui s'arme.
 	const bool bWhite = Flash > 0.f || (St == EEONEnemySt::Arm && FMath::FloorToInt(T * 20.f) % 2 == 0);
