@@ -93,7 +93,7 @@ struct EON_API FEONGameFeelRow : public FTableRowBase
 	/** Champ horizontal, degrés. Petit = longue focale. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Caméra 3D") float CamFov = 25.f;
 	/** Largeur de sol visible au centre de l'image, en tuiles (proto : 30). */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Caméra 3D") float CamViewTiles = 30.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Caméra 3D") float CamViewTiles = 16.f;   // Vincent, 24/11 : 16 tuiles (caméra plus proche ; proto : 30)
 };
 
 /** Une greffe (greffes.json). */
