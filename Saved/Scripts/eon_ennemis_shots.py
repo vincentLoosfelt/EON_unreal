@@ -7,8 +7,33 @@ os.makedirs(OUT, exist_ok=True)
 les = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 les.load_level("/Game/EON/Maps/L_HUB")
 eas = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+# Sans post-process (Vincent, 23/11) : volumes coupés, peinture à 0. Rien n'est enregistré dans la carte.
+for v in eas.get_all_level_actors():
+    if isinstance(v, unreal.PostProcessVolume):
+        v.set_editor_property("enabled", False)
 MOBS = [("Nuke", "A_Nuke_Walk"), ("Onibi", "A_Onibi_Run"), ("Kama", "A_Kama_Run"), ("Ubume", "A_Ubume_Walk"), ("Ikiryo", None)]
 X0, Y0, Z0 = 900.0, -240.0, 464.0
+# EON_ENNEMI=<Nom> : cet ennemi seul, sur l'emplacement dégagé du milieu (une capture par lancement :
+# l'éditeur en arrière-plan cesse de tourner après la première).
+SEUL = os.environ.get("EON_ENNEMI")
+if SEUL:
+    # Seul, au-dessus du HUB (ciel en fond, lumière du soleil), sur un sol neutre.
+    MOBS = [m for m in MOBS if m[0] == SEUL]
+    X0, Y0, Z0 = 0.0, 0.0, 6000.0
+    sol = eas.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(X0, Y0, Z0 - 1), unreal.Rotator(0, 0, 0))
+    sol.static_mesh_component.set_static_mesh(unreal.load_asset("/Engine/BasicShapes/Plane"))
+    sol.set_actor_scale3d(unreal.Vector(12, 12, 1))
+    # Salle vide : mur du fond et murs latéraux (cubes gris), plafonnier au-dessus de l'ennemi.
+    cube = unreal.load_asset("/Engine/BasicShapes/Cube")
+    for loc, sc in ((unreal.Vector(X0 - 450, Y0, Z0 + 250), unreal.Vector(0.2, 12, 5)),
+                    (unreal.Vector(X0, Y0 - 550, Z0 + 250), unreal.Vector(12, 0.2, 5)),
+                    (unreal.Vector(X0, Y0 + 550, Z0 + 250), unreal.Vector(12, 0.2, 5))):
+        m = eas.spawn_actor_from_class(unreal.StaticMeshActor, loc, unreal.Rotator(0, 0, 0))
+        m.static_mesh_component.set_static_mesh(cube)
+        m.set_actor_scale3d(sc)
+    lum = eas.spawn_actor_from_class(unreal.PointLight, unreal.Vector(X0 + 150, Y0 - 80, Z0 + 380), unreal.Rotator(0, 0, 0))
+    lum.point_light_component.set_editor_property("intensity", 40.0)
+    lum.point_light_component.set_editor_property("attenuation_radius", 1500.0)
 for i, (nom, anim) in enumerate(MOBS):
     sk = unreal.load_asset("/Game/EON/Ennemis/%s/SK_%s" % (nom, nom))
     h = sk.get_bounds().box_extent.z * 2
@@ -25,12 +50,11 @@ cams = []
 # Une caméra par ennemi, de 3/4 face (les ennemis regardent +X, la caméra vers -X).
 for i, (nom, anim) in enumerate(MOBS):
     loc = unreal.Vector(X0 + 300, Y0 + i * 120 - 90, Z0 + 110)
-    cam = eas.spawn_actor_from_class(unreal.CameraActor, loc, unreal.Rotator(0, -6, 163))
+    if SEUL:
+        loc = unreal.Vector(X0 + 330, Y0 - 100, Z0 + 95)
+    cam = eas.spawn_actor_from_class(unreal.CameraActor, loc, unreal.Rotator(0, -1 if SEUL else -6, 163))
     cam.camera_component.set_editor_property("field_of_view", 55.0)
     cams.append((nom, cam))
-# EON_ENNEMI=<Nom> : une seule capture (l'éditeur en arrière-plan cesse de tourner après la première).
-if os.environ.get("EON_ENNEMI"):
-    cams = [c for c in cams if c[0] == os.environ["EON_ENNEMI"]]
 state = {"i": 0, "wait": 0}
 
 

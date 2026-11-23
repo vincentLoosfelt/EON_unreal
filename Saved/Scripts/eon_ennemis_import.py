@@ -1,5 +1,5 @@
 # EON — import des ennemis du studio (exports blender_ennemis_export.py, SourceAssets/Ennemis/<Nom>) :
-#   SK_<Nom> (maillage + squelette SKEL_<Nom>), A_<Nom>_<Anim>, T_<Nom>_*, MI_<Nom>[_Partie] (M_UnityLit + TP_EON_Anime,
+#   SK_<Nom> (maillage + squelette SKEL_<Nom>), A_<Nom>_<Anim>, T_<Nom>_*, MI_<Nom>[_Partie] (M_EON_ToonEnnemi + TP_EON_Anime,
 #   comme Jira). Drone et écran du C.O.M en StaticMesh.
 #   UnrealEditor-Cmd.exe EON.uproject -run=pythonscript -script=Saved/Scripts/eon_ennemis_import.py
 import unreal, os, glob
@@ -62,7 +62,7 @@ def sm_options():
     return o
 
 TP = unreal.load_asset("/Game/EON/Materials/TP_EON_Anime")
-LIT = unreal.load_asset("/Game/EON/Unity/Materials/M_UnityLit")
+LIT = unreal.load_asset("/Game/EON/Materials/M_EON_ToonEnnemi")   # toon sans normal map (eon_ennemis_toon.py)
 
 def make_mi(dest, name, tex):
     p = dest + "/" + name
