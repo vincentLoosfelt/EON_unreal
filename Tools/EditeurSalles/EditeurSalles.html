@@ -214,7 +214,7 @@ select.inp { padding: 0 4px; }
     </div>
     <div class="pane" id="pane-obj">
       <div class="row" style="margin-bottom:8px"><button class="btn" id="bAssets">Ouvrir la bibliothèque d'assets…</button><button class="btn icon" id="bAssetsRe" title="Actualiser : relire les .eonasset, aperçus et textures (après « Générer la bibliothèque » dans Unreal)"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></button></div>
-      <div class="muted" id="assetsHint" style="margin-bottom:8px;font-size:12px">Ouvre le dossier <b>SourceAssets</b> du projet EON (ou la bibliothèque du Drive) : un fichier .eonasset par asset (Blueprint BPA_*), les textures et le thème des salles.</div>
+      <div class="muted" id="assetsHint" style="margin-bottom:8px;font-size:12px">Ouvre le dossier du projet Unreal <b>EON_UE</b> (son SourceAssets est lu tout seul), ou la <b>Bibliotheque</b> du Drive sans Unreal : un fichier .eonasset par asset (Blueprint BPA_*), les textures et le thème des salles.</div>
       <div class="lum" id="lumPanel" style="display:none">
         <h4 id="lumTitle"></h4>
         <div class="chips" id="lumMode"></div>
@@ -837,7 +837,17 @@ async function walkDir(h, prefix, out) {
     else if (/\.(eonasset|eonapercu|eontheme|png|webp)$/i.test(name)) out.push({ path: prefix + name, text: async () => (await e.getFile()).text(), blob: () => e.getFile() });
   }
 }
-async function openAssetDir(h) { const out = []; await walkDir(h, "", out); assetsName = h.name; await loadAssetFiles(out); }
+// Dossier du projet Unreal choisi (EON.uproject à la racine) : on lit seulement son SourceAssets,
+// jamais Content, DerivedDataCache, Saved… (plusieurs Go).
+async function projectAssets(h) {
+  try { await h.getFileHandle("EON.uproject"); return await h.getDirectoryHandle("SourceAssets"); } catch (e) { return null; }
+}
+async function openAssetDir(h) {
+  const src = await projectAssets(h);
+  const out = []; await walkDir(src || h, "", out);
+  assetsName = src ? h.name + "/SourceAssets" : h.name;
+  await loadAssetFiles(out);
+}
 // Appli Google : la bibliothèque vient du Drive. Les fichiers déjà lus sont gardés dans le navigateur
 // (IndexedDB) et seuls ceux qui ont changé sur le Drive sont relus.
 async function driveAssets() {
