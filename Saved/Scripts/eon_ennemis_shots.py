@@ -11,6 +11,13 @@ eas = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
 for v in eas.get_all_level_actors():
     if isinstance(v, unreal.PostProcessVolume):
         v.set_editor_property("enabled", False)
+# Rendu brut (Vincent, 23/11 : « enlève tout post-process ») : textures en pleine résolution tout de suite
+# (pas de streaming progressif), et effets par défaut du moteur coupés (exposition auto, bloom, flou, grain,
+# reflets d'objectif, franges, netteté). Les variables console ne sont pas enregistrées.
+for cmd in ("r.TextureStreaming 0", "r.DefaultFeature.AutoExposure 0", "r.BloomQuality 0", "r.DefaultFeature.MotionBlur 0",
+            "r.MotionBlurQuality 0", "r.LensFlareQuality 0", "r.SceneColorFringeQuality 0", "r.FilmGrain 0",
+            "r.Tonemapper.GrainQuantization 0", "r.Tonemapper.Sharpen 0", "r.ScreenPercentage 100", "r.DepthOfFieldQuality 0"):
+    unreal.SystemLibrary.execute_console_command(None, cmd)
 MOBS = [("Nuke", "A_Nuke_Walk"), ("Onibi", "A_Onibi_Run"), ("Kama", "A_Kama_Run"), ("Ubume", "A_Ubume_Walk"), ("Ikiryo", None)]
 X0, Y0, Z0 = 900.0, -240.0, 464.0
 # EON_ENNEMI=<Nom> : cet ennemi seul, sur l'emplacement dégagé du milieu (une capture par lancement :
@@ -67,7 +74,7 @@ def tick(dt):
         return
     if state["i"] < len(cams):
         name, cam = cams[state["i"]]
-        unreal.AutomationLibrary.take_high_res_screenshot(900, 1100, "%s/%s%s.png" % (OUT, name, SUF), cam)
+        unreal.AutomationLibrary.take_high_res_screenshot(1920, 1080, "%s/%s%s.png" % (OUT, name, SUF), cam)
         state["i"] += 1; state["wait"] = 0
     elif state["wait"] > 60 and all(os.path.exists("%s/%s%s.png" % (OUT, n, SUF)) for n, _ in cams):
         unreal.unregister_slate_post_tick_callback(handle)
