@@ -1,8 +1,8 @@
 # EON — grain du film (MI_PP_EON_Film, HUB et étage). Vincent, 24/11 : « le film grain est trop gros et trop fort ».
-# 23/11 : 0,15 à 2 px ; 24/11 : EON_GRAIN_FORCE / EON_GRAIN_TAILLE (défaut 0,07 à 1 px).
+# 23/11 : 0,15 à 2 px ; 24/11 : 0,10 à 1 px validé (EON_GRAIN_FORCE / EON_GRAIN_TAILLE).
 #   UnrealEditor-Cmd.exe EON.uproject -run=pythonscript -script=D:/_PROJETS/briscard/EON_UE/Saved/Scripts/eon_film_grain.py
 import os, unreal
-FORCE = float(os.environ.get("EON_GRAIN_FORCE", "0.07"))
+FORCE = float(os.environ.get("EON_GRAIN_FORCE", "0.10"))
 TAILLE = float(os.environ.get("EON_GRAIN_TAILLE", "1.0"))
 MEL = unreal.MaterialEditingLibrary
 mi = unreal.load_asset("/Game/EON/Materials/MI_PP_EON_Film")
