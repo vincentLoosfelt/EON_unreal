@@ -5,7 +5,7 @@
 import unreal
 BLOOM_INTENSITE, BLOOM_SEUIL, BLOOM_TAILLE = 6.0, 0.8, 8.0   # Vincent, 23/11 : seuil 0,8, grand rayon (défaut Unreal 4) ; intensité 2, 4, puis 6
 # (le clamp du bloom est dans M_PP_EON_Decor : paramètre BloomMax)
-GRAIN = {"GrainStrength": 0.15, "GrainScale": 2.0, "ChromaPx": 4.0}   # aberration 4 px au bord en 4K (Vincent, 23/11)
+GRAIN = {"GrainStrength": 0.15, "GrainScale": 2.0, "ChromaPx": 2.0}   # aberration 2 px au bord en 4K (Vincent, 24/11 : écart divisé par 2)
 MEL = unreal.MaterialEditingLibrary
 mi = unreal.load_asset("/Game/EON/Materials/MI_PP_EON_Film")
 for k, v in GRAIN.items():
