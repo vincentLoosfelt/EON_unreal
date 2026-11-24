@@ -36,7 +36,7 @@ AEONTileRoom::AEONTileRoom()
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> Cyl(TEXT("/Game/EON/Meshes/SM_Cylinder_N.SM_Cylinder_N"));
 	// Sol éclairé (MI_Sol_Eclaire, teinte du sol Unity) pour recevoir les ombres ; décor rouge (pipe), cuves bleues (pipe 1).
 	// Décor peint aquarelle B (Vincent, 24/11 : l'étage comme le HUB) : MI_Peint_*_B à la place des MI_BG_* (gardés tels quels).
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MFloor(TEXT("/Game/EON/Materials/MI_Sol_Eclaire.MI_Sol_Eclaire"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MFloor(TEXT("/Game/EON/Materials/Peint/MI_Peint_Grille01_B.MI_Peint_Grille01_B"));   // sol = grille des passerelles du HUB (Vincent, 24/11)
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MWall(TEXT("/Game/EON/Materials/Peint/MI_Peint_walll_painted_B.MI_Peint_walll_painted_B"));
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MCrate(TEXT("/Game/EON/Materials/Peint/MI_Peint_Barrier01_B.MI_Peint_Barrier01_B"));
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MTank(TEXT("/Game/EON/Materials/Peint/MI_Peint_pipe_1_B.MI_Peint_pipe_1_B"));

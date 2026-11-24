@@ -69,6 +69,10 @@ struct EON_API FEONGameFeelRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendu") bool PPAll = true;
 	// Celluloïds animés en paliers (Vincent, 24/11 : « les persos c'est toujours 12 fps », comme Orbitals) ; 0 = fluide.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendu") float CelAnimFps = 12.f;
+	// Émission des néons des lampes de salle (AEONLampe), multipliée (Vincent, 24/11 : « les matériaux lumineux sont trop forts »).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendu") float NeonMul = 0.12f;
+	// Lumière ponctuelle des lampes de salle, multipliée (Vincent, 24/11 : « la lumière est trop forte »).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendu") float LampeMul = 0.15f;
 	// Texte de debug en haut à gauche (entrée, énergie, vitesse...) : caché par défaut (Vincent, 15/11), menu Tweak.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Interface") bool DebugText = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ennemis") float EnemyHp = 1.f;

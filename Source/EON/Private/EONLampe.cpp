@@ -5,6 +5,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "EONFloorManager.h"
 #include "EONTypes.h"
+#include "EONStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
 AEONLampe::AEONLampe()
@@ -85,8 +86,9 @@ void AEONLampe::Appliquer(float F)
 {
 	if (F == Dernier) { return; }
 	Dernier = F;
-	Lumiere->SetIntensity(Intensite * F * IntensiteUnreal);
-	for (UMaterialInstanceDynamic* D : Neons) { D->SetScalarParameterValue(TEXT("Emission"), EmissionNeon * F); }
+	const FEONGameFeelRow Feel = UEONStatics::GetGameFeel(this);   // LampeMul, NeonMul : DT_GameFeel (Vincent, 24/11)
+	Lumiere->SetIntensity(Intensite * F * IntensiteUnreal * Feel.LampeMul);
+	for (UMaterialInstanceDynamic* D : Neons) { D->SetScalarParameterValue(TEXT("Emission"), EmissionNeon * Feel.NeonMul * F); }
 }
 
 void AEONLampe::Tick(float DeltaSeconds)
