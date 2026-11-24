@@ -6,6 +6,7 @@
 
 #include "CoreMinimal.h"
 #include "Camera/PlayerCameraManager.h"
+class UMaterialParameterCollection;
 #include "EONPlayerCameraManager.generated.h"
 
 UCLASS()
@@ -39,4 +40,9 @@ private:
 	float Trauma = 0.f;
 	bool bSnap = true;
 	float LastViewWidthCm = 0.f;
+	/** Zoom molette : multiplicateur de CamViewTiles visé (crans) et appliqué (lissé). */
+	float ZoomTarget = 1.f;
+	float ZoomCur = 1.f;
+	/** MPC_EON_Rendu : TraitZoom = épaisseur du trait relative au zoom (M_PP_EON_Trait la borne). */
+	UPROPERTY(Transient) TObjectPtr<UMaterialParameterCollection> RenduMPC;
 };

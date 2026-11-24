@@ -98,6 +98,11 @@ struct EON_API FEONGameFeelRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Caméra 3D") float CamFov = 25.f;
 	/** Largeur de sol visible au centre de l'image, en tuiles (proto : 30). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Caméra 3D") float CamViewTiles = 16.f;   // Vincent, 24/11 : 16 tuiles (caméra plus proche ; proto : 30)
+	/** Zoom à la molette (Vincent, 24/11) : largeur de vue mini / maxi en tuiles, facteur par cran, vitesse de lissage. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Caméra 3D") float CamZoomMinTiles = 8.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Caméra 3D") float CamZoomMaxTiles = 30.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Caméra 3D") float CamZoomStep = 1.15f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Caméra 3D") float CamZoomSpeed = 10.f;
 };
 
 /** Une greffe (greffes.json). */

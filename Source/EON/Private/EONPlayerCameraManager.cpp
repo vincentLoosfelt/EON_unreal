@@ -5,6 +5,9 @@
 #include "EONTuningSubsystem.h"
 #include "EONTypes.h"
 #include "EONFloorManager.h"
+#include "EONPlayerController.h"
+#include "Kismet/KismetMaterialLibrary.h"
+#include "Materials/MaterialParameterCollection.h"
 
 namespace
 {
@@ -65,7 +68,24 @@ void AEONPlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaT
 	}
 
 	// --- vue : largeur visible au centre, hauteur au ratio de l'écran du proto
-	const float HalfW = Feel.CamViewTiles * EON::CmPerTile * 0.5f;
+	// Zoom à la molette : un cran = × CamZoomStep sur la largeur, borné entre CamZoomMinTiles et CamZoomMaxTiles, lissé.
+	const float BaseTiles = FMath::Max(1.f, Feel.CamViewTiles);
+	if (const AEONPlayerController* EPC = Cast<AEONPlayerController>(GetOwningPlayerController()))
+	{
+		if (!EPC->GetDevMenu().IsOpen())
+		{
+			const float Step = FMath::Max(1.01f, Feel.CamZoomStep);
+			if (EPC->WasInputKeyJustPressed(EKeys::MouseScrollUp)) { ZoomTarget /= Step; }     // molette vers l'avant : on s'approche
+			if (EPC->WasInputKeyJustPressed(EKeys::MouseScrollDown)) { ZoomTarget *= Step; }
+		}
+	}
+	const float MinT = FMath::Clamp(Feel.CamZoomMinTiles, 1.f, BaseTiles), MaxT = FMath::Max(Feel.CamZoomMaxTiles, BaseTiles);
+	ZoomTarget = FMath::Clamp(ZoomTarget, MinT / BaseTiles, MaxT / BaseTiles);
+	ZoomCur = bSnap ? ZoomTarget : FMath::FInterpTo(ZoomCur, ZoomTarget, Dt, FMath::Max(0.1f, Feel.CamZoomSpeed));
+	const float HalfW = BaseTiles * ZoomCur * EON::CmPerTile * 0.5f;
+	// Trait des celluloïds relatif au zoom (Vincent, 24/11) : plus proche = plus épais ; bornes dans M_PP_EON_Trait (SilMin, SilMax).
+	if (!RenduMPC) { RenduMPC = LoadObject<UMaterialParameterCollection>(nullptr, TEXT("/Game/EON/Materials/MPC_EON_Rendu.MPC_EON_Rendu")); }
+	if (RenduMPC) { UKismetMaterialLibrary::SetScalarParameterValue(this, RenduMPC, TEXT("TraitZoom"), 1.f / FMath::Max(ZoomCur, 0.01f)); }
 	const float HalfH = HalfW * (EON::ProtoViewH / EON::ProtoViewW);
 
 	// --- lissage et bornes de salle

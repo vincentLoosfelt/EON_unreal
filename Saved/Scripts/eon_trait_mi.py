@@ -1,4 +1,4 @@
-# EON — épaisseur globale du trait des celluloïds (Vincent, 24/11 : « baisse l'épaisseur globale de l'artline de 50 % »).
+# EON — épaisseur globale (v7, 24/11 : seule SilWidth ; l'intérieur en est la moitié dans M_PP_EON_Trait) du trait des celluloïds (Vincent, 24/11 : « baisse l'épaisseur globale de l'artline de 50 % »).
 # M_PP_EON_Trait n'est pas touché : instance MI_PP_EON_Trait (SilWidth et InnerWidth × EON_TRAIT_K, 0,5 par défaut) mise à
 # sa place dans les volumes de L_HUB et L_Etage.
 #   UnrealEditor-Cmd.exe EON.uproject -run=pythonscript -script=D:/_PROJETS/briscard/EON_UE/Saved/Scripts/eon_trait_mi.py
@@ -11,10 +11,13 @@ p = "/Game/EON/Materials/MI_PP_EON_Trait"
 mi = unreal.load_asset(p) if EAL.does_asset_exist(p) else unreal.AssetToolsHelpers.get_asset_tools().create_asset(
     "MI_PP_EON_Trait", "/Game/EON/Materials", unreal.MaterialInstanceConstant, unreal.MaterialInstanceConstantFactoryNew())
 MEL.set_material_instance_parent(mi, base)
-for nm in ("SilWidth", "InnerWidth"):
+MEL.clear_all_material_instance_parameters(mi)   # v7 : InnerWidth n'existe plus (intérieur = silhouette × InnerRatio)
+for nm in ("SilWidth",):
     v = MEL.get_material_default_scalar_parameter_value(base, nm)
     MEL.set_material_instance_scalar_parameter_value(mi, nm, v * K)
     LOG.append("%s : %.2f -> %.2f px" % (nm, v, v * K))
+MEL.set_material_instance_scalar_parameter_value(mi, "SilMin", 2.0)   # Vincent, 24/11 : intérieur 1 px mini -> silhouette 2 px mini
+LOG.append("SilMin : 2.00 px")
 MEL.update_material_instance(mi)
 LOG.append("MI sauvegardée %s" % EAL.save_loaded_asset(mi, False))
 les = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)

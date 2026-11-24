@@ -81,6 +81,9 @@ void FEONDevMenu::Rebuild()
 		Val(TEXT("Inclinaison (°)"), TEXT("CamPitch"), 1.f, 20.f);
 		Val(TEXT("Focale (FOV °)"), TEXT("CamFov"), 1.f, 5.f);
 		Val(TEXT("Largeur de vue (tuiles)"), TEXT("CamViewTiles"), 1.f, 8.f);
+		Val(TEXT("Zoom molette mini (tuiles)"), TEXT("CamZoomMinTiles"), 1.f, 2.f);
+		Val(TEXT("Zoom molette maxi (tuiles)"), TEXT("CamZoomMaxTiles"), 1.f, 8.f);
+		Val(TEXT("Zoom par cran (x)"), TEXT("CamZoomStep"), 0.05f, 1.05f);
 		Sec(TEXT("Ennemis"));
 		Val(TEXT("Points de vie (x)"), TEXT("EnemyHp"), 0.1f, 0.1f);
 		Val(TEXT("Vitesse (x)"), TEXT("EnemySpeed"), 0.05f, 0.05f);
