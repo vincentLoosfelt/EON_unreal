@@ -66,9 +66,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "EON|Rendu")
 	static void MarkCel(AActor* Actor);
 
-	/** Idem pour un seul composant (constructeurs, pièces créées à la volée). */
+	/** Idem pour un seul composant (constructeurs, pièces créées à la volée).
+	 *  bTrait = false : celluloïd sans line art (CustomStencil = 2 ; projectiles, Vincent 24/11). */
 	UFUNCTION(BlueprintCallable, Category = "EON|Rendu")
-	static void MarkCelComponent(UPrimitiveComponent* Component);
+	static void MarkCelComponent(UPrimitiveComponent* Component, bool bTrait = true);
 
 	/** Outil éditeur : profil toon propre à une instance (ToonProfileOverride n'est pas exposé à Python). */
 	UFUNCTION(BlueprintCallable, Category = "EON|Outils")

@@ -61,7 +61,8 @@ float3 under = LK(uv, 14).rgb;
 if (DebugView > 0.5 && DebugView < 1.5) return LK(uv, 5).rgb + keep;
 // Celluloïd VISIBLE seulement : le stencil s'écrit aussi derrière le décor ; on exige profondeur de scène ≈ profondeur
 // custom (sinon un élément de décor est devant : ni trait ni traitement cel sur lui).
-#define VIS(u) (LK(u, 25).r > 0.5 && LK(u, 1).r > LK(u, 13).r * 0.997 - 1.0)
+// Stencil 1 seulement : le stencil 2 (projectiles, Vincent 24/11) reçoit l'étalonnage cel du décor mais pas de trait.
+#define VIS(u) (LK(u, 25).r > 0.5 && LK(u, 25).r < 1.5 && LK(u, 1).r > LK(u, 13).r * 0.997 - 1.0)
 if (!VIS(uv)) {
     // Ombre du cel sur le décor (prise de vue des années 90 : le cel posé sur la peinture, son épaisseur et
     // l'éclairage de face portent une légère ombre). Toujours décalée en bas à droite À L'ÉCRAN, quelle que soit

@@ -41,7 +41,7 @@ AEONEnemyProjectile::AEONEnemyProjectile()
 	Visual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Visual"));
 	RootComponent = Visual;
 	MakeFlatSphere(this, Visual);
-	UEONStatics::MarkCelComponent(Visual);
+	UEONStatics::MarkCelComponent(Visual, false);   // projectile : pas de trait (Vincent, 24/11)
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	if (SphereMesh.Succeeded()) { Visual->SetStaticMesh(SphereMesh.Object); }
 }
@@ -89,7 +89,7 @@ AEONEnemyEgg::AEONEnemyEgg()
 	Visual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Visual"));
 	RootComponent = Visual;
 	MakeFlatSphere(this, Visual);
-	UEONStatics::MarkCelComponent(Visual);
+	UEONStatics::MarkCelComponent(Visual, false);   // projectile : pas de trait (Vincent, 24/11)
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	if (SphereMesh.Succeeded()) { Visual->SetStaticMesh(SphereMesh.Object); }
 }

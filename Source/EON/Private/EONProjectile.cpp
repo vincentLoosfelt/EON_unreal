@@ -30,7 +30,7 @@ AEONProjectile::AEONProjectile()
 	Visual->SetupAttachment(Sphere);
 	Visual->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Visual->SetCastShadow(false);
-	UEONStatics::MarkCelComponent(Visual);
+	UEONStatics::MarkCelComponent(Visual, false);   // projectile : pas de trait (Vincent, 24/11)
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	if (SphereMesh.Succeeded()) { Visual->SetStaticMesh(SphereMesh.Object); }
 	// Trait allongé dans le sens du tir : 0,5 m de long, 0,1 m de large.

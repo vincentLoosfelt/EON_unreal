@@ -61,11 +61,11 @@ bool UEONStatics::SetMeshSectionCollision(UStaticMesh* Mesh, int32 LodIndex, int
 #endif
 }
 
-void UEONStatics::MarkCelComponent(UPrimitiveComponent* C)
+void UEONStatics::MarkCelComponent(UPrimitiveComponent* C, bool bTrait)
 {
 	if (!C || C->IsA<UShapeComponent>()) { return; }
 	C->SetRenderCustomDepth(true);
-	C->SetCustomDepthStencilValue(1);
+	C->SetCustomDepthStencilValue(bTrait ? 1 : 2);   // 1 : trait + étalonnage cel ; 2 : étalonnage cel seul
 	// Animation en paliers : le squelette n'est évalué que CelAnimFps fois par seconde (temps cumulé transmis au tick),
 	// le déplacement de l'acteur reste fluide. Uniquement en jeu.
 	if (USkeletalMeshComponent* S = Cast<USkeletalMeshComponent>(C))
