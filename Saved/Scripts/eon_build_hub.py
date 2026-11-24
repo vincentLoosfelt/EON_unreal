@@ -170,11 +170,12 @@ except Exception as e:
 # Volume Unity : Bloom seuil 1 / intensité 1 ; aberration chromatique légère ; passe peinture (PaintingEffect).
 for k, v in (("bloom_threshold", 1.0), ("bloom_intensity", 1.0), ("scene_fringe_intensity", 0.5)):
     s.set_editor_property("override_" + k, True); s.set_editor_property(k, v)
-pp = unreal.load_asset("/Game/EON/Materials/M_PP_EON_Peinture")
-if pp:
-    s.set_editor_property("weighted_blendables", unreal.WeightedBlendables([unreal.WeightedBlendable(1.0, pp)]))
-else:
-    log("M_PP_EON_Peinture absent")
+# Post-process validé le 24/11 (Vincent) : décor aquarelle B, trait des celluloïds, film ; bloom 6 / 0,8 / 8, sans motion blur.
+# (L'ancien filtre M_PP_EON_Peinture est supprimé.)
+for k, v in (("bloom_intensity", 6.0), ("bloom_threshold", 0.8), ("bloom_size_scale", 8.0), ("motion_blur_amount", 0.0)):
+    s.set_editor_property("override_" + k, True); s.set_editor_property(k, v)
+s.set_editor_property("weighted_blendables", unreal.WeightedBlendables([unreal.WeightedBlendable(1.0, unreal.load_asset(p))
+    for p in ("/Game/EON/Materials/Peint/MI_PP_EON_Decor_B", "/Game/EON/Materials/MI_PP_EON_Trait", "/Game/EON/Materials/MI_PP_EON_Film")]))
 ppv.set_editor_property("settings", s)
 ppv.set_actor_label("PP_HUB")
 
