@@ -56,6 +56,8 @@ public:
 	/** Point visé par l'aide à la visée (hauteur du bras de Jira). */
 	FVector GetAimPoint() const;
 	/** Visable : ni mort, ni en chute. */
+	/** Vitrine des effets (eon.vitrine) : un trou sans dégâts ni éclat blanc. */
+	void DevPunch(float Dmg, float Dx, float Dy) { PunchHole(Dmg, Dx, Dy); }
 	bool IsTargetable() const { return !bDead && Falling <= 0.f; }
 	bool IsDead() const { return bDead; }
 	bool IsFalling() const { return Falling > 0.f; }

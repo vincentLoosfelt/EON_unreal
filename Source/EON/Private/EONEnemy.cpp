@@ -375,7 +375,8 @@ void AEONEnemy::PunchHole(float Dmg, float Dx, float Dy)
 	const float Chair = (2.f * Rcm) * Hcm * 0.5f;
 	const float Hk = UEONStatics::GetGameFeel(this).Holes;   // réglage « Trous » (proto : × holes²)
 	const float A = FMath::Max(0.02f, Dmg / FMath::Max(1.f, MaxHp)) * Chair * 1.3f * Hk * Hk;
-	const float RHole = FMath::Clamp(FMath::Sqrt(A * 0.62f / PI), EON::PxToCm(0.8f), Rcm);
+	// Vincent, 24/11 : trous trop gros sur le modèle 3D ; rayon × 0,45 (le corps 3D est plus large que le sprite).
+	const float RHole = FMath::Clamp(FMath::Sqrt(A * 0.62f / PI) * 0.45f, EON::PxToCm(0.8f), Rcm * 0.45f);
 	const FTransform& Xf = Meshes[0]->GetComponentTransform();
 	const FVector Lp = Xf.InverseTransformPosition(P);
 	const float Lr = RHole / FMath::Max(0.001f, Xf.GetScale3D().X);
@@ -390,6 +391,10 @@ void AEONEnemy::PunchHole(float Dmg, float Dx, float Dy)
 		M->SetVectorParameterValue(Slot, FLinearColor(Lp.X, Lp.Y, Lp.Z, Lr));
 		M->SetVectorParameterValue(TEXT("TrouAxe"), FLinearColor(La.X, La.Y, La.Z, 0.f));
 	}
+	// Sang qui gicle à la formation du trou (Vincent, 24/11) : sort par le trou dans le sens du tir (cône ±63°),
+	// rouge vif et rouge sombre (1 sur 3), 40 à 170 px/s, 0,5 s ; un peu plus pour un gros trou.
+	const int32 Nb = FMath::Clamp(FMath::RoundToInt(6.f + RHole / EON::PxToCm(1.f) * 2.f), 6, 16);
+	EONFx::GerbeDir2(this, P, Dw, Nb, 3, EONFx::Hex(TEXT("c0142e")), EONFx::Hex(TEXT("5e0816")), 170.f, 0.5f, 1.3f, 3.f);
 }
 
 void AEONEnemy::HitPx(float Dmg, float Dx, float Dy, float KMul)

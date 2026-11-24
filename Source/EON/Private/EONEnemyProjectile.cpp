@@ -58,8 +58,11 @@ void AEONEnemyProjectile::Init(AEONTileRoom* InRoom, const FVector2D& InScreenPx
 	HeightPx = InHeightPx;
 	// Couleurs du proto : magenta #ff3d8b (méduse), gros orange #e8923a (Ikiryo). Rayon d'affichage 2 / 3 px.
 	const FLinearColor Col = bBig ? FLinearColor(FColor(232, 146, 58)) : FLinearColor(FColor(255, 61, 139));
-	Mid = MakeFlatMid(this, Visual, Col * 4.f);
-	Visual->SetWorldScale3D(FVector(SphereScaleForRadiusPx(bBig ? 3.f : 2.f)));
+	// Vincent, 24/11 : la balle à 10 % de sa taille et émissive (M_EON_Glow, lumineuse sans éclairage) ;
+	// c'est le halo et la traînée qui la portent à l'écran.
+	Mid = EONFx::Glow(this, EONFx::EForme::Uni, Col, 8.f);
+	if (Mid) { Visual->SetMaterial(0, Mid); }
+	Visual->SetWorldScale3D(FVector(SphereScaleForRadiusPx(bBig ? 3.f : 2.f) * 0.1f));
 	// COM-V10 (proto l. 3171 et 3415) : halo de 5 × S2 px couleur du tir, lumière de 14 px (22 px pour le gros tir),
 	// et une courte traînée dans le sens du tir. Composants à échelle absolue (la sphère racine est réduite).
 	const float S2 = bBig ? 2.f : 1.f;
@@ -79,8 +82,9 @@ void AEONEnemyProjectile::Init(AEONTileRoom* InRoom, const FVector2D& InScreenPx
 		return C;
 	};
 	Halo = MakePlane(EONFx::Glow(this, EONFx::EForme::Rond, Col, 1.6f), EON::PxToCm(7.f * S2), EON::PxToCm(7.f * S2));
-	const float Tl = EON::PxToCm(5.f * S2);
-	Trail = MakePlane(EONFx::Glow(this, EONFx::EForme::Trainee, Col, 2.f), Tl, EON::PxToCm(1.5f * S2));
+	// Traînée allongée (Vincent, 24/11 : « trop petites ») : 16 × S2 px de long, 2,5 × S2 px de large.
+	const float Tl = EON::PxToCm(16.f * S2);
+	Trail = MakePlane(EONFx::Glow(this, EONFx::EForme::Trainee, Col, 2.5f), Tl, EON::PxToCm(2.5f * S2));
 	Light = NewObject<UPointLightComponent>(this);
 	Light->SetupAttachment(Visual);
 	Light->SetLightColor(Col);

@@ -7,7 +7,7 @@ SRC = os.path.dirname(os.path.abspath(__file__))
 DOC = os.path.dirname(SRC)
 MD = os.path.join(SRC, "effets_inventaire.md")
 OUT = os.path.join(DOC, "EON_Effets_Speciaux.pdf")
-VERSION, DATE = 4, "24/11/2026"
+VERSION, DATE = 5, "24/11/2026"
 PREF = {"1": "JIR", "2": "COM", "3": "NUK", "4": "ONI", "5": "KAM", "6": "UBU", "7": "IKI", "8": "GAR", "9": "DEC", "10": "INT"}
 
 lines = open(MD, encoding="utf-8").read().split("\n")

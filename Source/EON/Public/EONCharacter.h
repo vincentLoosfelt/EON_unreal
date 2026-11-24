@@ -174,6 +174,11 @@ public:
 	float GetCutin() const { return CutinT; }
 	/** Écart du réticule (crossT du proto) : +0,35 par tir, 1 au coup de lame, retombe de 4 par seconde (JIR-U2). */
 	float GetCrossT() const { return CrossT; }
+	/** Vitrine des effets (eon.vitrine) : force un stade de mutation, lance l'ultime sans QTE. */
+	void DevSetMut(int32 Stage) { Mut = FMath::Clamp(Stage, 0, 3); MutT = 0.f; LastSpendTime = WorldTime; }
+	void DevUltFire() { UltFire(); }
+	/** Vitrine aux commandes : le contrôleur ne touche plus au tir, au déplacement ni à la visée. */
+	bool bDevDrive = false;
 
 	/** Lueur du flash de bouche. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "EON|Jira")

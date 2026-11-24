@@ -1,5 +1,6 @@
 #include "EONFx.h"
 #include "EONTypes.h"
+#include "EONStatics.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
@@ -169,7 +170,8 @@ void EONFx::Douille(const UObject* Ctx, const FVector& At, const FVector& Vel, f
 	static TStrongObjectPtr<UStaticMesh> Cyl;
 	static TStrongObjectPtr<UMaterialInterface> Flat;
 	if (!Cyl.IsValid()) { Cyl.Reset(LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder"))); }
-	if (!Flat.IsValid()) { Flat.Reset(LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/EON/Materials/M_Flat.M_Flat"))); }
+	// Celluloïd (Vincent, 24/11) : même matériau toon que le décor (M_EON_BG, teinte BC1) et trait du post-process.
+	if (!Flat.IsValid()) { Flat.Reset(LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/EON/Materials/BG/MI_BG_pipe.MI_BG_pipe"))); }
 	UStaticMeshComponent* C = NewObject<UStaticMeshComponent>(F);
 	C->SetStaticMesh(Cyl.Get());
 	C->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -181,10 +183,11 @@ void EONFx::Douille(const UObject* Ctx, const FVector& At, const FVector& Vel, f
 	if (Flat.IsValid())
 	{
 		UMaterialInstanceDynamic* M = UMaterialInstanceDynamic::Create(Flat.Get(), F);
-		M->SetVectorParameterValue(TEXT("Color"), Hex(TEXT("ffc23d")) * 1.5f);
+		M->SetVectorParameterValue(TEXT("BC1"), Hex(TEXT("ffc23d")));
 		C->SetMaterial(0, M);
 	}
 	C->RegisterComponent();
+	UEONStatics::MarkCelComponent(C);
 	AEONFxPiece::Shells.RemoveAll([](const TWeakObjectPtr<AEONFxPiece>& P) { return !P.IsValid(); });
 	AEONFxPiece::Shells.Add(F);
 	while (AEONFxPiece::Shells.Num() > 80) { if (AEONFxPiece* Old = AEONFxPiece::Shells[0].Get()) { Old->Destroy(); } AEONFxPiece::Shells.RemoveAt(0); }

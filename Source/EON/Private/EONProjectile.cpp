@@ -34,8 +34,8 @@ AEONProjectile::AEONProjectile()
 	UEONStatics::MarkCelComponent(Visual, false);   // projectile : pas de trait (Vincent, 24/11)
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	if (SphereMesh.Succeeded()) { Visual->SetStaticMesh(SphereMesh.Object); }
-	// Trait allongé dans le sens du tir : 0,5 m de long, 0,1 m de large.
-	Visual->SetRelativeScale3D(FVector(0.5f, 0.1f, 0.1f));
+	// Trait allongé dans le sens du tir, à 20 % de l'ancien 0,5 × 0,1 m (Vincent, 24/11).
+	Visual->SetRelativeScale3D(FVector(0.1f, 0.02f, 0.02f));
 
 	Movement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("Movement"));
 	Movement->UpdatedComponent = Sphere;
@@ -77,12 +77,9 @@ void AEONProjectile::BeginPlay()
 	Movement->OnProjectileBounce.AddDynamic(this, &AEONProjectile::OnBounce);
 	SetLifeSpan(FMath::Max(0.01f, LifeSeconds));
 
-	if (UMaterialInterface* Flat = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/EON/Materials/M_Flat.M_Flat")))
-	{
-		Mid = UMaterialInstanceDynamic::Create(Flat, this);
-		Mid->SetVectorParameterValue(TEXT("Color"), Color);
-		Visual->SetMaterial(0, Mid);
-	}
+	// Balle émissive (Vincent, 24/11) : M_EON_Glow, lumineuse sans éclairage.
+	Mid = EONFx::Glow(this, EONFx::EForme::Uni, Color, 8.f);
+	if (Mid) { Visual->SetMaterial(0, Mid); }
 	// JIR-V13 : traînée du proto (trait de min(6, v × 0,02) + taille px derrière la balle, épaisseur = taille) et halo.
 	// Plans à plat qui suivent la balle ; la traînée grandit depuis le canon, jamais plus que le chemin parcouru.
 	StartLoc = GetActorLocation();

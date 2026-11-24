@@ -1,4 +1,4 @@
-# E.O.N — Tous les effets spéciaux (relevé du code au 24/11/2026)
+# E.O.N — Tous les effets spéciaux (relevé du code au 24/11/2026, mis à jour le soir)
 
 Projet lu : `D:/_PROJETS/briscard/EON_UE`. Les chemins `fichier:ligne` partent de `Source/EON/Private/`, sauf mention contraire.
 
@@ -21,17 +21,19 @@ Projet lu : `D:/_PROJETS/briscard/EON_UE`. Les chemins `fichier:ligne` partent d
 
 **Arrêt sur image.** L'hitstop fige tout le jeu, éclats compris. Le proto, lui, laissait tourner ses effets à 15 %.
 
+**Changé en version 5 (24/11 au soir, demandes de Vincent).** JIR-T1 balle de Jira à 20 % et émissive. COM-V10 balles ennemies à 10 % et émissives, traînées 3 fois plus longues (aussi IKI-T1, GAR-V9, Méduse). JIR-V14 douille en celluloïd. COM-V9 trous à 45 % de leur taille, avec du sang qui gicle dans le sens du tir.
+
 ---
 
 ## 1. Jira
 
 | code | nom | ce qu'on voit | déclencheur | fichier:ligne ou source | état |
 |---|---|---|---|---|---|
-| JIR-T1 | Balle | Sphère moteur étirée en trait de 50 × 10 × 10 cm. Matériau `M_Flat` mat, non émissif, couleur de la greffe : Standard #3ef2e0, Rafale #ffc23d, Shotgun #ff9a3d. Pas d'ombre ni de trait. Taille visuelle fixe : « Balles épaisses » ne grossit que la collision. 15,6 m/s en Standard. | Chaque tir : auto ; rafale chargée de 2 à 8 balles, une toutes les 0,045 s ; éventail de 7 plombs sur 40°. | EONProjectile.cpp:29-37, 78-83 ; EONCharacter.cpp:726-758 | OK |
+| JIR-T1 | Balle | Sphère moteur étirée en trait de 10 × 2 × 2 cm (20 % de l'ancien 50 × 10 × 10, Vincent 24/11). Matériau émissif `M_EON_Glow` (intensité 8, lumineux sans éclairage), couleur de la greffe : Standard #3ef2e0, Rafale #ffc23d, Shotgun #ff9a3d. Pas d'ombre ni de trait. Taille visuelle fixe : « Balles épaisses » ne grossit que la collision. 15,6 m/s en Standard. | Chaque tir : auto ; rafale chargée de 2 à 8 balles, une toutes les 0,045 s ; éventail de 7 plombs sur 40°. | EONProjectile.cpp:37-38, 80-82 ; EONCharacter.cpp:726-758 | OK |
 | JIR-V13 | Traînée de la balle | Aucune traînée ni halo derrière la balle. | Derrière chaque balle de Jira, pendant tout son vol. | **Codé le 24/11 :** EONProjectile.cpp:90 et :104 (traînée Glow Trainee + halo Rond, M_EON_Glow) ; **Demandé par :** Passation Sabri 13/11, 07_ASSETS_3D.md §5 (« Traînée du projectile… lecture du tir ») | OK |
 | JIR-V1 | Flash de bouche | Lumière ponctuelle couleur de la greffe, au bout du bras + 20 cm. Intensité 6000, rayon 66 px (4,1 m), sans ombre, 0,06 s. | Chaque tir (réglage F6 « Flash »). | EONCharacter.cpp:84-90, 583-588, 769-775 | OK |
 | JIR-V2 | Sprite de flash | Image de flamme au canon. | À chaque tir, au bout du canon, avec la lumière de JIR-V1 (0,06 s). | **Codé le 24/11 :** EONCharacter.cpp:800 → EONFx::Eclair (halo, trait blanc, cœur, 0,06 s) ; **Demandé par :** MANQUANTS.md §7 (« le sprite du flash du proto manque ») ; Passation Sabri 13/11, 07_ASSETS_3D.md §5 | OK |
-| JIR-V14 | Douille éjectée | Douille qui part sur le côté et rebondit au sol. Le réglage `Shells` n'est branché sur rien. | À chaque tir, éjectée sur le côté, rebondit au sol. | **Codé le 24/11 :** EONCharacter.cpp:811 → EONFx::Douille ; rebond EONFxPiece.cpp:69 (260 px/s², ×0,4, 4 s au sol, 80 max) ; **Demandé par :** Passation Sabri 13/11, 02_JOUEUR_ET_COMBAT.md:86 (mise en scène du tir) et 07_ASSETS_3D.md §5 ; noté « pas encore » dans EONCharacter.cpp:776 | OK |
+| JIR-V14 | Douille éjectée | Douille ambre #ffc23d en celluloïd (Vincent 24/11) : même matériau toon que le décor (`MI_BG_pipe`, teinte BC1) et trait du post-process. Part sur le côté et rebondit au sol. | À chaque tir, éjectée sur le côté, rebondit au sol. | **Codé le 24/11 :** EONCharacter.cpp:811 → EONFx::Douille (EONFx.cpp:173-190, celluloïd) ; rebond EONFxPiece.cpp:69 (260 px/s², ×0,4, 4 s au sol, 80 max) ; **Demandé par :** Passation Sabri 13/11, 02_JOUEUR_ET_COMBAT.md:86 (mise en scène du tir) et 07_ASSETS_3D.md §5 | OK |
 | JIR-U2 | Réticule qui s'écarte | Viseur qui s'ouvre à chaque tir. | À chaque tir, le réticule s'ouvre puis se referme. | **Codé le 24/11 :** EONCharacter.cpp:803 (CrossT +0,35, −4/s) ; dessin EONHUD.cpp:109 (4 traits, rouge en mutation) ; **Demandé par :** Passation Sabri 13/11, 02_JOUEUR_ET_COMBAT.md:86 ; noté « pas encore » dans EONCharacter.cpp:776 | OK |
 | JIR-V15 | Kick caméra au tir | La caméra recule de kick × 1,6 px (× CamKick) à l'opposé du tir, amortie en dt × 14. Secousse de 0,04 × kick (kick : Standard 1, Shotgun 3,6). Jira recule de kick × 14 px/s. | Chaque tir. | EONCharacter.cpp:760-767 ; EONPlayerCameraManager.cpp:23-28, 103-107 | OK |
 | JIR-V16 | Arrêt sur image du Shotgun | Hitstop × 0,15 (≈ 8 ms). | Chaque tir de Shotgun. | EONCharacter.cpp:1100 | OK |
@@ -89,8 +91,8 @@ Projet lu : `D:/_PROJETS/briscard/EON_UE`. Les chemins `fichier:ligne` partent d
 | COM-C2 | Élite agrandie | Modèle × 1,45, sans teinte ni aura. | Élite. | EONEnemy.cpp:150-157 | OK |
 | COM-C1 | Chute dans le vide | L'ennemi rétrécit de 1 à 0,2 et s'enfonce de 2 m en 0,45 s. | Ennemi poussé dans un trou. | EONEnemy.cpp:427-432, 714-720 | OK |
 | COM-C3 | Cadavre | Anim de mort, 0,6 s au sol, puis s'enfonce de sa hauteur en 0,5 s. | Mort, pour un modèle qui a une anim de mort. | EONEnemy.cpp:308-343 | OK |
-| COM-V9 | Trous dans le modèle (punchHole) | Trous percés dans le corps à chaque coup. | À chaque coup reçu par un ennemi. | **Codé le 24/11 :** EONEnemy.cpp:358 PunchHole (formule du proto, 8 trous) ; masque Trou0..7 dans M_EON_ToonEnnemi ; **Demandé par :** Proto pixel (punchHole) ; noté « pas porté » dans EONEnemy.cpp:362, faute de masque sur le modèle 3D | OK |
-| COM-V10 | Traînée et halo des tirs ennemis | Aucune traînée, aucun halo, aucune lumière sur les tirs ennemis. | Derrière chaque tir ennemi (Ikiryo, gardien), pendant tout son vol. | **Codé le 24/11 :** EONEnemyProjectile.cpp:81 (halo) et :83 (traînée) + lumière 14/22 px ; **Demandé par :** MANQUANTS.md §7 (sphères « sans halo ni lumière ») ; Passation Sabri 13/11, 07_ASSETS_3D.md §5 | OK |
+| COM-V9 | Trous dans le modèle (punchHole) et sang | Trous percés dans le corps à chaque coup (8 au plus), tube dans l'axe de la caméra. Rayon de la formule du proto × 0,45 (Vincent 24/11 : « trop gros »). À chaque trou, gerbe de sang dans le sens du tir (cône ±63°) : 6 à 16 gouttes selon la taille du trou, rouge #c0142e et rouge sombre #5e0816 (1 sur 3), 170 px/s, 0,5 s, 1,3 px, frein 3. | À chaque coup reçu par un ennemi. | **Codé le 24/11 :** EONEnemy.cpp:378-379 PunchHole (rayon) et :394-397 (sang, EONFx::GerbeDir2) ; masque Trou0..7 dans M_EON_ToonEnnemi ; vidéo Saved/Shots/EON_COM-V9_Trous_Sang.mp4 ; **Demandé par :** Proto pixel (punchHole) ; Vincent 24/11 (taille et sang) | OK |
+| COM-V10 | Balle, traînée et halo des tirs ennemis | Balle à 10 % de sa taille (2,5 cm ; 3,75 cm pour le gros tir), émissive `M_EON_Glow` intensité 8 (Vincent 24/11). Halo rond de 7 × S2 px, traînée de 16 × S2 px de long (1 m ; 2 m pour le gros tir) et 2,5 × S2 px de large, allongée le 24/11 (« trop petites »). Lumière couleur du tir, 14 px (22 px pour le gros tir). | Derrière chaque tir ennemi (Ikiryo, Méduse, gardien), pendant tout son vol. | **Codé le 24/11 :** EONEnemyProjectile.cpp:61-65 (balle), :84 (halo), :85-87 (traînée), :88-94 (lumière) ; **Demandé par :** MANQUANTS.md §7 (sphères « sans halo ni lumière ») ; Passation Sabri 13/11, 07_ASSETS_3D.md §5 ; Vincent 24/11 (tailles) | OK |
 | COM-V11 | Butin au sol | Petites formes `M_Flat`, couleur × 3 : ADN #8af07a, scrap #ffc23d, énergie #3ef2e0, cœur #ff3d55, Données #9ad8ff. Elles flottent (±6 cm) ; l'ADN file vers Jira. | Mort d'un ennemi. | EONPickup.cpp:41-53, 88-94, 160 | OK |
 
 ## 3. Nuke
@@ -135,7 +137,7 @@ Projet lu : `D:/_PROJETS/briscard/EON_UE`. Les chemins `fichier:ligne` partent d
 | code | nom | ce qu'on voit | déclencheur | fichier:ligne ou source | état |
 |---|---|---|---|---|---|
 | IKI-C2 | Ligne de visée | `DrawDebugLine` rouge (255,61,85), épaisseur 1, de 14 à 240 px, à 13 px du sol. Devient blanche, épaisseur 3, au tir (0,12 s). | Visée (1,1 s), puis tir. | EONEnemy.cpp:750-755 | DEBUG |
-| IKI-T1 | Gros tir | Sphère `M_Flat` orange #e8923a × 4, 37,5 cm, à 81 cm du sol, 10,6 m/s, 3 s. Ni ombre ni trait. | Tir. | EONEnemy.cpp:605 ; EONEnemyProjectile.cpp:57-60 | OK |
+| IKI-T1 | Gros tir | Sphère orange #e8923a émissive (`M_EON_Glow`), 3,75 cm (10 % de l'ancienne, Vincent 24/11), à 81 cm du sol, 10,6 m/s, 3 s. Halo, traînée et lumière : COM-V10. | Tir. | EONEnemy.cpp:605 ; EONEnemyProjectile.cpp:59-65 | OK |
 | IKI-C3 | Secousse au tir | Secousse 0,14. | Tir. | EONEnemy.cpp:606 | OK |
 | IKI-V2 | Flash de bouche de l'Ikiryo | Éclair au canon. | À chaque tir de l'Ikiryo, au bout de son canon. | **Codé le 24/11 :** EONEnemy.cpp:645 → EONFx::Eclair (e8923a, 0,08 s) ; **Demandé par :** Proposé par le relevé des fiches du 24/11 (mecaniques_persos.md:429) ; pas demandé par la passation | OK |
 | IKI-V1 | Couleur d'éclats | Orange #e8923a. | Coup, mort. | EONEnemy.cpp:368 ; EONCombatDirector.cpp:436 | OK |
@@ -154,7 +156,7 @@ Ce groupe ne fait pas partie de la liste demandée. Il est ajouté pour que l'in
 | GAR-V6 | Carton-titre | Bande sombre ; le nom s'écrit lettre par lettre en rose ; sous-titre ; 2,6 s. | Vitre éclatée. | EONHUD.cpp:323-334 ; EONBoss.cpp:306 | OK |
 | GAR-V7 | Corps vivant | Boule de chair #8a2a4a qui respire (±4 %) et vibre à l'élan de charge. Rouge vif en phase 3, grise quand il est invulnérable. Œil blanc dont la pupille rouge lumineuse (EmisAdd 4) suit Jira. 4 tentacules de 6 sphères qui ondulent. | Permanent. | EONBoss.cpp:107-117, 442-480 | OK |
 | GAR-V8 | Changement de phase | Secousse 0,8 ; bannière « Phase II » ou « Phase III - Rupture » ; puis 1,5 s de petits tremblements (0,1). | À 66 % puis 33 % des PV. | EONBoss.cpp:186-192, 313-318 | OK |
-| GAR-V9 | Tirs en éventail et en couronne | Sphères `M_Flat` magenta #ff3d8b × 4, 25 cm, à 56 cm du sol, de 58 à 100 px/s. Même classe que les tirs de la Méduse. | Phases 1 à 3. | EONBoss.cpp:141-155, 351-371 ; EONEnemyProjectile.cpp:57-60 | OK |
+| GAR-V9 | Tirs en éventail et en couronne | Sphères magenta #ff3d8b émissives (`M_EON_Glow`), 2,5 cm (10 % de l'ancienne, Vincent 24/11), à 56 cm du sol, de 58 à 100 px/s. Même classe que les tirs de la Méduse : halo, traînée et lumière de COM-V10. | Phases 1 à 3. | EONBoss.cpp:141-155, 351-371 ; EONEnemyProjectile.cpp:59-65 | OK |
 | GAR-V10 | Annonce du tentacule | Bande rouge lumineuse (EmisAdd 3) au sol vers Jira, qui s'élargit et clignote (14 Hz), pendant 0,55 à 0,75 s. Vrai maillage, pas du debug. | Phases 2 et 3. | EONBoss.cpp:505-520 | OK |
 | GAR-V11 | Tentacule qui frappe | Cylindre de chair qui jaillit en 0,16 s, reste 0,4 s, se retire en 0,3 s. Secousse 0,12. | Fin de l'annonce. | EONBoss.cpp:405-415, 521-526 | OK |
 | GAR-V12 | Cercle de mortier | Anneau rouge lumineux qui clignote (8 Hz) et disque orange lumineux qui grandit jusqu'au rayon (22 px) en 1,1 s. | Phases 2 et 3. | EONBoss.cpp:529-544 | OK |
@@ -225,7 +227,7 @@ Ce groupe ne fait pas partie de la liste demandée. Il est ajouté pour que l'in
 - Brainless : choc contre un mur, 12 éclats crème #e8e0c8 et blancs, 110 px/s, 0,35 s, secousse 0,3 (EONEnemy.cpp:690-695). OK.
 - Brainless : étourdi, 3 points ambre `DrawDebugPoint` qui tournent au-dessus de la tête (EONEnemy.cpp:760-767). DEBUG.
 - Brainless : éclaboussure #c86a6a ; gerbe de mort blanche, car il manque dans la table des morts (EONEnemy.cpp:370). OK.
-- Méduse : 3 petits tirs magenta #ff3d8b en éventail de ±0,22 rad, 82 px/s (EONEnemy.cpp:548). OK.
+- Méduse : 3 petits tirs magenta #ff3d8b émissifs de 2,5 cm (COM-V10) en éventail de ±0,22 rad, 82 px/s (EONEnemy.cpp:548). OK.
 - Méduse : flotte à 5 ± 1 px du sol (EONEnemy.cpp:710). OK.
 - Méduse : éclaboussure et gerbe de mort #8f7be0 (EONEnemy.cpp:368 ; EONCombatDirector.cpp:436). OK.
 

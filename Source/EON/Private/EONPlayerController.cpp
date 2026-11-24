@@ -347,6 +347,8 @@ void AEONPlayerController::PlayerTick(float DeltaTime)
 		UI->TickUI(this, FMath::Min((float)FApp::GetDeltaTime(), 0.1f));
 		if (UI->IsBlocking()) { Jira->SetFireHeld(false); Jira->SetMoveInput(FVector2D::ZeroVector); return; }
 	}
+	// Vitrine des effets (eon.vitrine) : c'est elle qui pilote Jira.
+	if (Jira->bDevDrive) { return; }
 	// Cinématique de réveil du Kibo : Jira ne répond pas.
 	if (const AEONFloorManager* FM = AEONFloorManager::Get(this); FM && FM->IsCinematic()) { Jira->SetFireHeld(false); Jira->SetMoveInput(FVector2D::ZeroVector); return; }
 	if (DevMenu.IsOpen())
