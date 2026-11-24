@@ -55,7 +55,7 @@ def table_elements(rows):
 
 def page(title, body):
     return ('<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>%s</title><style>%s</style></head><body>%s'
-            '<div class="pied">E.O.N — portage Unreal 5.8 · fiches personnages · version 2 du %s · valeurs relevées dans le code du jeu</div>'
+            '<div class="pied">E.O.N — portage Unreal 5.8 · fiches personnages · version 3 du %s · valeurs relevées dans le code du jeu</div>'
             '</body></html>') % (E(title), CSS, body, DATE)
 
 

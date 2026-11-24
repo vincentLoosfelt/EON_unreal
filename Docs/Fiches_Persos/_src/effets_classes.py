@@ -1,0 +1,17 @@
+# -*- coding: utf-8 -*-
+# Tri des effets (Vincent, 24/11) : S = effet visuel à sprites / particules (Niagara, éclats, traînées, rayons, anneaux),
+# M = modélisation (maillage à faire ou à refaire), U = interface (HUD, chiffres, barres, bannières, voiles d'écran),
+# X = hors des 3 classes : caméra, temps, lumière seule, flash de matériau, comportement (aucun asset à produire).
+C = {}
+def put(cls, codes): C.update({c: cls for c in codes.split()})
+put("S", """JIR-V13 JIR-V1 JIR-V2 JIR-V3 JIR-V17 JIR-T3 JIR-V18 JIR-T4 JIR-V21 JIR-V22 JIR-V4 JIR-V6 JIR-V5 JIR-V7 JIR-V8
+ JIR-V9.1 JIR-V9.3 JIR-V10.4 JIR-V10.5 JIR-V25 JIR-V27 JIR-V28 JIR-V29 JIR-V30 JIR-V31 JIR-V32 JIR-V33
+ COM-V2 COM-V3 COM-V4 COM-V5 COM-V8 COM-V10 NUK-V1 ONI-C2.2 ONI-V1 ONI-V2 ONI-C4 ONI-V3 KAM-C2.2 KAM-V1 KAM-V2 KAM-V4
+ UBU-C2 UBU-V1 UBU-V2 IKI-C2 IKI-V2 IKI-V1 GAR-V2 GAR-V3 GAR-V5 GAR-V10 GAR-V12 GAR-V13 GAR-V15 GAR-V16 GAR-V18 GAR-V19
+ DEC-V1 DEC-V2 DEC-V11 DEC-V13 DEC-V19 DEC-V20 DEC-V22 DEC-V27""")
+put("M", """JIR-T1 JIR-V14 JIR-V9.2 JIR-V24 COM-V9 COM-V11 UBU-T1 IKI-T1 GAR-V4 GAR-V7 GAR-V9 GAR-V11
+ DEC-V9 DEC-V10 DEC-V12 DEC-V15 DEC-V16 DEC-V17 DEC-V18 DEC-V21 DEC-V23""")
+put("U", """JIR-U2 JIR-V10.1 JIR-V10.2 JIR-V10.3 JIR-V23 JIR-V11 JIR-V12 JIR-V26 COM-U1 COM-U2 COM-U3 GAR-V6 GAR-V8 GAR-V17
+ DEC-V29 INT-V1 INT-V2 INT-V3 INT-V4 INT-V5 INT-V6 INT-V7 INT-V8 INT-V9""")
+put("X", """JIR-V15 JIR-V16 JIR-V19 JIR-V20 COM-V1 COM-V6 COM-V7 COM-C2 COM-C1 COM-C3 ONI-C2.1 KAM-C2.1 KAM-V3 IKI-C3 GAR-V1 GAR-V14
+ DEC-V3 DEC-V4 DEC-V5 DEC-V6 DEC-V7 DEC-V8 DEC-V14 DEC-V24 DEC-V25 DEC-V26 DEC-V28""")

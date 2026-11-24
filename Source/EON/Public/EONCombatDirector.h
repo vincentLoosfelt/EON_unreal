@@ -80,6 +80,10 @@ public:
 	const TArray<TObjectPtr<AEONEnemy>>& GetEnemies() const { return Enemies; }
 	/** Toutes les vagues de la salle sont parties et il ne reste ni ennemi vivant ni apparition en cours. */
 	bool IsFightOver() const;
+	/** Vertical slice (Vincent, 24/11) : Petite Nuke, Brainless et Méduse sont isolés. Leur code reste, mais ils ne
+	 *  sont jamais lancés. Renvoie le type réellement lancé : gouleP -> goule (œufs d'Ubume), brainless -> slasher
+	 *  (événements, élite), meduse -> NAME_None (rien). Pour les rendre : bVerticalSlice = false dans EONCombatDirector.cpp. */
+	static FName VSType(FName Type);
 	/** Fait apparaître un ennemi tout de suite (events : la chose, le dormeur des pièces…). */
 	AEONEnemy* SpawnEnemyAt(FName Type, const FVector2D& Px, bool bElite);
 	/** Lance des vagues dans la salle en cours (Cartographe : 2 vagues après son dialogue). */

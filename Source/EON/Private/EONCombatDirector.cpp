@@ -326,8 +326,9 @@ void AEONCombatDirector::SpawnWave(float Mul)
 	static const FOpt StdOpts[] = { { TEXT("goule"), 3.2f, 1 }, { TEXT("kamikaze"), 1.1f, 1 }, { TEXT("meduse"), 1.7f, 2 }, { TEXT("sniper"), 1.9f, 2 },
 		{ TEXT("brainless"), 1.8f, 2 }, { TEXT("slasher"), 2.1f, 3 }, { TEXT("invocateur"), 2.6f, 3 } };
 	TArray<FOpt> Opts;
-	if (bCor) { for (const FOpt& O : CorOpts) { if (CN >= O.Min) { Opts.Add(O); } } }
-	else { for (const FOpt& O : StdOpts) { if (CN >= O.Min) { Opts.Add(O); } } }
+	// vertical slice : les types isolés (VSType) ne sont pas tirés dans les vagues
+	if (bCor) { for (const FOpt& O : CorOpts) { if (CN >= O.Min && VSType(FName(O.T)) == FName(O.T)) { Opts.Add(O); } } }
+	else { for (const FOpt& O : StdOpts) { if (CN >= O.Min && VSType(FName(O.T)) == FName(O.T)) { Opts.Add(O); } } }
 	if (FN >= 2 && !bCor)
 	{
 		// étages 2+ : Brainless, méduses et Ubume deux fois plus probables
@@ -389,8 +390,22 @@ void AEONCombatDirector::SpawnWave(float Mul)
 	UE_LOG(LogEON, Display, TEXT("EON vague %d/%d (%s, mul %.2f, combatN %d) : %d ennemis"), Cur.Wave, Cur.Waves, *Cur.Role.ToString(), Mul, CN, List.Num());
 }
 
-void AEONCombatDirector::SpawnEnemyNow(const FSpawn& S)
+namespace { constexpr bool bVerticalSlice = true; }
+
+FName AEONCombatDirector::VSType(FName Type)
 {
+	if (!bVerticalSlice) { return Type; }
+	if (Type == TEXT("gouleP")) { return FName(TEXT("goule")); }
+	if (Type == TEXT("brainless")) { return FName(TEXT("slasher")); }
+	if (Type == TEXT("meduse")) { return NAME_None; }
+	return Type;
+}
+
+void AEONCombatDirector::SpawnEnemyNow(const FSpawn& In)
+{
+	FSpawn S = In;
+	S.Type = VSType(In.Type);
+	if (S.Type.IsNone()) { return; }
 	AEONTileRoom* Rm = CurRoom.Get();
 	if (!Rm) { return; }
 	FActorSpawnParameters P;
@@ -398,6 +413,7 @@ void AEONCombatDirector::SpawnEnemyNow(const FSpawn& S)
 	AEONEnemy* E = GetWorld()->SpawnActor<AEONEnemy>(AEONEnemy::StaticClass(), Rm->RoomPxToWorld(S.Pos), FRotator::ZeroRotator, P);
 	if (!E) { return; }
 	if (!E->Init(this, Rm, S.Type, S.Pos, GetCombatN())) { E->Destroy(); return; }
+	UE_LOG(LogEON, Verbose, TEXT("EON apparition %s (demandé %s)"), *S.Type.ToString(), *In.Type.ToString());
 	if (S.bElite) { E->MakeElite(); }
 	if (const AEONFloorManager* F = GetFloor(); F && F->IsKidDefending() && FMath::FRand() < 0.5f) { E->bKidT = true; }
 	Enemies.Add(E);
