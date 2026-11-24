@@ -172,6 +172,8 @@ public:
 	int32 GetQTEIndex() const { return QTEIdx; }
 	float GetQTETime01() const { return QTET / 3.2f; }
 	float GetCutin() const { return CutinT; }
+	/** Écart du réticule (crossT du proto) : +0,35 par tir, 1 au coup de lame, retombe de 4 par seconde (JIR-U2). */
+	float GetCrossT() const { return CrossT; }
 
 	/** Lueur du flash de bouche. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "EON|Jira")
@@ -212,7 +214,7 @@ private:
 	const FEONGreffeRow* FindGreffe() const;
 	void FireAuto(const FEONGreffeRow& G, const FEONGameFeelRow& Feel);
 	void SpawnBullet(const FEONGreffeRow& G, const FEONGameFeelRow& Feel, float SpeedOverridePx);
-	void OnShot(const FEONGreffeRow& G, const FEONGameFeelRow& Feel, float KickOverride = -1.f);
+	void OnShot(const FEONGreffeRow& G, const FEONGameFeelRow& Feel, float KickOverride = -1.f, bool bShell = true);
 	void Spend(float Cost);
 	void CheckPlayerFall();
 	void CheckDeath();
@@ -332,6 +334,12 @@ private:
 	float SpT = 0.f, SpPulse = 0.f;
 	float DecoyT = 0.f, DecoyHp = 0.f;
 	float RunFxT = 0.f;
+	float CrossT = 0.f;
+	/** Fantômes du dash et de la course (JIR-V6) : cadence du proto (une chance par image à 60 i/s). */
+	float GhostT = 0.f;
+	/** Veines de mutation (JIR-V24) : instances dynamiques des matériaux de Jira, paramètre Veines. */
+	UPROPERTY(Transient) TArray<TObjectPtr<class UMaterialInstanceDynamic>> VeinMids;
+	float VeinK = 0.f;
 	FVector DecoyLoc = FVector::ZeroVector;
 	bool bQTE = false;
 	TArray<uint8> QTESeq;

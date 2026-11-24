@@ -414,6 +414,12 @@ void AEONCombatDirector::SpawnEnemyNow(const FSpawn& In)
 	if (!E) { return; }
 	if (!E->Init(this, Rm, S.Type, S.Pos, GetCombatN())) { E->Destroy(); return; }
 	UE_LOG(LogEON, Verbose, TEXT("EON apparition %s (demandé %s)"), *S.Type.ToString(), *In.Type.ToString());
+	// COM-V8 : poussière d'apparition, 12 grains gris-violet qui s'étalent au sol (60 px/s, 0,45 s) et un anneau pâle.
+	{
+		const FVector Feet = Rm->RoomPxToWorld(S.Pos, EON::PxToCm(1.f));
+		EONFx::Gerbe(this, Feet, 12, EONFx::Hex(TEXT("8a84b8")), 60.f, 0.45f, 1.5f, 4.f, 4.f);
+		EONFx::Anneau(this, Rm->RoomPxToWorld(S.Pos, 0.f), 12.f, 0.3f, EONFx::Hex(TEXT("b8b4d8")));
+	}
 	if (S.bElite) { E->MakeElite(); }
 	if (const AEONFloorManager* F = GetFloor(); F && F->IsKidDefending() && FMath::FRand() < 0.5f) { E->bKidT = true; }
 	Enemies.Add(E);
@@ -475,6 +481,8 @@ void AEONCombatDirector::Aoe(const FVector2D& At, float RPx, float Dmg, bool bHu
 		const FVector W = Rm->RoomPxToWorld(At, EON::PxToCm(4.f));
 		EONFx::Gerbe2(this, W, 34, 3, Col, FLinearColor::White, 180.f, 0.5f, 1.25f, 5.f);
 		EONFx::Anneau(this, Rm->RoomPxToWorld(At, 0.f), RPx, 0.25f, Col);
+		// ONI-V3 : éclair lumineux de l'explosion, couleur de l'explosion, rayon 2,2 × celui de l'explosion, 0,25 s.
+		EONFx::Lumiere(this, Rm->RoomPxToWorld(At, EON::PxToCm(10.f)), Col, 60000.f, RPx * 2.2f, 0.25f);
 	}
 	Shake(0.45f);
 	Hitstop(UEONStatics::GetGameFeel(this).Hitstop * 0.6f);

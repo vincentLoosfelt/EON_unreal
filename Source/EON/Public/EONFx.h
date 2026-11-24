@@ -10,6 +10,10 @@
 
 #include "CoreMinimal.h"
 
+class AEONFxPiece;
+class UMaterialInstanceDynamic;
+class USkeletalMeshComponent;
+
 namespace EONFx
 {
 	/** Couleur du proto (« #ff7a1a » ou « ff7a1a »). */
@@ -27,4 +31,23 @@ namespace EONFx
 
 	/** Anneau de rayon final RadiusPx, à plat au sol à At. */
 	EON_API void Anneau(const UObject* Ctx, const FVector& At, float RadiusPx, float Life, const FLinearColor& Col);
+
+	// ---- Effets en maillage (AEONFxPiece, matériau M_EON_Glow), ajoutés le 24/11 pour les effets « ABS ».
+	/** Formes de M_EON_Glow (paramètre Forme). */
+	enum class EForme : uint8 { Uni = 0, Rond = 1, Trainee = 2, Anneau = 3, Disque = 4, Cone = 5, Ligne = 6, Flaque = 7 };
+	/** Matériau lumineux additif (Color × Intensite × forme × Opacite). */
+	EON_API UMaterialInstanceDynamic* Glow(UObject* Outer, EForme Forme, const FLinearColor& Col, float Intensite = 1.f);
+	/** Lumière ponctuelle qui décroît (carré de la vie restante). */
+	EON_API void Lumiere(const UObject* Ctx, const FVector& At, const FLinearColor& Col, float Intensity, float RadiusPx, float Life);
+	/** Flash de bouche du proto : halo carré de 10 px couleur Col (35 %), trait blanc de 6 px vers Dir, cœur blanc de 4 px.
+	 *  LightRadiusPx > 0 : lumière en plus (tirs ennemis ; Jira a déjà la sienne, JIR-V1). */
+	EON_API void Eclair(const UObject* Ctx, const FVector& At, const FVector& Dir, const FLinearColor& Col, float Life, float Scale = 1.f, float LightRadiusPx = 0.f);
+	/** Fantôme : copie de la pose de Src, couleur Col additive à Alpha, qui s'efface sur Life. */
+	EON_API void Fantome(const UObject* Ctx, USkeletalMeshComponent* Src, const FLinearColor& Col, float Alpha, float Life);
+	/** Douille du proto : 2 × 1 px ambre #ffc23d, lancée à Vel (cm/s), tombe (260 px/s²), rebondit, reste 4 s. */
+	EON_API void Douille(const UObject* Ctx, const FVector& At, const FVector& Vel, float FloorZ);
+	/** Forme au sol (annonce, flaque) : centre At, Yaw (deg, axe +X de la forme), taille en px, durée, clignotement (Hz).
+	 *  bFill : la partie pleine grandit de 0 à 1 sur la durée. Angle = demi-angle du cône (rad). */
+	EON_API AEONFxPiece* Sol(const UObject* Ctx, EForme Forme, const FVector& At, float Yaw, float SizeXPx, float SizeYPx, const FLinearColor& Col, float Life,
+		float Clignote = 0.f, bool bFill = false, float Angle = 0.6f, float Graine = 0.f, float Intensite = 1.5f);
 }

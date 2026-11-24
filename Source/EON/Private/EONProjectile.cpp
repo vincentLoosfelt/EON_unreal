@@ -9,6 +9,7 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Engine/StaticMesh.h"
 
 int32 AEONProjectile::StatShots = 0;
 int32 AEONProjectile::StatHits = 0;
@@ -16,7 +17,7 @@ int32 AEONProjectile::StatWalls = 0;
 
 AEONProjectile::AEONProjectile()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;   // traînée (JIR-V13)
 
 	Sphere = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
 	Sphere->InitSphereRadius(EON::PxToCm(1.f));
@@ -60,6 +61,7 @@ void AEONProjectile::Setup(const FVector& InVelocityCm, float InLifeSeconds, flo
 	Damage = InDamage;
 	Color = InColor;
 	Sphere->SetSphereRadius(EON::PxToCm(InRadiusPx));
+	SizePx = InRadiusPx;
 }
 
 void AEONProjectile::BeginPlay()
@@ -81,6 +83,38 @@ void AEONProjectile::BeginPlay()
 		Mid->SetVectorParameterValue(TEXT("Color"), Color);
 		Visual->SetMaterial(0, Mid);
 	}
+	// JIR-V13 : traînée du proto (trait de min(6, v × 0,02) + taille px derrière la balle, épaisseur = taille) et halo.
+	// Plans à plat qui suivent la balle ; la traînée grandit depuis le canon, jamais plus que le chemin parcouru.
+	StartLoc = GetActorLocation();
+	const float S = FMath::Max(1.f, SizePx);
+	TrailMaxCm = EON::PxToCm(FMath::Min(6.f, EON::CmToPx(SpeedCm) * 0.02f) + S);
+	TrailWCm = EON::PxToCm(S);
+	static TStrongObjectPtr<UStaticMesh> Plane;
+	if (!Plane.IsValid()) { Plane.Reset(LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Plane.Plane"))); }
+	auto MakePlane = [this](UMaterialInstanceDynamic* M) {
+		UStaticMeshComponent* C = NewObject<UStaticMeshComponent>(this);
+		C->SetStaticMesh(Plane.Get());
+		C->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		C->SetCastShadow(false);
+		C->SetupAttachment(Sphere);
+		C->SetMaterial(0, M);
+		C->RegisterComponent();
+		return C;
+	};
+	Trail = MakePlane(EONFx::Glow(this, EONFx::EForme::Trainee, Color, 2.5f));
+	Halo = MakePlane(EONFx::Glow(this, EONFx::EForme::Rond, Color, 1.2f));
+	const float Hd = EON::PxToCm(5.f * S);
+	Halo->SetRelativeScale3D(FVector(Hd / 100.f, Hd / 100.f, 1.f));
+	Trail->SetRelativeScale3D(FVector(0.001f, TrailWCm / 100.f, 1.f));
+}
+
+void AEONProjectile::Tick(float Dt)
+{
+	Super::Tick(Dt);
+	if (!Trail) { return; }
+	const float Len = FMath::Min(TrailMaxCm, FVector::Dist2D(GetActorLocation(), StartLoc));
+	Trail->SetRelativeScale3D(FVector(FMath::Max(0.001f, Len / 100.f), TrailWCm / 100.f, 1.f));
+	Trail->SetRelativeLocation(FVector(-Len * 0.5f, 0.f, 0.f));
 }
 
 void AEONProjectile::OnBounce(const FHitResult& Hit, const FVector& ImpactVelocity)

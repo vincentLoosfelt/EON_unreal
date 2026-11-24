@@ -37,6 +37,10 @@ private:
 
 	UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> Visual;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> Mid;
+	/** COM-V10 : halo, petite traînée et lumière (L(b, 14 ou 22 px) du proto). */
+	UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> Halo;
+	UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> Trail;
+	UPROPERTY(Transient) TObjectPtr<class UPointLightComponent> Light;
 	TWeakObjectPtr<AEONTileRoom> Room;
 };
 

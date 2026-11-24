@@ -1,4 +1,5 @@
-#include "EONEnemy.h"
+﻿#include "EONEnemy.h"
+#include "Camera/PlayerCameraManager.h"
 #include "EONCharacter.h"
 #include "EON.h"
 #include "EONCombatDirector.h"
@@ -198,7 +199,13 @@ void AEONEnemy::BuildModel()
 		C->SetupAttachment(ModelRoot);
 		C->RegisterComponent();
 		Meshes.Add(C);
-		for (int32 I = 0; I < C->GetNumMaterials(); ++I) { OrigMats.Add(C->GetMaterial(I)); }
+		for (int32 I = 0; I < C->GetNumMaterials(); ++I)
+		{
+			// COM-V9 : chaque matériau devient une instance dynamique (trous) ; c'est elle que le flash remet ensuite.
+			UMaterialInstanceDynamic* Hm = C->CreateDynamicMaterialInstance(I);
+			if (Hm) { HoleMids.Add(Hm); }
+			OrigMats.Add(Hm ? Hm : C->GetMaterial(I));
+		}
 	}
 	if (bFirst) { return; }
 	for (UMeshComponent* M : Meshes) { UEONStatics::MarkCelComponent(M); }   // celluloïd
@@ -349,6 +356,42 @@ void AEONEnemy::ApplyHit(float Damage, FVector Dir, float KnockMul)
 	HitPx(Damage, D.X, D.Y, KnockMul);
 }
 
+void AEONEnemy::PunchHole(float Dmg, float Dx, float Dy)
+{
+	// punchHole du proto (l. 3290) : impact dispersé sur le corps, biaisé du côté d'où vient le tir ; surface retirée
+	// = max(0,02, dégâts / PV max) × chair × 1,3 (chair = moitié du rectangle du corps), 62 % dans le trou principal.
+	const AEONTileRoom* Rf = Room.Get();
+	if (!Rf || HoleMids.Num() == 0 || Meshes.Num() == 0 || !Meshes[0] || UEONStatics::GetGameFeel(this).Holes <= 0.f) { return; }
+	const float Hcm = EON::PxToCm(Ehh());
+	const FBoxSphereBounds Wb = Meshes[0]->Bounds;   // bornes monde (échelle et élite comprises)
+	const float Rcm = FMath::Max(FMath::Min(Wb.BoxExtent.X, Wb.BoxExtent.Y), EON::PxToCm(Ehr()));
+	const FVector Base = Rf->RoomPxToWorld(Pos, 0.f);
+	const FVector Dw = (Rf->RoomPxToWorld(Pos + FVector2D(Dx, Dy)) - Base).GetSafeNormal2D();   // sens du tir, monde
+	const FVector SideV(-Dw.Y, Dw.X, 0.f);
+	// 24/11 : le trou est un tube dans l'axe de la caméra (TrouAxe), qui traverse le corps et se voit toujours ;
+	// impact autour du centre du corps (± 35 % du rayon), un peu du côté du tireur.
+	const FVector P = Base - Dw * Rcm * 0.15f + SideV * (FMath::FRand() - 0.5f) * Rcm * 0.7f
+		+ FVector(0.f, 0.f, Hcm * (0.5f + (FMath::FRand() - 0.5f) * 0.7f));
+	const float Chair = (2.f * Rcm) * Hcm * 0.5f;
+	const float Hk = UEONStatics::GetGameFeel(this).Holes;   // réglage « Trous » (proto : × holes²)
+	const float A = FMath::Max(0.02f, Dmg / FMath::Max(1.f, MaxHp)) * Chair * 1.3f * Hk * Hk;
+	const float RHole = FMath::Clamp(FMath::Sqrt(A * 0.62f / PI), EON::PxToCm(0.8f), Rcm);
+	const FTransform& Xf = Meshes[0]->GetComponentTransform();
+	const FVector Lp = Xf.InverseTransformPosition(P);
+	const float Lr = RHole / FMath::Max(0.001f, Xf.GetScale3D().X);
+	const FName Slot(*FString::Printf(TEXT("Trou%d"), HoleNext));
+	HoleNext = (HoleNext + 1) % 8;
+	FVector Cam = FVector(0.f, 0.f, -1.f);
+	if (const APlayerCameraManager* Pcm = UGameplayStatics::GetPlayerCameraManager(this, 0)) { Cam = Pcm->GetCameraRotation().Vector(); }
+	const FVector La = Xf.InverseTransformVectorNoScale(Cam).GetSafeNormal();
+	for (UMaterialInstanceDynamic* M : HoleMids)
+	{
+		if (!M) { continue; }
+		M->SetVectorParameterValue(Slot, FLinearColor(Lp.X, Lp.Y, Lp.Z, Lr));
+		M->SetVectorParameterValue(TEXT("TrouAxe"), FLinearColor(La.X, La.Y, La.Z, 0.f));
+	}
+}
+
 void AEONEnemy::HitPx(float Dmg, float Dx, float Dy, float KMul)
 {
 	// hitEnemy(e, dmg, dx, dy, kmul), branche des mobs ordinaires
@@ -359,8 +402,9 @@ void AEONEnemy::HitPx(float Dmg, float Dx, float Dy, float KMul)
 	const float M = Mass * MassM;
 	Knock.X += Dx * 95.f * F.Knock * KMul / M;
 	Knock.Y += Dy * 95.f * F.Knock * KMul / M;
-	// punchHole (trous dans le sprite) : pas porté, le placeholder 3D n'a pas de masque. Son éclaboussure de chair l'est :
+	// punchHole (COM-V9) : un trou dans le corps, du côté du tireur. Puis l'éclaboussure de chair du proto :
 	// 4 éclats vers le tireur (-d × 70 px/s ± 35), 0,3 s, couleur du mob (le premier blanc), frein 5.
+	PunchHole(Dmg, Dx, Dy);
 	AEONCombatDirector* Dir = Director.Get();
 	if (const AEONTileRoom* Rf = Room.Get())
 	{
@@ -604,6 +648,13 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 				const float V = 170.f;
 				Dir->FireEnemyBullet(FVector2D(Pos.X + L.X * 12.f, Pos.Y - 13.f + L.Y * 12.f), L * V, 3.f, true, 13.f);
 				Dir->Shake(0.14f);
+				// IKI-V2 : éclair au canon (halo orange, trait et cœur blancs) et lumière de 22 px, 0,08 s.
+				if (const AEONTileRoom* Rk = Room.Get())
+				{
+					const FVector Mz = Rk->RoomPxToWorld(Pos + L * 12.f, EON::PxToCm(13.f));
+					const FVector Dk = Rk->RoomPxToWorld(Pos + L) - Rk->RoomPxToWorld(Pos);
+					EONFx::Eclair(this, Mz, Dk, EONFx::Hex(TEXT("e8923a")), 0.08f, 1.5f, 22.f);
+				}
 				St = EEONEnemySt::Rec; StT = 0.5f; Cd = 2.6f + FRand01() * 0.9f;
 			}
 		}

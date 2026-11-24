@@ -6,6 +6,8 @@
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
+#include "EONFx.h"
+#include "Components/PointLightComponent.h"
 
 namespace
 {
@@ -58,6 +60,34 @@ void AEONEnemyProjectile::Init(AEONTileRoom* InRoom, const FVector2D& InScreenPx
 	const FLinearColor Col = bBig ? FLinearColor(FColor(232, 146, 58)) : FLinearColor(FColor(255, 61, 139));
 	Mid = MakeFlatMid(this, Visual, Col * 4.f);
 	Visual->SetWorldScale3D(FVector(SphereScaleForRadiusPx(bBig ? 3.f : 2.f)));
+	// COM-V10 (proto l. 3171 et 3415) : halo de 5 × S2 px couleur du tir, lumière de 14 px (22 px pour le gros tir),
+	// et une courte traînée dans le sens du tir. Composants à échelle absolue (la sphère racine est réduite).
+	const float S2 = bBig ? 2.f : 1.f;
+	static TStrongObjectPtr<UStaticMesh> Plane;
+	if (!Plane.IsValid()) { Plane.Reset(LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Plane.Plane"))); }
+	auto MakePlane = [this](UMaterialInstanceDynamic* M, float Xcm, float Ycm) {
+		UStaticMeshComponent* C = NewObject<UStaticMeshComponent>(this);
+		C->SetStaticMesh(Plane.Get());
+		C->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		C->SetCastShadow(false);
+		C->SetupAttachment(Visual);
+		C->SetUsingAbsoluteScale(true);
+		C->SetUsingAbsoluteRotation(true);
+		C->SetMaterial(0, M);
+		C->RegisterComponent();
+		C->SetWorldScale3D(FVector(Xcm / 100.f, Ycm / 100.f, 1.f));
+		return C;
+	};
+	Halo = MakePlane(EONFx::Glow(this, EONFx::EForme::Rond, Col, 1.6f), EON::PxToCm(7.f * S2), EON::PxToCm(7.f * S2));
+	const float Tl = EON::PxToCm(5.f * S2);
+	Trail = MakePlane(EONFx::Glow(this, EONFx::EForme::Trainee, Col, 2.f), Tl, EON::PxToCm(1.5f * S2));
+	Light = NewObject<UPointLightComponent>(this);
+	Light->SetupAttachment(Visual);
+	Light->SetLightColor(Col);
+	Light->SetIntensity(2500.f * S2);
+	Light->SetAttenuationRadius(EON::PxToCm(bBig ? 22.f : 14.f));
+	Light->SetCastShadows(false);
+	Light->RegisterComponent();
 	Place();
 }
 
@@ -67,6 +97,12 @@ void AEONEnemyProjectile::Place()
 	{
 		// y écran du proto = sol − hauteur : on redescend au sol et on remonte en Z.
 		SetActorLocation(Rm->RoomPxToWorld(FVector2D(Pos.X, Pos.Y + HeightPx), EON::PxToCm(HeightPx)));
+		if (Trail && !Vel.IsNearlyZero())
+		{
+			const FVector D = (Rm->RoomPxToWorld(Pos + Vel) - Rm->RoomPxToWorld(Pos)).GetSafeNormal2D();
+			const float Half = Trail->GetComponentScale().X * 50.f;
+			Trail->SetWorldLocationAndRotation(GetActorLocation() - D * Half, D.Rotation());
+		}
 	}
 }
 

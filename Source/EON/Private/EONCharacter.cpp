@@ -22,6 +22,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Animation/AnimInstance.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/DataTable.h"
@@ -511,6 +512,8 @@ void AEONCharacter::Tick(float DeltaSeconds)
 		RunFxT = 0.07f;
 		const FVector V = GetVelocity().GetSafeNormal2D();
 		EONFx::Gerbe(this, JiraFeetUp(this, 0.f) - V * 15.f, 1, EONFx::Hex(TEXT("8a84b8")), 20.f, 0.35f, 1.f, 0.f);
+		// JIR-V6 : en course, un fantôme une fois sur deux (0,12 s).
+		if (FMath::FRand() < 0.5f) { EONFx::Fantome(this, GetMesh(), EONFx::Hex(TEXT("3ef2e0")), 0.4f, 0.12f); }
 	}
 
 	// --- Visée : en course, Jira regarde où elle court ; sinon aide à la visée.
@@ -541,6 +544,9 @@ void AEONCharacter::Tick(float DeltaSeconds)
 	if (DashRemaining > 0.f)
 	{
 		DashRemaining -= Dt;
+		// JIR-V6 : fantômes du dash, 9 chances sur 10 par image du proto (60 i/s), 0,18 s, alpha 0,4.
+		GhostT -= Dt;
+		while (GhostT <= 0.f) { GhostT += 1.f / 60.f; if (FMath::FRand() < 0.9f) { EONFx::Fantome(this, GetMesh(), EONFx::Hex(TEXT("3ef2e0")), 0.4f, 0.18f); break; } }
 		Move->MaxWalkSpeed = EON::PxToCm(DashSpeedPx) * DashDistM * Feel.DashMul;   // pas de SpeedMul3D : la portée du dash est une règle de terrain (fossés de 2 tuiles)
 		AddMovementInput(DashDir, 1.f);
 	}
@@ -579,6 +585,24 @@ void AEONCharacter::Tick(float DeltaSeconds)
 	}
 	(void)bCanFire;
 	UpdateSpells(Dt, Feel);
+
+	// --- Réticule (JIR-U2) : l'écart retombe de 4 par seconde.
+	CrossT = FMath::Max(0.f, CrossT - Dt * 4.f);
+	// --- Veines de mutation (JIR-V24) : 0 hors mutation, 0,45 / 0,75 / 1 aux stades 1 à 3, lissé.
+	{
+		static const float VeinStage[4] = { 0.f, 0.45f, 0.75f, 1.f };
+		const float Want = VeinStage[FMath::Clamp(Mut, 0, 3)];
+		const float Prev = VeinK;
+		VeinK = FMath::FInterpTo(VeinK, Want, Dt, 3.f);
+		if (VeinMids.Num() == 0 && GetMesh())
+		{
+			for (int32 I = 0; I < GetMesh()->GetNumMaterials(); ++I) { if (UMaterialInstanceDynamic* M = GetMesh()->CreateDynamicMaterialInstance(I)) { VeinMids.Add(M); } }
+		}
+		if (!FMath::IsNearlyEqual(Prev, VeinK, 0.0005f) || Want > 0.f)
+		{
+			for (UMaterialInstanceDynamic* M : VeinMids) { if (M) { M->SetScalarParameterValue(TEXT("Veines"), VeinK); M->SetScalarParameterValue(TEXT("VeinesVitesse"), 4.f + 3.f * Mut); } }
+		}
+	}
 
 	// --- Flash de bouche
 	if (MuzzleTimer > 0.f)
@@ -627,7 +651,7 @@ void AEONCharacter::PressDash()
 	HoldTimer = 0.f;
 
 	if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.06f); }
-	// Poussière du dash : 8 grains gris-violet vers l'arrière (-d × 60 px/s ± 20), 0,3 s. Traînée de fantômes : pas encore (MANQUANTS.md §7).
+	// Poussière du dash : 8 grains gris-violet vers l'arrière (-d × 60 px/s ± 20), 0,3 s. Fantômes : dans le Tick (JIR-V6).
 	EONFx::GerbeDir(this, JiraFeetUp(this, 1.f), -DashDir, 8, EONFx::Hex(TEXT("8a84b8")), 80.f, 0.3f);
 }
 
@@ -753,7 +777,7 @@ void AEONCharacter::SpawnBullet(const FEONGreffeRow& G, const FEONGameFeelRow& F
 	}	EONSfx::Play(this, TEXT("SFX_Jira_Tir"), 0.45f, 3, 0.07f, 0.03f);
 }
 
-void AEONCharacter::OnShot(const FEONGreffeRow& G, const FEONGameFeelRow& Feel, float KickOverride)
+void AEONCharacter::OnShot(const FEONGreffeRow& G, const FEONGameFeelRow& Feel, float KickOverride, bool bShell)
 {
 	const FVector Dir(FMath::Cos(AimAngle), FMath::Sin(AimAngle), 0.f);
 	const float Kick = KickOverride >= 0.f ? KickOverride : G.Kick;
@@ -772,8 +796,20 @@ void AEONCharacter::OnShot(const FEONGreffeRow& G, const FEONGameFeelRow& Feel, 
 		MuzzleLight->SetLightColor(G.Col);
 		MuzzleLight->SetVisibility(true);
 		MuzzleTimer = 0.06f;
+		// JIR-V2 : sprite du flash (halo couleur de la greffe, trait et cœur blancs), 0,06 s.
+		EONFx::Eclair(this, GetMuzzleLocation(AimAngle), Dir, G.Col, 0.06f);
 	}
-	// Douille éjectée, réticule qui s'écarte, son : pas encore (MANQUANTS.md §7 et §8).
+	// JIR-U2 : le réticule s'écarte (crossT += 0,35, plafonné à 1).
+	CrossT = FMath::Min(1.f, CrossT + 0.35f);
+	// JIR-V14 : douille éjectée sur le côté (perpendiculaire au tir, côté opposé à la visée), 40 ± 10 px/s, vz 50 à 80 px/s.
+	if (bShell && Feel.Shells)
+	{
+		const float Pa = AimAngle + UE_HALF_PI * (FMath::Cos(AimAngle) > 0.f ? -1.f : 1.f);
+		const FVector Side(FMath::Cos(Pa), FMath::Sin(Pa), 0.f);
+		const FVector V = Side * EON::PxToCm(40.f) + FVector(FMath::FRandRange(-10.f, 10.f), FMath::FRandRange(-10.f, 10.f), 0.f) * EON::PxToCm(1.f)
+			+ FVector(0.f, 0.f, EON::PxToCm(50.f + FMath::FRand() * 30.f));
+		EONFx::Douille(this, GetMuzzleLocation(AimAngle) - Dir * EON::PxToCm(5.f), V, GetActorLocation().Z - GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
+	}
 }
 
 // ---------------------------------------------------------------- Pilote automatique (tests et vidéos)
@@ -1171,7 +1207,7 @@ void AEONCharacter::DoBeam(float A, float Ratio, const FEONGreffeRow& G, const F
 	// Au bout du rayon : 10 éclats couleur de la greffe (±60 px/s), 0,3 s.
 	EONFx::Gerbe(this, To, 10, G.Col, 85.f, 0.3f);
 	EONSfx::Play(this, TEXT("SFX_Jira_Laser"), 0.5f + 0.4f * Ratio, 0, 0.04f);
-	OnShot(G, Feel, G.Kick * (0.5f + Ratio * 0.5f));
+	OnShot(G, Feel, G.Kick * (0.5f + Ratio * 0.5f), false);   // laser : pas de douille (proto)
 	if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.15f * Ratio); }
 	if (Ratio > 0.95f) { if (UEONTuningSubsystem* Tun = UEONTuningSubsystem::Get(this)) { Tun->RequestHitstop(Feel.Hitstop * 0.5f); } }
 	Spend(G.Cost * Feel.EnergyCost * (0.4f + 0.6f * Ratio));
@@ -1183,6 +1219,7 @@ void AEONCharacter::DoSlash(float A, const FEONGreffeRow& G, const FEONGameFeelR
 	AEONTileRoom* Room = GetRoomPx(J, T, A);
 	const float R = G.Range * (1.f + 0.15f * Size) * FMath::Sqrt(RangeM), Arc = G.Arc + Size * 0.15f;
 	if (G.Cost > 0.f) { Spend(G.Cost * Feel.EnergyCost); }   // la Lame ne coûte rien et ne nourrit pas la mutation
+	CrossT = 1.f;   // proto : le coup de lame ouvre le réticule en grand
 	if (Room)
 	{
 		for (AEONEnemy* E : LiveEnemies(GetWorld()))

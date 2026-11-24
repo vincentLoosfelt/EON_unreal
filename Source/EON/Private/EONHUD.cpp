@@ -16,6 +16,8 @@
 #include "Engine/DataTable.h"
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
+#include "Engine/Texture2D.h"
+#include "CanvasItem.h"
 #include "Kismet/GameplayStatics.h"
 
 namespace
@@ -90,6 +92,30 @@ void AEONHUD::DrawHUD()
 
 	// --- Flash rouge (flashHurt)
 	if (J->GetHurtFlash() > 0.f) { Rect(0, 0, SX, SY, FLinearColor(1.f, 0.05f, 0.1f, J->GetHurtFlash() * 1.2f)); }
+
+	// --- Réticule (JIR-U2, proto l. 3435) : à la souris, en jeu seulement. Quatre traits de 3 px autour d'un point,
+	// écartés de 3 + crossT × 4 px (le tir ouvre, ça se referme en 0,25 s). Blanc, rouge en mutation. Le curseur
+	// Windows est caché tant que le réticule est dessiné.
+	if (APlayerController* PCr = GetOwningPlayerController())
+	{
+		const AEONPlayerController* EPC = Cast<AEONPlayerController>(PCr);
+		const UEONUISubsystem* UIr = UEONUISubsystem::Get(this);
+		const bool bReticle = EPC && !EPC->IsUsingGamepad() && !EPC->GetDevMenu().IsOpen() && !(UIr && UIr->IsBlocking())
+			&& !J->IsLevelUpOpen() && !J->IsDead();
+		float Mx = 0.f, My = 0.f;
+		if (bReticle && PCr->GetMousePosition(Mx, My))
+		{
+			PCr->CurrentMouseCursor = EMouseCursor::None;
+			const float O = (3.f + FMath::RoundToFloat(J->GetCrossT() * 4.f)) * U;
+			const FLinearColor Rc = Mut > 0 ? Red : FLinearColor::White;
+			Rect(Mx - O - 3 * U, My - 0.5f * U, 3 * U, U, Rc);
+			Rect(Mx + O, My - 0.5f * U, 3 * U, U, Rc);
+			Rect(Mx - 0.5f * U, My - O - 3 * U, U, 3 * U, Rc);
+			Rect(Mx - 0.5f * U, My + O, U, 3 * U, Rc);
+			Rect(Mx - 0.5f * U, My - 0.5f * U, U, U, Rc);
+		}
+		else { PCr->CurrentMouseCursor = EMouseCursor::Crosshairs; }
+	}
 
 	// --- En haut à gauche : PV, énergie, dash
 	float X = 6 * U, Y = 6 * U;
@@ -418,6 +444,15 @@ void AEONHUD::DrawHUD()
 		const float Px = (-60.f + FMath::Min(1.f, K * 3.f) * 100.f) * U;
 		FLinearColor W = FLinearColor::White; W.A = A;
 		FLinearColor C = Cyan; C.A = A;
+		// JIR-V23 : Jira (rendu provisoire détouré, buste) glisse depuis la gauche avec le texte, débordant de la bande.
+		if (!CutInTex) { CutInTex = LoadObject<UTexture2D>(nullptr, TEXT("/Game/EON/UI/T_Jira_CutIn.T_Jira_CutIn")); }
+		if (CutInTex && Canvas)
+		{
+			const float Ih = 96.f * U, Iw = Ih * CutInTex->GetSizeX() / FMath::Max(1, CutInTex->GetSizeY());
+			FCanvasTileItem It(FVector2D(Px - 30.f * U, Cy + 72.f * U - Ih), CutInTex->GetResource(), FVector2D(Iw, Ih), FLinearColor(1.f, 1.f, 1.f, A));
+			It.BlendMode = SE_BLEND_Translucent;
+			Canvas->DrawItem(It);
+		}
 		Txt(TEXT("Protocole thoracique"), Px + 80 * U, Cy + 22 * U, W, U / 2.f);
 		Txt(TEXT("Frappe de saturation - tous les ennemis de la salle"), Px + 82 * U, Cy + 46 * U, C, U / 4.f);
 	}

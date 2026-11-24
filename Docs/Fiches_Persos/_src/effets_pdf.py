@@ -7,7 +7,7 @@ SRC = os.path.dirname(os.path.abspath(__file__))
 DOC = os.path.dirname(SRC)
 MD = os.path.join(SRC, "effets_inventaire.md")
 OUT = os.path.join(DOC, "EON_Effets_Speciaux.pdf")
-VERSION, DATE = 3, "24/11/2026"
+VERSION, DATE = 4, "24/11/2026"
 PREF = {"1": "JIR", "2": "COM", "3": "NUK", "4": "ONI", "5": "KAM", "6": "UBU", "7": "IKI", "8": "GAR", "9": "DEC", "10": "INT"}
 
 lines = open(MD, encoding="utf-8").read().split("\n")
@@ -52,12 +52,12 @@ for l in lines:
         if m: rows.append((CLASSE[m.group(1)], sec, l))
     elif cur == "iso": iso.append(l)
 new = intro[:]
-tot = ["| classe | OK | DEBUG | ABS | total |", "|---|---|---|---|---|"]
+tot = ["| classe | OK | PRÊT | DEBUG | ABS | total |", "|---|---|---|---|---|---|"]
 for k, titre, _ in CLS:
     r = [x[2] for x in rows if x[0] == k]
-    n = {e: sum(1 for x in r if x.rstrip().endswith("| %s |" % e)) for e in ("OK", "DEBUG", "ABS")}
-    tot.append("| %s | %d | %d | %d | **%d** |" % (titre, n["OK"], n["DEBUG"], n["ABS"], len(r)))
-tot.append("| **Total** | | | | **%d** |" % len(rows))
+    n = {e: sum(1 for x in r if x.rstrip().endswith("| %s |" % e)) for e in ("OK", "PRÊT", "DEBUG", "ABS")}
+    tot.append("| %s | %d | %d | %d | %d | **%d** |" % (titre, n["OK"], n["PRÊT"], n["DEBUG"], n["ABS"], len(r)))
+tot.append("| **Total** | | | | | **%d** |" % len(rows))
 new += ["## Le tri en un coup d'œil", ""] + tot + [""]
 for k, titre, desc in CLS:
     new += ["## " + titre, "", "**" + desc + "**", ""]
@@ -66,7 +66,7 @@ for k, titre, desc in CLS:
 new += iso
 lines = new
 
-ETAT = {"OK": "ok", "DEBUG": "dbg", "ABS": "abs"}
+ETAT = {"OK": "ok", "PRÊT": "pret", "DEBUG": "dbg", "ABS": "abs"}
 b, i = [], 0
 while i < len(lines):
     l = lines[i]
@@ -112,7 +112,7 @@ th{background:#f1e8e1;text-align:left;padding:4px 5px;font-weight:600} td{border
 td.code{font-family:Consolas,monospace;font-weight:700;color:#7a2e3a;white-space:nowrap} td.loc{font-family:Consolas,monospace;font-size:7pt;color:#7a716a;width:16%}
 code{font-family:Consolas,monospace;font-size:8pt;background:#f4eee9;padding:0 2px}
 .b{display:inline-block;padding:1px 6px;border-radius:8px;font-weight:700;font-size:7.5pt}
-.ok{background:#d9efd6;color:#2d6a27}.dbg{background:#fde7c4;color:#8a5a00}.abs{background:#f6d3d3;color:#8a2323}
+.ok{background:#d9efd6;color:#2d6a27}.dbg{background:#fde7c4;color:#8a5a00}.abs{background:#f6d3d3;color:#8a2323}.pret{background:#d6e4f5;color:#23508a}
 .cadre{background:#f7f1ec;border-left:4px solid #7a2e3a;padding:7px 10px;margin:8px 0}
 .c{font-family:Consolas,monospace;font-weight:700;color:#7a2e3a}
 .ver{font-size:8.5pt;color:#9a8f86;margin:-2px 0 6px} h2.nb{page-break-before:auto}"""

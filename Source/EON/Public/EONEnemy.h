@@ -119,6 +119,11 @@ protected:
 	UPROPERTY() TArray<TObjectPtr<UMeshComponent>> Meshes;
 	/** Matériaux d'origine, slot par slot, pour revenir du flash blanc. */
 	UPROPERTY() TArray<TObjectPtr<UMaterialInterface>> OrigMats;
+	/** COM-V9 : trous dans le corps (punchHole du proto). Instances dynamiques de M_EON_ToonEnnemi, paramètres Trou0..7
+	 *  (position avant skinning en cm du maillage, rayon en w). Les 8 derniers coups restent. */
+	UPROPERTY(Transient) TArray<TObjectPtr<UMaterialInstanceDynamic>> HoleMids;
+	int32 HoleNext = 0;
+	void PunchHole(float Dmg, float Dx, float Dy);
 	UPROPERTY() TObjectPtr<UMaterialInstanceDynamic> FlashMat;
 	bool bFlashOn = false;
 	float ModelScale = 1.f;

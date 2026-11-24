@@ -42,6 +42,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void Tick(float Dt) override;
 
 private:
 	UFUNCTION()
@@ -58,4 +59,11 @@ private:
 	void WallSparks();
 	float LifeSeconds = 1.f;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> Mid;
+	/** JIR-V13 : traînée (dégradé vers la balle) et halo, en M_EON_Glow couleur du tir. */
+	UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> Trail;
+	UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> Halo;
+	FVector StartLoc = FVector::ZeroVector;
+	float SizePx = 1.f;
+	float TrailMaxCm = 0.f;
+	float TrailWCm = 0.f;
 };
