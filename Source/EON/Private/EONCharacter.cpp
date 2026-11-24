@@ -15,6 +15,7 @@
 #include "EONCombatDirector.h"
 #include "EONStatics.h"
 #include "DrawDebugHelpers.h"
+#include "EONFxPiece.h"
 #include "Misc/App.h"
 #include "EONEnemy.h"
 #include "EONTrainingDummy.h"
@@ -185,6 +186,8 @@ void AEONCharacter::ResetForRoom(FVector Location)
 	bHasGround = false;
 	DashRemaining = 0.f;
 	DecoyT = 0.f;
+	if (AEONFxPiece* Hp = Holo.Get()) { Hp->Destroy(); }
+	Holo.Reset();
 	BurstQ = 0;
 	UltStrikes.Reset();
 	RecoilVel = FVector::ZeroVector;
@@ -1200,10 +1203,10 @@ void AEONCharacter::DoBeam(float A, float Ratio, const FEONGreffeRow& G, const F
 			if (FMath::Abs(Ex.X * D.Y - Ex.Y * D.X) < E->Ehr() + E->Ehh() * 0.35f + W) { E->HitPx(Dmg, D.X, D.Y, 1.6f); }
 		}
 	}
-	// Rayon (placeholder : ligne de débogage, 0,14 s)
+	// JIR-T3 rayon (Vincent, 24/11 : hors debug) : ruban lumineux couleur de la greffe, largeur W px, 0,14 s.
 	const FVector From = GetMuzzleLocation(A);
 	const FVector To = From + FVector(D.X, D.Y, 0.f) * EON::PxToCm(Len);
-	DrawDebugLine(GetWorld(), From, To, G.Col.ToFColor(true), false, 0.14f, 0, EON::PxToCm(W));
+	EONFx::Rayon(this, From, To, EON::PxToCm(W), G.Col, 0.14f, 3.f);
 	// Au bout du rayon : 10 éclats couleur de la greffe (±60 px/s), 0,3 s.
 	EONFx::Gerbe(this, To, 10, G.Col, 85.f, 0.3f);
 	EONSfx::Play(this, TEXT("SFX_Jira_Laser"), 0.5f + 0.4f * Ratio, 0, 0.04f);
@@ -1245,13 +1248,13 @@ void AEONCharacter::DoSlash(float A, const FEONGreffeRow& G, const FEONGameFeelR
 	const FVector Fw(FMath::Cos(A), FMath::Sin(A), 0.f);
 	RecoilVel += Fw * EON::PxToCm(40.f);
 	if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddKick(Fw, 2.f); }
-	// Arc (placeholder : lignes de débogage, 0,12 s)
+	// JIR-T4 arc de lame (Vincent, 24/11 : hors debug) : 8 segments lumineux couleur de la greffe, 3 px, 0,12 s.
 	const FVector C3 = GetActorLocation() - FVector(0.f, 0.f, GetSimpleCollisionHalfHeight() - 30.f);
 	const float Rc = EON::PxToCm(R + 4.f);
 	for (int32 I = 0; I < 8; ++I)
 	{
 		const float A0 = A - Arc * 0.5f + Arc * I / 8.f, A1 = A - Arc * 0.5f + Arc * (I + 1) / 8.f;
-		DrawDebugLine(GetWorld(), C3 + FVector(FMath::Cos(A0), FMath::Sin(A0), 0.f) * Rc, C3 + FVector(FMath::Cos(A1), FMath::Sin(A1), 0.f) * Rc, G.Col.ToFColor(true), false, 0.12f, 0, 6.f);
+		EONFx::Rayon(this, C3 + FVector(FMath::Cos(A0), FMath::Sin(A0), 0.f) * Rc, C3 + FVector(FMath::Cos(A1), FMath::Sin(A1), 0.f) * Rc, EON::PxToCm(3.f), G.Col, 0.12f, 3.f);
 	}
 }
 
@@ -1276,7 +1279,8 @@ void AEONCharacter::DoLash(float A, const FEONGreffeRow& G, const FEONGameFeelRo
 		}
 	}
 	const FVector From = GetMuzzleLocation(A);
-	DrawDebugLine(GetWorld(), From, From + FVector(D.X, D.Y, 0.f) * EON::PxToCm(Len), G.Col.ToFColor(true), false, 0.18f, 0, 8.f);
+	// JIR-V21 fouet (Vincent, 24/11 : hors debug) : ruban lumineux couleur de la greffe, 1,5 px, 0,18 s.
+	EONFx::Rayon(this, From, From + FVector(D.X, D.Y, 0.f) * EON::PxToCm(Len), EON::PxToCm(1.5f), G.Col, 0.18f, 3.f);
 	// Au bout du fouet : 6 éclats, couleur de la greffe et lilas (±45 px/s), 0,25 s.
 	EONFx::Gerbe2(this, From + FVector(D.X, D.Y, 0.f) * EON::PxToCm(Len), 6, 2, G.Col, EONFx::Hex(TEXT("d8d4f0")), 64.f, 0.25f);
 	OnShot(G, Feel);
@@ -1313,12 +1317,46 @@ void AEONCharacter::Shockwave(float RPx, float Dmg, float Kn, bool bBig)
 	}
 }
 
+void AEONCharacter::DevWeapon(FName Id, float Ratio)
+{
+	const FName Old = GreffeId;
+	GreffeId = Id;
+	const FEONGreffeRow* G = FindGreffe();
+	if (!G) { const FString S = Id.ToString(); GreffeId = FName(*(S.Left(1).ToUpper() + S.Mid(1))); G = FindGreffe(); }
+	if (G)
+	{
+		const FEONGreffeRow Row = *G;
+		const FEONGameFeelRow F = UEONStatics::GetGameFeel(this);
+		if (Row.Type == TEXT("lash")) { DoLash(AimAngle, Row, F); }
+		else if (Row.Type == TEXT("melee")) { DoSlash(AimAngle, Row, F); }
+		else { DoBeam(AimAngle, Ratio, Row, F); }
+	}
+	else { UE_LOG(LogTemp, Warning, TEXT("EON DevWeapon : greffe %s introuvable"), *Id.ToString()); }
+	GreffeId = Old;
+}
+
+void AEONCharacter::DevUltStrike(AEONEnemy* E)
+{
+	FUltStrike U;
+	U.E = E;
+	UltStrikes.Add(U);
+}
+
+bool AEONCharacter::DevHoloVisible() const
+{
+	const AEONFxPiece* H = Holo.Get();
+	return H && !H->IsHidden();
+}
+
 void AEONCharacter::CastHolo()
 {
 	if (HoloCd > 0.f || bFallingIntoVoid) { return; }
 	if (AreSpellsBlocked()) { Banner(TEXT("Spells bloques"), ColRed); return; }
 	DecoyLoc = GetActorLocation();
 	DecoyT = 5.f;
+	if (AEONFxPiece* Old = Holo.Get()) { Old->Destroy(); }
+	Holo = EONFx::Fantome(this, GetMesh(), EONFx::Hex(TEXT("3ef2e0")), 0.55f, 5.5f);
+	if (AEONFxPiece* Hp = Holo.Get()) { Hp->bNoFade = true; }
 	DecoyHp = 8.f;
 	Spend(28.f);
 	// Apparition de l'hologramme : 16 éclats cyan (±30 px/s), 0,4 s, frein 3.
@@ -1364,19 +1402,21 @@ void AEONCharacter::UpdateSpells(float Dt, const FEONGameFeelRow& Feel)
 	}
 	bUltPress = false;
 
-	// Hologramme : 5 s ou 8 PV. Placeholder : capsule cyan qui clignote.
+	// Hologramme : 5 s ou 8 PV. JIR-V9.2 (Vincent, 24/11 : hors debug) : copie cyan de Jira qui clignote à 10 Hz.
 	if (DecoyT > 0.f)
 	{
 		DecoyT -= Dt;
 		if (DecoyT <= 0.f || DecoyHp <= 0.f)
 		{
 			DecoyT = 0.f;
+			if (AEONFxPiece* Hp = Holo.Get()) { Hp->Destroy(); }
+			Holo.Reset();
 			// Fin de l'hologramme : 22 éclats cyan et blanc (±45 px/s), 0,4 s, frein 3.
 			EONFx::Gerbe2(this, DecoyLoc, 22, 2, EONFx::Hex(TEXT("3ef2e0")), FLinearColor::White, 64.f, 0.4f, 1.f, 3.f);
 		}
-		else if (FMath::Fmod(WorldTime * 20.f, 2.f) < 1.4f)
+		else if (AEONFxPiece* Hp = Holo.Get())
 		{
-			DrawDebugCapsule(GetWorld(), DecoyLoc, GetSimpleCollisionHalfHeight(), EON::PxToCm(6.f), FQuat::Identity, ColCy, false, -1.f, 0, 3.f);
+			Hp->SetActorHiddenInGame(FMath::Fmod(WorldTime * 20.f, 2.f) >= 1.4f);
 		}
 	}
 
@@ -1390,7 +1430,9 @@ void AEONCharacter::UpdateSpells(float Dt, const FEONGameFeelRow& Feel)
 		UltStrikes.RemoveAt(I);
 		if (!E || E->IsDead()) { continue; }
 		const FVector At = E->GetActorLocation();
-		DrawDebugLine(GetWorld(), At + FVector(0.f, 0.f, 3000.f), At, ColCy, false, 0.25f, 0, 40.f);
+		// JIR-V10.4 rayon du ciel (Vincent, 24/11 : hors debug) : colonne cyan de 6 px, 0,25 s, et lumière au point d'impact.
+		EONFx::Rayon(this, At + FVector(0.f, 0.f, 3000.f), At, EON::PxToCm(6.f), EONFx::Hex(TEXT("3ef2e0")), 0.25f, 4.f);
+		EONFx::Lumiere(this, At + FVector(0.f, 0.f, 60.f), EONFx::Hex(TEXT("3ef2e0")), 30000.f, 40.f, 0.25f);
 		// Impact du rayon : 26 éclats cyan et blanc (40 à 190 px/s, 0,5 s, 1 sur 4 de 2 px).
 		EONFx::Gerbe2(this, At + FVector(0.f, 0.f, EON::PxToCm(E->Ehh() * 0.5f)), 26, 3, EONFx::Hex(TEXT("3ef2e0")), FLinearColor::White, 190.f, 0.5f, 1.25f, 4.f);
 		EONSfx::Play(this, TEXT("SFX_Jira_Ultime_Rayon"), 0.7f, 0, 0.08f);

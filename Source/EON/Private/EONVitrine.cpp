@@ -221,6 +221,48 @@ namespace EONVitrine
 		{ FStep S; S.Name = TEXT("GAR-V19_Ligne_bras");
 		  S.Start = []() { EONFx::Sol(Jira(), EONFx::EForme::Ligne, RoomW(JPx() + FVector2D(60.f, 0.f), 0.f), 0.f, 120.f, 12.f, EONFx::Hex(TEXT("ff3d55")), 0.55f, 0.f, true); };
 		  S.Ready = [](double T) { return T > 0.32; }; S.Target = SolAt(60.f); S.WidthPx = 190.f; GSteps.Add(S); }
+		// Armes de Jira et hologramme hors debug, mort de l'Ubume (Vincent, 24/11, questions sur les VFX).
+		const auto Arme = [](FName Id) { return [Id]() { if (AEONCharacter* J = Jira()) { J->SetAimAngle(0.f); J->DevWeapon(Id, 1.f); } }; };
+		{ FStep S; S.Name = TEXT("JIR-T3_Rayon_laser"); S.Start = Arme(TEXT("laser"));
+		  S.Ready = [](double T) { return T > 0.05; }; S.Target = JiraAt(70.f, 14.f); S.WidthPx = 200.f; GSteps.Add(S); }
+		{ FStep S; S.Name = TEXT("JIR-T4_Arc_lame"); S.Start = Arme(TEXT("lame"));
+		  S.Ready = [](double T) { return T > 0.04; }; S.Target = JiraAt(12.f, 6.f); S.WidthPx = 90.f; GSteps.Add(S); }
+		{ FStep S; S.Name = TEXT("JIR-V21_Fouet_griffe"); S.Start = Arme(TEXT("griffe"));
+		  S.Ready = [](double T) { return T > 0.05; }; S.Target = JiraAt(50.f, 14.f); S.WidthPx = 160.f; GSteps.Add(S); }
+		{ FStep S; S.Name = TEXT("JIR-V10.4_Rayon_ciel");
+		  S.Start = []()
+		  {
+			  GAt = SolLibre(110.f);
+			  AEONEnemy* E = Dir() ? Dir()->SpawnEnemyAt(TEXT("slasher"), GAt, false) : nullptr;
+			  if (E) { E->Hp = 1.0e6f; }
+			  GEnemy = E; GFlag = false;
+		  };
+		  S.Ready = [](double T)
+		  {
+			  if (!GFlag && T > 0.8) { if (AEONCharacter* J = Jira()) { J->DevUltStrike(GEnemy.Get()); } GFlag = true; GT0 = FPlatformTime::Seconds() - 0.8; return false; }
+			  return GFlag && T > 0.86;
+		  };
+		  S.Target = []() { AEONEnemy* E = GEnemy.Get(); return E ? E->GetActorLocation() + FVector(0.f, 0.f, EON::PxToCm(14.f)) : RoomW(GAt, 14.f); };
+		  S.WidthPx = 110.f; S.After = []() { KillTout(); }; GSteps.Add(S); }
+		{ FStep S; S.Name = TEXT("JIR-V9.2_Hologramme");
+		  S.Start = []() { if (AEONCharacter* J = Jira()) { J->PressHolo(); } };
+		  S.Ready = [](double T)
+		  {
+			  AEONCharacter* J = Jira();
+			  if (!J) { return true; }
+			  J->SetMoveInput(T > 0.15 && T < 0.55 ? FVector2D(0.f, 1.f) : FVector2D::ZeroVector);
+			  return T > 0.7 && (J->DevHoloVisible() || T > 3.0);
+		  };
+		  S.Target = []() { AEONCharacter* J = Jira(); return J ? (J->GetDecoyLocation() + J->GetActorLocation()) * 0.5f : Feet(); };
+		  S.WidthPx = 110.f; S.After = []() { if (AEONCharacter* J = Jira()) { J->SetMoveInput(FVector2D::ZeroVector); } }; GSteps.Add(S); }
+		{ FStep S; S.Name = TEXT("UBU-V2_Mort_Ubume");
+		  S.Start = []() { GAt = SolLibre(90.f); GEnemy = Dir() ? Dir()->SpawnEnemyAt(TEXT("invocateur"), GAt, false) : nullptr; GFlag = false; };
+		  S.Ready = [](double T)
+		  {
+			  if (!GFlag && T > 1.0) { KillTout(); GFlag = true; GT0 = FPlatformTime::Seconds() - 1.0; return false; }
+			  return GFlag && T > 1.12;
+		  };
+		  S.Target = []() { return RoomW(GAt, 6.f); }; S.WidthPx = 100.f; GSteps.Add(S); }
 		// Vidéo COM-V9 (Vincent, 24/11) : Jira tire sur un Kama (1e6 PV) : trous et sang. 2,5 s à vitesse réelle,
 		// puis 5 s au ralenti × 0,3. Lancer le jeu en -UseFixedTimeStep -FPS=30 : une image enregistrée = 1/30 s.
 		{ FStep S; S.Name = TEXT("COM-V9_Video"); S.VideoFrames = 225;

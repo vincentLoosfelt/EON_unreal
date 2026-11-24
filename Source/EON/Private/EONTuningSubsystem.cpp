@@ -1,4 +1,5 @@
 ﻿#include "EONTuningSubsystem.h"
+#include "EONFx.h"
 #include "EON.h"
 #include "Engine/DataTable.h"
 #include "Engine/GameInstance.h"
@@ -100,6 +101,7 @@ void UEONTuningSubsystem::RequestHitstop(float Ms)
 	{
 		// Le ticker tourne en temps réel : il n'est pas ralenti par la dilatation qu'il pilote.
 		UGameplayStatics::SetGlobalTimeDilation(World, 0.0001f);
+		EONFx::SetHitstop(World, true);
 		HitstopHandle = FTSTicker::GetCoreTicker().AddTicker(
 			FTickerDelegate::CreateUObject(this, &UEONTuningSubsystem::TickHitstop));
 	}
@@ -109,7 +111,7 @@ bool UEONTuningSubsystem::TickHitstop(float)
 {
 	if (FPlatformTime::Seconds() < HitstopEnd) { return true; }
 	HitstopHandle.Reset();
-	if (UWorld* World = GetWorld()) { UGameplayStatics::SetGlobalTimeDilation(World, 1.f); }
+	if (UWorld* World = GetWorld()) { UGameplayStatics::SetGlobalTimeDilation(World, 1.f); EONFx::SetHitstop(World, false); }
 	return false;
 }
 
@@ -120,6 +122,7 @@ void UEONTuningSubsystem::EndHitstop()
 		FTSTicker::GetCoreTicker().RemoveTicker(HitstopHandle);
 		HitstopHandle.Reset();
 		if (UWorld* World = GetWorld()) { UGameplayStatics::SetGlobalTimeDilation(World, 1.f); }
+		EONFx::SetHitstop(GetWorld(), false);
 	}
 }
 

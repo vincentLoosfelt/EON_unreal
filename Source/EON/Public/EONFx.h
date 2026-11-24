@@ -29,6 +29,10 @@ namespace EONFx
 	EON_API void Gerbe2(const UObject* Ctx, const FVector& At, int32 N, int32 Every, const FLinearColor& A, const FLinearColor& B, float SpeedPx, float Life, float SizePx = 1.f, float Drag = 4.f, float RadiusPx = 0.f);
 	EON_API void GerbeDir2(const UObject* Ctx, const FVector& At, const FVector& Dir, int32 N, int32 Every, const FLinearColor& A, const FLinearColor& B, float SpeedPx, float Life, float SizePx = 1.f, float Drag = 4.f);
 
+	/** Arrêt sur image (Vincent, 24/11 : « 15 % comme le proto ») : pendant le gel global (0,0001), les effets EONFx
+	 *  continuent à 15 % de leur vitesse. Appelé par UEONTuningSubsystem au début et à la fin du gel. */
+	EON_API void SetHitstop(UWorld* W, bool bOn);
+
 	/** Anneau de rayon final RadiusPx, à plat au sol à At. */
 	EON_API void Anneau(const UObject* Ctx, const FVector& At, float RadiusPx, float Life, const FLinearColor& Col);
 
@@ -43,7 +47,10 @@ namespace EONFx
 	 *  LightRadiusPx > 0 : lumière en plus (tirs ennemis ; Jira a déjà la sienne, JIR-V1). */
 	EON_API void Eclair(const UObject* Ctx, const FVector& At, const FVector& Dir, const FLinearColor& Col, float Life, float Scale = 1.f, float LightRadiusPx = 0.f);
 	/** Fantôme : copie de la pose de Src, couleur Col additive à Alpha, qui s'efface sur Life. */
-	EON_API void Fantome(const UObject* Ctx, USkeletalMeshComponent* Src, const FLinearColor& Col, float Alpha, float Life);
+	EON_API AEONFxPiece* Fantome(const UObject* Ctx, USkeletalMeshComponent* Src, const FLinearColor& Col, float Alpha, float Life);
+	/** Rayon lumineux de From à To (Vincent, 24/11 : armes de Jira hors debug) : ruban couleur Col de largeur WidthCm,
+	 *  cœur blanc au tiers, tourné vers la caméra autour de son axe, qui s'efface sur Life. */
+	EON_API AEONFxPiece* Rayon(const UObject* Ctx, const FVector& From, const FVector& To, float WidthCm, const FLinearColor& Col, float Life, float Intensite = 3.f);
 	/** Douille du proto : 2 × 1 px ambre #ffc23d, lancée à Vel (cm/s), tombe (260 px/s²), rebondit, reste 4 s. */
 	EON_API void Douille(const UObject* Ctx, const FVector& At, const FVector& Vel, float FloorZ);
 	/** Forme au sol (annonce, flaque) : centre At, Yaw (deg, axe +X de la forme), taille en px, durée, clignotement (Hz).

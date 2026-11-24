@@ -177,6 +177,12 @@ public:
 	/** Vitrine des effets (eon.vitrine) : force un stade de mutation, lance l'ultime sans QTE. */
 	void DevSetMut(int32 Stage) { Mut = FMath::Clamp(Stage, 0, 3); MutT = 0.f; LastSpendTime = WorldTime; }
 	void DevUltFire() { UltFire(); }
+	/** Vitrine : une frappe de l'ultime (JIR-V10.4) sur E, tout de suite. */
+	void DevUltStrike(class AEONEnemy* E);
+	/** Vitrine : un coup de la greffe Id (laser, lame, griffe) dans l'axe de visée, sans changer la greffe portée. */
+	void DevWeapon(FName Id, float Ratio = 1.f);
+	/** Vitrine : l'hologramme JIR-V9.2 est-il affiché à cet instant (clignotement) ? */
+	bool DevHoloVisible() const;
 	/** Vitrine aux commandes : le contrôleur ne touche plus au tir, au déplacement ni à la visée. */
 	bool bDevDrive = false;
 
@@ -346,6 +352,8 @@ private:
 	UPROPERTY(Transient) TArray<TObjectPtr<class UMaterialInstanceDynamic>> VeinMids;
 	float VeinK = 0.f;
 	FVector DecoyLoc = FVector::ZeroVector;
+	/** JIR-V9.2 : copie lumineuse de Jira posée au leurre (EONFx::Fantome sans fondu). */
+	TWeakObjectPtr<class AEONFxPiece> Holo;
 	bool bQTE = false;
 	TArray<uint8> QTESeq;
 	int32 QTEIdx = 0;

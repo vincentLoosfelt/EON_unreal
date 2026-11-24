@@ -441,7 +441,7 @@ void AEONCombatDirector::KillEnemy(AEONEnemy* E, float Dx, float Dy)
 	{
 		const TCHAR* Hx = E->Type == TEXT("gen") ? TEXT("9acd32") : E->Type == TEXT("goule") ? TEXT("e8a24a") : E->Type == TEXT("gouleP") ? TEXT("6fbf4a")
 			: E->Type == TEXT("kamikaze") ? TEXT("ff7a1a") : E->Type == TEXT("meduse") ? TEXT("8f7be0") : E->Type == TEXT("sniper") ? TEXT("e8923a")
-			: E->Type == TEXT("slasher") ? TEXT("e0405a") : TEXT("ffffff");
+			: E->Type == TEXT("slasher") ? TEXT("e0405a") : E->Type == TEXT("invocateur") ? TEXT("8a6aaa") : TEXT("ffffff");   // Ubume violette (Vincent, 24/11)
 		EONFx::GerbeDir2(this, Rm0->RoomPxToWorld(E->Pos, EON::PxToCm(4.f)), FVector(Dx, Dy, 0.f), 18, 3, EONFx::Hex(Hx), FLinearColor::White, 170.f, 0.6f, 1.3f, 5.f);
 	}
 	if (E->Type == TEXT("kamikaze")) { Aoe(E->Pos, 26.f, 2.f, false, EONFx::Hex(TEXT("ff9a3d"))); }

@@ -8,6 +8,10 @@
 
 namespace
 {
+	/** Dilatation propre aux effets : 1, ou 0,15 / 0,0001 pendant un arrêt sur image (le gel global vaut 0,0001). */
+	float GFxDilation = 1.f;
+	TArray<TWeakObjectPtr<UNiagaraComponent>> GLive;
+
 	UNiagaraSystem* Sys(int32 Which)
 	{
 		static const TCHAR* Paths[] = {
@@ -24,7 +28,16 @@ namespace
 		UWorld* W = Ctx ? Ctx->GetWorld() : nullptr;
 		UNiagaraSystem* S = Sys(Which);
 		if (!W || !S || W->GetNetMode() == NM_DedicatedServer) { return nullptr; }
-		return UNiagaraFunctionLibrary::SpawnSystemAtLocation(W, S, At, FRotator::ZeroRotator, FVector::OneVector, true, false);
+		UNiagaraComponent* C = UNiagaraFunctionLibrary::SpawnSystemAtLocation(W, S, At, FRotator::ZeroRotator, FVector::OneVector, true, false);
+		if (C)
+		{
+			// Solo : la dilatation propre ne marche qu'ainsi ; elle suit l'arrêt sur image (SetHitstop).
+			C->SetForceSolo(true);
+			C->SetCustomTimeDilation(GFxDilation);
+			GLive.RemoveAllSwap([](const TWeakObjectPtr<UNiagaraComponent>& P) { return !P.IsValid(); });
+			GLive.Add(C);
+		}
+		return C;
 	}
 
 	void Common(UNiagaraComponent* C, int32 N, const FLinearColor& Col, float Life, float SizePx, float Drag)
@@ -103,6 +116,8 @@ void EONFx::Anneau(const UObject* Ctx, const FVector& At, float RadiusPx, float 
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Kismet/GameplayStatics.h"
+#include "Camera/PlayerCameraManager.h"
 
 namespace
 {
@@ -113,9 +128,18 @@ namespace
 		FActorSpawnParameters P;
 		P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		AEONFxPiece* F = W->SpawnActor<AEONFxPiece>(AEONFxPiece::StaticClass(), At, FRotator::ZeroRotator, P);
-		if (F) { F->Life = FMath::Max(0.01f, Life); }
+		if (F) { F->Life = FMath::Max(0.01f, Life); F->CustomTimeDilation = GFxDilation; }
 		return F;
 	}
+}
+
+#include "EngineUtils.h"
+void EONFx::SetHitstop(UWorld* W, bool bOn)
+{
+	GFxDilation = bOn ? 0.15f / 0.0001f : 1.f;
+	for (const TWeakObjectPtr<UNiagaraComponent>& P : GLive) { if (UNiagaraComponent* C = P.Get()) { C->SetCustomTimeDilation(GFxDilation); } }
+	GLive.RemoveAllSwap([](const TWeakObjectPtr<UNiagaraComponent>& P) { return !P.IsValid(); });
+	if (W) { for (TActorIterator<AEONFxPiece> It(W); It; ++It) { It->CustomTimeDilation = GFxDilation; } }
 }
 
 UMaterialInstanceDynamic* EONFx::Glow(UObject* Outer, EForme Forme, const FLinearColor& Col, float Intensite)
@@ -149,15 +173,32 @@ void EONFx::Eclair(const UObject* Ctx, const FVector& At, const FVector& Dir, co
 	if (LightRadiusPx > 0.f) { F->AddLight(Col, 6000.f, EON::PxToCm(LightRadiusPx)); }
 }
 
-void EONFx::Fantome(const UObject* Ctx, USkeletalMeshComponent* Src, const FLinearColor& Col, float Alpha, float Life)
+AEONFxPiece* EONFx::Fantome(const UObject* Ctx, USkeletalMeshComponent* Src, const FLinearColor& Col, float Alpha, float Life)
 {
-	if (!Src) { return; }
+	if (!Src) { return nullptr; }
 	AEONFxPiece* F = SpawnPiece(Ctx, Src->GetComponentLocation(), Life);
-	if (!F) { return; }
+	if (!F) { return nullptr; }
 	F->Opacity0 = Alpha;
 	UMaterialInstanceDynamic* M = Glow(F, EForme::Uni, Col, 1.f);
 	if (M) { M->SetScalarParameterValue(TEXT("Opacite"), Alpha); }
 	F->AddGhost(Src, M);
+	return F;
+}
+
+AEONFxPiece* EONFx::Rayon(const UObject* Ctx, const FVector& From, const FVector& To, float WidthCm, const FLinearColor& Col, float Life, float Intensite)
+{
+	const FVector D = To - From;
+	const float L = D.Size();
+	if (L < 1.f) { return nullptr; }
+	AEONFxPiece* F = SpawnPiece(Ctx, (From + To) * 0.5f, Life);
+	if (!F) { return nullptr; }
+	// Ruban face caméra : axe X le long du rayon, normale du plan (Z) vers la caméra.
+	FVector Cam = FVector::UpVector;
+	if (const APlayerCameraManager* Pc = UGameplayStatics::GetPlayerCameraManager(F, 0)) { Cam = (Pc->GetCameraLocation() - F->GetActorLocation()).GetSafeNormal(); }
+	F->SetActorRotation(FRotationMatrix::MakeFromXZ(D / L, Cam).Rotator());
+	F->AddPlane(Glow(F, EForme::Uni, Col, Intensite), FVector::ZeroVector, 0.f, L, WidthCm);
+	F->AddPlane(Glow(F, EForme::Uni, FLinearColor::White, Intensite * 1.3f), FVector(0.f, 0.f, 0.5f), 0.f, L, WidthCm * 0.35f);
+	return F;
 }
 
 void EONFx::Douille(const UObject* Ctx, const FVector& At, const FVector& Vel, float FloorZ)
