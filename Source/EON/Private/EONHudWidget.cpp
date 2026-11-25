@@ -5,6 +5,9 @@
 #include "EONFloorManager.h"
 #include "EONItems.h"
 #include "EONMeta.h"
+#include "EONPedestal.h"
+#include "EONPlayerController.h"
+#include "EONTileRoom.h"
 #include "EONTuningSubsystem.h"
 #include "EONTileGrid.h"
 #include "EONTypes.h"
@@ -199,10 +202,16 @@ int32 UEONHudWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Allott
 	const FEONDlgLine* Dl = UI && !bTitle ? UI->DlgLine() : nullptr;
 	const bool bHud = J && !(Hud && !Hud->bShowHUD) && !bTitle && !(UI && UI->IsComOpen()) && !(F && F->IsCinematic());   // terminal du C.O.M ouvert : pas de HUD (Vincent, 25/11)
 	const bool bCom = J && UI && UI->IsComOpen() && !bTitle;
-	if (!bHud && !Dl && !bCom) { return LayerId; }
+	const bool bNotice = J && !bTitle && !bCom && !(Hud && !Hud->bShowHUD);   // bannières et invites, même en cinématique
+	if (!bHud && !Dl && !bCom && !bNotice) { return LayerId; }
 	const FPaint P(AllottedGeometry, OutDrawElements, LayerId + 1);
 	if (bHud) { PaintHud(P, J, F, Dl != nullptr); }
 	if (bCom) { PaintCom(P, *UI, *J, F); }
+	if (bNotice)
+	{
+		const AEONPlayerController* EPC = Cast<AEONPlayerController>(OPC);
+		PaintNotices(P, *J, F, EPC && EPC->IsUsingGamepad());
+	}
 	if (Dl) { PaintDialog(P, *Dl, UI->DlgShown()); }
 	return LayerId + 12;
 }
@@ -829,4 +838,141 @@ void UEONHudWidget::PaintCom(const EONHud::FPaint& P, const UEONUISubsystem& UI,
 		Para(Q.L, Rx, Y, Rw, 2, 22.f, 34.f, Body);
 	}
 	Help(TEXT("Q/D : ONGLET     Z/S : CHOISIR     C OU ÉCHAP / (B) : FERMER"));
+}
+
+// ---------------------------------------------------------------- bannières et invites (charte, pages 05 et 07)
+// Bannière centrale en cartouche (Kode Mono), invites « touche + action » comme « R HYPERCHARGE », fiche du socle,
+// transmission d'un log et encart « DÉBLOQUÉ ».
+void UEONHudWidget::PaintNotices(const EONHud::FPaint& P, const AEONCharacter& J, const AEONFloorManager* F, bool bPad) const
+{
+	const float SW = P.W(), Cx = SW * 0.5f;
+	const FLinearColor Body = A(White, 0.86f);
+
+	// Coupe le texte à la largeur Wd (mesure réelle).
+	auto Wrap = [&P](const FString& S, int32 Fo, float Px, float Wd)
+	{
+		TArray<FString> Out, Words; S.ParseIntoArray(Words, TEXT(" "), true);
+		FString Cur;
+		for (const FString& Wo : Words)
+		{
+			const FString Try = Cur.IsEmpty() ? Wo : Cur + TEXT(" ") + Wo;
+			if (!Cur.IsEmpty() && P.Measure(Try, Fo, Px).X > Wd) { Out.Add(Cur); Cur = Wo; }
+			else { Cur = Try; }
+		}
+		if (!Cur.IsEmpty()) { Out.Add(Cur); }
+		return Out;
+	};
+	// Cadre de la charte : fond noir, trait coloré, coin bas droit coupé.
+	auto Frame = [&P](float X, float Y, float Wd, float H, const FLinearColor& C, float Al, float Ch = 18.f)
+	{
+		P.Poly({ { X, Y }, { X + Wd, Y }, { X + Wd, Y + H - Ch }, { X + Wd - Ch, Y + H }, { X, Y + H } }, A(Bg, 0.92f * Al));
+		P.Line({ { X, Y }, { X + Wd, Y }, { X + Wd, Y + H - Ch }, { X + Wd - Ch, Y + H }, { X, Y + H }, { X, Y } }, A(C, Al), 2.f);
+	};
+	// Invite : touche en carré blanc (C ou B), puis l'action en Kode Mono.
+	auto Prompt = [&](const FString& Act, float Y, bool bOn)
+	{
+		const FString Key = bPad ? TEXT("B") : TEXT("C");
+		const float Kw = 40.f, Tw = P.Measure(Act, 0, 24.f).X, X = Cx - (Kw + 16.f + Tw) * 0.5f;
+		P.Poly({ { X, Y }, { X + Kw - 10.f, Y }, { X + Kw, Y + 10.f }, { X + Kw, Y + Kw }, { X, Y + Kw } }, A(White, bOn ? 1.f : 0.5f));
+		P.Text(Key, X + Kw * 0.5f, Y + 6.f, 0, 24.f, Bg, 1);
+		P.Text(Act, X + Kw + 16.f, Y + 5.f, 0, 24.f, bOn ? White : A(White, 0.5f));
+		P.Line({ { X + Kw + 16.f, Y + Kw + 6.f }, { X + Kw + 16.f + Tw, Y + Kw + 6.f } }, A(bOn ? Amber : Grey, 0.9f), 2.f);
+	};
+
+	float TopY = 150.f;   // sous la barre du monstre
+
+	if (F)
+	{
+		// Transmission d'un log : le texte s'écrit à 40 caractères par seconde.
+		FString Lt; int32 Ln = 0; float El = 0.f;
+		if (F->GetLogMsg(Lt, Ln, El))
+		{
+			const float Dur = Lt.Len() / 40.f + 5.f;
+			const float Al = FMath::Clamp(FMath::Min3(1.f, El * 4.f, (Dur - El) * 2.f), 0.f, 1.f);
+			const float Bw = 900.f, Bx = Cx - Bw * 0.5f;
+			const TArray<FString> Wr = Wrap(Lt, 2, 22.f, Bw - 60.f);
+			const float Bh = 70.f + Wr.Num() * 32.f;
+			Frame(Bx, TopY, Bw, Bh, CyanC, Al);
+			P.Rect(Bx, TopY, 12.f, Bh - 0.f, A(CyanC, Al));
+			P.Text(FString::Printf(TEXT("TRANSMISSION  //  LOG %02d / %02d"), Ln, UEONUISubsystem::NumLogs()), Bx + 30.f, TopY + 14.f, 0, 18.f, A(CyanC, Al));
+			if (Blink(0.6f, 0.3f)) { P.Rect(Bx + Bw - 40.f, TopY + 18.f, 12.f, 12.f, A(RedC, Al)); }
+			int32 Left = FMath::FloorToInt(El * 40.f);
+			for (int32 I = 0; I < Wr.Num() && Left > 0; ++I) { P.Text(Wr[I].Left(Left), Bx + 30.f, TopY + 50.f + I * 32.f, 2, 22.f, A(Body, Al)); Left -= Wr[I].Len() + 1; }
+			TopY += Bh + 16.f;
+		}
+
+		// Bannière centrale (1,8 s) : cartouche au trait de la couleur de l'annonce, bloc plein à gauche.
+		if (F->BannerT > 0.f && !F->BannerText.IsEmpty())
+		{
+			const float Al = FMath::Min(1.f, F->BannerT / 0.3f);
+			const float In = FMath::Clamp((1.8f - F->BannerT) / 0.15f, 0.f, 1.f);
+			FLinearColor C = F->BannerColor; C.A = 1.f;
+			const FString S = Upper(F->BannerText);
+			const float Tw = P.Measure(S, 0, 38.f).X, Bh = 76.f, Bw = (Tw + 110.f) * (0.6f + 0.4f * In), Bx = Cx - Bw * 0.5f, By = 300.f;
+			Frame(Bx, By, Bw, Bh, C, Al, 22.f);
+			P.Rect(Bx, By, 24.f, Bh, A(C, Al));
+			for (int32 I = 0; I < 3; ++I) { P.Slant(Bx + 4.f, By + 12.f + I * 20.f, 16.f, 10.f, A(Bg, 0.8f * Al), 1); }
+			P.Text(S, Cx + 12.f, By + 15.f, 0, 38.f, A(C, Al * In), 1, 3);
+			P.Rect(Bx + 40.f, By + Bh + 8.f, 120.f, 3.f, A(RedC, Al));
+			P.Rect(Bx + 166.f, By + Bh + 8.f, 4.f, 3.f, A(RedC, Al));
+		}
+
+		// Invites : porte intérieure fermée à portée, terminal du C.O.M.
+		const UEONUISubsystem* UI = UEONUISubsystem::Get(this);
+		const bool bFree = !(UI && UI->IsBlocking()) && !J.IsLevelUpOpen() && !J.IsDead();
+		if (bFree)
+		{
+			if (const AEONTileRoom* Rm = F->GetRoom(); Rm && !(F->IsHubMode() && F->GetCurrentRole() == TEXT("DEPART"))
+				&& Rm->IsNearClosedInnerDoor(Rm->WorldToRoomPx(J.GetActorLocation()), 40.f))
+			{
+				Prompt(TEXT("OUVRIR LA PORTE"), 760.f, true);
+			}
+			if (F->IsNearComTerminal() && !F->IsComTravelling()) { Prompt(TEXT("CONSULTER LE C.O.M"), 760.f, F->IsFloorDone() || F->IsDockedMode()); }
+
+			// Fiche de l'objet du socle le plus proche (40 px) : nom, rareté, effet, prix.
+			if (AEONTileRoom* Rm = F->GetRoom())
+			{
+				if (AEONPedestal* Pd = AEONPedestal::Nearest(GetWorld(), Rm->WorldToRoomPx(J.GetActorLocation()), 40.f))
+				{
+					if (const FEONItemDef* It = EONItems::Find(Pd->Item))
+					{
+						const FLinearColor Rc = EONItems::Color(It->Rar);
+						const float Cw = 600.f, X = Cx - Cw * 0.5f, Y = 740.f;
+						const TArray<FString> Wr = Wrap(It->Desc, 2, 21.f, Cw - 60.f);
+						const float Ch = 104.f + Wr.Num() * 30.f + (Pd->Price > 0 ? 40.f : 0.f);
+						Frame(X, Y, Cw, Ch, Amber, 1.f);
+						P.Rect(X, Y, Cw, 5.f, Rc);
+						P.Slant(X + 30.f, Y + 30.f, 30.f, 16.f, Rc);
+						P.Text(It->Name, X + 76.f, Y + 20.f, 0, 28.f, Rc);
+						P.Text(Upper(EONItems::RarName(It->Rar) + TEXT("  -  ") + It->Cat.ToString()), X + 76.f, Y + 58.f, 0, 15.f, A(White, 0.5f));
+						float Ty = Y + 92.f;
+						for (const FString& L : Wr) { P.Text(L, X + 30.f, Ty, 2, 21.f, Body); Ty += 30.f; }
+						if (Pd->Price > 0)
+						{
+							const bool bOk = J.GetScrap() >= Pd->Price;
+							P.Text(FString::Printf(TEXT("%d SCRAP"), Pd->Price), X + Cw - 40.f, Ty + 8.f, 0, 22.f, bOk ? Amber : RedC, 2);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Encart « DÉBLOQUÉ » (3,2 s), en haut au centre, sous le log s'il y en a un.
+	if (!J.IsDead())
+	{
+		const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+		float Life = 0.f;
+		if (const FEONUnlockDef* Ud = MS ? MS->GetToast(Life) : nullptr)
+		{
+			const float Al = FMath::Clamp(FMath::Min(Life * 3.f, (3.2f - Life) * 6.f), 0.f, 1.f);
+			const FString Hd = Upper(TEXT("Débloqué  -  ") + Ud->Kind);
+			const float Bw = FMath::Max(P.Measure(Ud->Name, 0, 30.f).X, P.Measure(Hd, 0, 16.f).X) + 140.f, Bx = Cx - Bw * 0.5f, Bh = 92.f;
+			Frame(Bx, TopY, Bw, Bh, Amber, Al);
+			P.Rect(Bx, TopY, 64.f, Bh, A(Amber, Al));
+			P.Text(TEXT("+"), Bx + 32.f, TopY + 18.f, 0, 44.f, A(Bg, Al), 1, 3);
+			P.Text(Hd, Bx + 90.f, TopY + 14.f, 0, 16.f, A(Amber, Al));
+			P.Text(Ud->Name, Bx + 90.f, TopY + 40.f, 0, 30.f, A(White, Al));
+		}
+	}
 }

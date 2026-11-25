@@ -7,7 +7,6 @@
 #include "EONMeta.h"
 #include "EONUI.h"
 #include "Misc/App.h"
-#include "EONPedestal.h"
 #include "EONPlayerController.h"
 #include "EONTileRoom.h"
 #include "EngineUtils.h"
@@ -257,47 +256,6 @@ void AEONHUD::DrawHUD()
 				Txt(Et, Es.X, Es.Y - 4 * U + FMath::RoundToFloat(FMath::Sin(Time * 5.f)) * U, Ec, U / 2.5f, true);
 			}
 		}
-		// Log trouvé (drawLog) : « TRANSMISSION - LOG n/8 », le texte s'écrit à 40 caractères par seconde.
-		{
-			FString Lt; int32 Ln = 0; float El = 0.f;
-			if (FC->GetLogMsg(Lt, Ln, El))
-			{
-				const float Dur = Lt.Len() / 40.f + 5.f;
-				const float A = FMath::Clamp(FMath::Min3(1.f, El * 4.f, (Dur - El) * 2.f), 0.f, 1.f);
-				TArray<FString> Wr;
-				{
-					TArray<FString> Words; Lt.ParseIntoArray(Words, TEXT(" "));
-					FString Cur;
-					for (const FString& Wd : Words) { if (Cur.Len() && Cur.Len() + 1 + Wd.Len() > 60) { Wr.Add(Cur); Cur = Wd; } else { Cur = Cur.Len() ? Cur + TEXT(" ") + Wd : Wd; } }
-					if (Cur.Len()) { Wr.Add(Cur); }
-				}
-				const float Bw = 276 * U, Bx = SX * 0.5f - Bw * 0.5f, By = 24 * U, Bh = (15 + Wr.Num() * 8) * U;
-				Rect(Bx, By, Bw, Bh, FLinearColor(0.027f, 0.024f, 0.06f, 0.9f * A));
-				FLinearColor Cy(FColor(62, 242, 224)); Cy.A = A;
-				Rect(Bx, By, Bw, U, Cy);
-				Rect(Bx, By + Bh - U, Bw, U, Cy);
-				Txt(FString::Printf(TEXT("TRANSMISSION - LOG %d/%d"), Ln, UEONUISubsystem::NumLogs()), Bx + 4 * U, By + 3 * U, Cy, U / 4.f);
-				int32 Left = FMath::FloorToInt(El * 40.f);
-				FLinearColor Tc(FColor(232, 228, 255)); Tc.A = A;
-				for (int32 I = 0; I < Wr.Num() && Left > 0; ++I) { Txt(Wr[I].Left(Left), Bx + 4 * U, By + (13 + I * 8) * U, Tc, U / 4.f); Left -= Wr[I].Len(); }
-			}
-		}
-		// Porte intérieure fermée à portée : invite.
-		if (const AEONTileRoom* Rm = FC->GetRoom(); Rm && !(FC->IsHubMode() && FC->GetCurrentRole() == TEXT("DEPART")))
-		{
-			if (const APawn* Pw = GetOwningPawn(); Pw && Rm->IsNearClosedInnerDoor(Rm->WorldToRoomPx(Pw->GetActorLocation()), 40.f))
-			{
-				Txt(TEXT("Interagir : ouvrir la porte"), SX * 0.5f, SY * 0.7f, Cyan, U / 3.f, true);
-			}
-		}
-		// Terminal du C.O.M : invite du levier.
-		if (FC->IsNearComTerminal() && !FC->IsComTravelling())
-		{
-			if (const UEONUISubsystem* UI = UEONUISubsystem::Get(this); !UI || !UI->IsBlocking())
-			{
-				Txt(TEXT("Interagir : consulter le C.O.M"), SX * 0.5f, SY * 0.7f, FC->IsFloorDone() ? Cyan : Dim, U / 3.f, true);
-			}
-		}
 	}
 
 	// --- Faille : jauge d'oxygène, étiquettes de la console et de la brèche, repère de bord d'écran vers la console.
@@ -417,14 +375,6 @@ void AEONHUD::DrawHUD()
 				Txt(L, SX * 0.5f - 60 * U, SY - 33 * U, Dim, U / 3.5f);
 			}
 		}
-		// --- Bannière centrale (1,8 s)
-		if (F->BannerT > 0.f && !(UEONUISubsystem::Get(this) && UEONUISubsystem::Get(this)->IsTitleOpen()))
-		{
-			const float A = FMath::Min(1.f, F->BannerT / 0.3f);
-			Rect(0, SY * 0.3f, SX, 16 * U, FLinearColor(0.f, 0.f, 0.02f, 0.6f * A));
-			FLinearColor C = F->BannerColor; C.A = A;
-			Txt(F->BannerText, SX * 0.5f, SY * 0.3f + 3.5f * U, C, U / 2.5f, true);
-		}
 	}
 
 	// --- QTE de l'ultime : « Clavier thoracique », 5 flèches, chrono.
@@ -472,28 +422,6 @@ void AEONHUD::DrawHUD()
 		}
 		Txt(TEXT("Protocole thoracique"), Px + 80 * U, Cy + 22 * U, W, U / 2.f);
 		Txt(TEXT("Frappe de saturation - tous les ennemis de la salle"), Px + 82 * U, Cy + 46 * U, C, U / 4.f);
-	}
-
-	// --- Fiche de l'objet du socle le plus proche (40 px) : nom, rareté, effet, prix.
-	if (const AEONFloorManager* FP = AEONFloorManager::Get(this))
-	{
-		if (AEONTileRoom* Rm = FP->GetRoom())
-		{
-			if (AEONPedestal* Pd = AEONPedestal::Nearest(GetWorld(), Rm->WorldToRoomPx(J->GetActorLocation()), 40.f))
-			{
-				if (const FEONItemDef* It = EONItems::Find(Pd->Item))
-				{
-					const FLinearColor Rc = EONItems::Color(It->Rar);
-					const float Cw = 150 * U, Ch = 40 * U, Cx = SX * 0.5f - Cw * 0.5f, Cy = SY * 0.72f;
-					Rect(Cx, Cy, Cw, Ch, FLinearColor(0.05f, 0.04f, 0.1f, 0.88f));
-					Rect(Cx, Cy, Cw, U, Rc);
-					Txt(It->Name, SX * 0.5f, Cy + 3 * U, Rc, U / 3.f, true);
-					Txt(EONItems::RarName(It->Rar) + TEXT(" - ") + It->Cat.ToString(), SX * 0.5f, Cy + 14 * U, Dim, U / 4.5f, true);
-					Txt(It->Desc, SX * 0.5f, Cy + 22 * U, FLinearColor(FColor(207, 211, 255)), U / 4.f, true);
-					if (Pd->Price > 0) { Txt(FString::Printf(TEXT("%d scrap"), Pd->Price), SX * 0.5f, Cy + 31 * U, J->GetScrap() >= Pd->Price ? FLinearColor(FColor(255, 194, 61)) : Red, U / 4.f, true); }
-				}
-			}
-		}
 	}
 
 	// --- Choix de niveau (drawLevelUp) : « NIVEAU N - ADN ASSIMILE », 3 cartes.
@@ -545,7 +473,7 @@ void AEONHUD::DrawHUD()
 			}
 		}
 	}
-	else { DrawToast(); }
+	// Bannière, invites, fiche du socle, log, encart « DÉBLOQUÉ » : UEONHudWidget::PaintNotices (charte).
 	// Dialogue : UEONHudWidget::PaintDialog (maquette du 25/11).
 	DrawTitle();
 	DrawDevMenu();
@@ -558,21 +486,6 @@ void AEONHUD::Box(float X, float Y, float W, float H, const FLinearColor& Border
 	if (Fill.A > 0.f) { Rect(X, Y, W, H, Fill); }
 	Rect(X, Y, W, U * 0.5f, Border); Rect(X, Y + H - U * 0.5f, W, U * 0.5f, Border);
 	Rect(X, Y, U * 0.5f, H, Border); Rect(X + W - U * 0.5f, Y, U * 0.5f, H, Border);
-}
-
-void AEONHUD::DrawToast()
-{
-	// drawUnlToast : encart « DÉBLOQUÉ » en haut au centre, 3,2 s, fondu d'entrée et de sortie.
-	const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
-	float Life = 0.f;
-	const FEONUnlockDef* Ud = MS ? MS->GetToast(Life) : nullptr;
-	if (!Ud) { return; }
-	const float K = FMath::Clamp(FMath::Min(Life * 3.f, (3.2f - Life) * 6.f), 0.f, 1.f);
-	const FLinearColor Am(1.f, 0.76f, 0.24f, K);
-	const float W = 210 * U, X = Canvas->ClipX * 0.5f - W * 0.5f, Y = 80 * U;
-	Box(X, Y, W, 26 * U, Am, FLinearColor(0.027f, 0.024f, 0.06f, 0.9f * K));
-	Txt(TEXT("DÉBLOQUÉ  -  ") + Ud->Kind, Canvas->ClipX * 0.5f, Y + 3 * U, Am, U / 4.f, true);
-	Txt(Ud->Name, Canvas->ClipX * 0.5f, Y + 12 * U, FLinearColor(1.f, 1.f, 1.f, K), U / 3.f, true);
 }
 
 void AEONHUD::DrawTitle()

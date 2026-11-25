@@ -35,6 +35,8 @@ private:
 	void PaintDialog(const EONHud::FPaint& P, const FEONDlgLine& L, int32 Shown) const;
 	/** Terminal du C.O.M selon la charte (page « 07 COMPOSANTS UI ») : onglets, liste, fiche, levier, cassettes. */
 	void PaintCom(const EONHud::FPaint& P, const class UEONUISubsystem& UI, const AEONCharacter& J, const AEONFloorManager* F) const;
+	/** Bannière centrale, invites (touche + action), fiche du socle, transmission d'un log, encart « DÉBLOQUÉ ». */
+	void PaintNotices(const EONHud::FPaint& P, const AEONCharacter& J, const AEONFloorManager* F, bool bPad) const;
 
 	struct FToast { FString Txt; FLinearColor Col; float T = 0.f; };
 	TArray<FToast> Toasts;
