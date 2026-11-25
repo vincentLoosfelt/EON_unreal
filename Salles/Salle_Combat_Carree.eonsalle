@@ -5,7 +5,7 @@
   "role": "COMBAT",
   "rolesEnPlus": ["TENSION"],
   "forme": "std",
-  "poids": 6.0,
+  "poids": 1.0,
   "portes": [
     {"type": "exterieure", "cote": "N", "pos": 9},
     {"type": "exterieure", "cote": "S", "pos": 15},
