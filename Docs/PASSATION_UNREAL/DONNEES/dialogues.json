@@ -43,34 +43,34 @@
       {
         "who": "marchand",
         "ex": "neutre",
-        "t": "Doucement. Le mur est a moi, et ce qu'il y a derriere aussi."
+        "t": "Doucement. Le mur est à moi, et ce qu'il y a derrière aussi."
       },
       {
         "who": "marchand",
         "ex": "sourire",
-        "t": "Trois pieces, pas une de plus. Ce que tu vois est ce que j'ai."
+        "t": "Trois pièces, pas une de plus. Ce que tu vois est ce que j'ai."
       },
       {
         "who": "jira",
         "ex": "neutre",
-        "t": "Tu prends quoi, en echange ?"
+        "t": "Tu prends quoi, en échange ?"
       },
       {
         "who": "marchand",
         "ex": "sourire",
-        "t": "Du scrap. Marche dessus, c'est a toi. Et ne reviens pas me dire que c'etait cher."
+        "t": "Du scrap. Marche dessus, c'est à toi. Et ne reviens pas me dire que c'était cher."
       }
     ],
     "rift": [
       {
         "who": "ia",
         "ex": "neutre",
-        "t": "Rupture de paroi. Decompression en cours."
+        "t": "Rupture de paroi. Décompression en cours."
       },
       {
         "who": "ia",
         "ex": "neutre",
-        "t": "Neutralisez la salle, puis activez le confinement. L'oxygene ne tiendra pas."
+        "t": "Neutralisez la salle, puis activez le confinement. L'oxygène ne tiendra pas."
       }
     ],
     "wake": [

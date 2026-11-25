@@ -12,12 +12,12 @@ static const FEONChar GChars[] = {
 	{ TEXT("vieille"), TEXT("La vieille dame"), FColor(200, 224, 168) },
 };
 static const FEONDlgSrc GDlgs[] = {
-	{ TEXT("marchand"), TEXT("marchand"), TEXT("neutre"), TEXT("Doucement. Le mur est a moi, et ce qu'il y a derriere aussi.") },
-	{ TEXT("marchand"), TEXT("marchand"), TEXT("sourire"), TEXT("Trois pieces, pas une de plus. Ce que tu vois est ce que j'ai.") },
-	{ TEXT("marchand"), TEXT("jira"), TEXT("neutre"), TEXT("Tu prends quoi, en echange ?") },
-	{ TEXT("marchand"), TEXT("marchand"), TEXT("sourire"), TEXT("Du scrap. Marche dessus, c'est a toi. Et ne reviens pas me dire que c'etait cher.") },
-	{ TEXT("rift"), TEXT("ia"), TEXT("neutre"), TEXT("Rupture de paroi. Decompression en cours.") },
-	{ TEXT("rift"), TEXT("ia"), TEXT("neutre"), TEXT("Neutralisez la salle, puis activez le confinement. L'oxygene ne tiendra pas.") },
+	{ TEXT("marchand"), TEXT("marchand"), TEXT("neutre"), TEXT("Doucement. Le mur est à moi, et ce qu'il y a derrière aussi.") },
+	{ TEXT("marchand"), TEXT("marchand"), TEXT("sourire"), TEXT("Trois pièces, pas une de plus. Ce que tu vois est ce que j'ai.") },
+	{ TEXT("marchand"), TEXT("jira"), TEXT("neutre"), TEXT("Tu prends quoi, en échange ?") },
+	{ TEXT("marchand"), TEXT("marchand"), TEXT("sourire"), TEXT("Du scrap. Marche dessus, c'est à toi. Et ne reviens pas me dire que c'était cher.") },
+	{ TEXT("rift"), TEXT("ia"), TEXT("neutre"), TEXT("Rupture de paroi. Décompression en cours.") },
+	{ TEXT("rift"), TEXT("ia"), TEXT("neutre"), TEXT("Neutralisez la salle, puis activez le confinement. L'oxygène ne tiendra pas.") },
 	{ TEXT("wake"), TEXT("ia"), TEXT("neutre"), TEXT("Unité Jira. Réactivation confirmée.") },
 	{ TEXT("wake"), TEXT("jira"), TEXT("inquiet"), TEXT("Mes cheveux... Combien de temps ai-je dormi ?") },
 	{ TEXT("wake"), TEXT("ia"), TEXT("neutre"), TEXT("Donnée corrompue. Les autres unités de cette salle ne répondent plus.") },
