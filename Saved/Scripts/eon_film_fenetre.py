@@ -20,6 +20,9 @@ def exe(h):   # nom de l'exécutable de la fenêtre : seul le jeu (UnrealEditor 
     b = ctypes.create_unicode_buffer(520); n = W.DWORD(520)
     ok = k32.QueryFullProcessImageNameW(hp, 0, b, ctypes.byref(n)); k32.CloseHandle(hp)
     return b.value.replace("\\", "/").split("/")[-1] if ok else ""
+PID = int(os.environ.get("EON_PID", "0"))   # facultatif : ne filmer que la fenêtre de ce processus (autre jeu EON ouvert)
+def pid_de(h):
+    pid = W.DWORD(); u.GetWindowThreadProcessId(h, ctypes.byref(pid)); return pid.value
 def trouve():
     res = []
     @ctypes.WINFUNCTYPE(ctypes.c_bool, W.HWND, W.LPARAM)
@@ -28,7 +31,7 @@ def trouve():
         if n and u.IsWindowVisible(h):
             b = ctypes.create_unicode_buffer(n + 1); u.GetWindowTextW(h, b, n + 1)
             r = W.RECT(); u.GetClientRect(h, ctypes.byref(r))
-            if "EON" in b.value and "Unreal Editor" not in b.value and r.right > 800 and exe(h).lower().startswith("unrealeditor"): res.append(h)
+            if "EON" in b.value and "Unreal Editor" not in b.value and r.right > 800 and exe(h).lower().startswith("unrealeditor") and (not PID or pid_de(h) == PID): res.append(h)
         return True
     u.EnumWindows(cb, 0)
     return res[0] if res else None
@@ -37,6 +40,9 @@ while time.time() - t0 < 240 and not h:
     h = trouve(); time.sleep(0.5)
 if not h: print("fenêtre introuvable"); sys.exit(1)
 time.sleep(attente)
+for _ in range(20):   # fenêtre réduite (-48000) : la restaurer sans voler le focus
+    if not u.IsIconic(h): break
+    u.ShowWindow(h, 4); time.sleep(0.5)
 r = W.RECT(); u.GetClientRect(h, ctypes.byref(r))
 p = W.POINT(0, 0); u.ClientToScreen(h, ctypes.byref(p))
 box = (p.x, p.y, p.x + r.right, p.y + r.bottom)

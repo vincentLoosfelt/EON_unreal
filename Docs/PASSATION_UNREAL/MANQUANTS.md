@@ -28,7 +28,7 @@ Légende : ❌ rien · 🟡 existe mais pas prêt pour Unreal · 🔲 placeholde
 > - Coup, joué une fois (`AEONEnemy::UpdateAnim`) :
 >   - Nuke `Attack` (petite Nuke `Attack_V0`), au contact de Jira, vitesse ×1,5 ;
 >   - Kama `Attack` à l'élan (Wind) ;
->   - Ubume `Attack` à la ponte, ×2 ;
+>   - Ubume `Lay` à la ponte (clée par nous le 25/11, l'œuf part à l'image 23) ; l'`Attack` du studio n'est plus jouée ;
 >   - Onibi `Explosion` quand il s'arme : l'anim continue sur le cadavre s'il explose.
 > - Mort : le directeur sort l'ennemi de la liste, puis `BeginCorpse` joue une mort au hasard. Le cadavre reste 0,6 s, s'enfonce dans le sol en 0,5 s, puis disparaît. Il n'y a pas de cadavre pour une chute dans le vide, ni pour un modèle sans anim de mort (Ikiryo, Brainless, Méduse). L'Ubume a une mort clée par nous le 25/11 (`A_Ubume_Death`, 2 s, `Saved/Scripts/blender_ubume_mort.py`).
 > - Vérifié en combat automatique (salle large, combatN 10). Le journal `-LogCmds="LogEON Verbose"` liste `EON_ENEMY coup` et `EON_ENEMY cadavre`.
@@ -54,7 +54,7 @@ Légende : ❌ rien · 🟡 existe mais pas prêt pour Unreal · 🔲 placeholde
 | Asset | Détail | Placeholder | État |
 |---|---|---|---|
 | Ikiryo : animations | Marche, marche arrière, visée, tir, mort | Modèle FBX sans anim | ❌ |
-| Ubume : animations manquantes | Ponte dédiée (la ponte rejoue l'attaque) | Idle, marche, attaque livrées ; mort clée par nous le 25/11 | 🟡 |
+| Ubume : animations | — | Idle, marche, attaque livrées ; ponte (`A_Ubume_Lay`, `blender_ubume_ponte.py`) et mort clées par nous le 25/11. L'attaque du studio n'est plus jouée | ✅ |
 | **Méduse** | Design 2D, modèle, rig, anims (flottement, tir, mort) | 🔲 Chimera Meshy (Unity, xeno), flotte, sans anim | 🔲 |
 | **Brainless** | Design 2D, modèle, rig, anims (marche, verrouillage, charge, étourdi, mort) | 🔲 Brain_Crawler (Unity) avec son anim | 🔲 |
 | **Le Tentaculaire** | Corps en 3 phases, 4 tentacules au repos, tentacules d'attaque, œil, sortie de cuve | 🔲 Formes simples 3D (AEONBoss) : boule de chair, œil qui suit Jira, tentacules en chapelets de sphères, vitre de cuve en cylindre | 🔲 |

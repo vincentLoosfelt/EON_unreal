@@ -83,7 +83,7 @@ namespace
 				EON_ANIM("Onibi", "Walk"), EON_ANIM("Onibi", "Attack"), 2.f, EON_ANIM("Onibi", "Explosion"), { EON_ANIM("Onibi", "Death_01"), EON_ANIM("Onibi", "Death_02") }, 150.f,
 				nullptr, EON_ANIM("Onibi", "Run_Anticipation"), EON_ANIM("Onibi", "Run_Variation") },
 			{ TEXT("invocateur"), { TEXT("/Game/EON/Ennemis/Ubume/SK_Ubume.SK_Ubume") }, EON_ANIM("Ubume", "Walk"), -90.f, 1.f, 0.f,
-				EON_ANIM("Ubume", "Idle"), EON_ANIM("Ubume", "Attack"), 2.f, nullptr, { EON_ANIM("Ubume", "Death") }, 200.f },   // mort clée par nous (25/11)
+				EON_ANIM("Ubume", "Idle"), EON_ANIM("Ubume", "Lay"), 1.f, nullptr, { EON_ANIM("Ubume", "Death") }, 200.f },   // ponte et mort clées par nous (25/11) ; l'œuf part à 0,75 s, image 23 de Lay
 			{ TEXT("meduse"), { TEXT("/Game/EON/Unity/import/fbx/xeno/Meshy_AI_Unyielding_Chimera_0111100029_generate.Meshy_AI_Unyielding_Chimera_0111100029_generate") }, nullptr, -90.f, 1.f, 6.f },
 			{ TEXT("dummy"), { TEXT("/Engine/BasicShapes/Cylinder.Cylinder") }, nullptr, 0.f, 1.f, 0.f },
 			{ TEXT("gen"), { TEXT("/Engine/BasicShapes/Cube.Cube") }, nullptr, 0.f, 1.f, 0.f },
