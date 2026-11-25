@@ -192,18 +192,18 @@ void AEONHUD::DrawHUD()
 				FVector2D Bs;
 				if (PC->ProjectWorldLocationToScreen(FR->GetRoom()->RoomPxToWorld(Cc->RiftPx, 20.f), Bs))
 				{
-					Txt(TEXT("BRECHE"), Bs.X, Bs.Y - 6 * U, bFl ? FLinearColor::White : Red, U / 4.f, true);
+					Txt(TEXT("BRÈCHE"), Bs.X, Bs.Y - 6 * U, bFl ? FLinearColor::White : Red, U / 4.f, true);
 				}
 				// Jauge d'oxygène, en bas au centre.
 				const float O2 = FR->GetRiftO2(), Bw = 70 * U, Bx = SX * 0.5f - Bw * 0.5f, By = SY - 36 * U;
 				const bool bLo = O2 < 0.25f, bF8 = bLo && FMath::Fmod(Time * 8.f, 2.f) < 1.f;
 				const FLinearColor Oc = bLo ? (bF8 ? FLinearColor::White : Red) : Cyan;
-				Txt(TEXT("OXYGENE"), SX * 0.5f, By - 11 * U, Oc, U / 4.f, true);
+				Txt(TEXT("OXYGÈNE"), SX * 0.5f, By - 11 * U, Oc, U / 4.f, true);
 				Rect(Bx - U, By - U, Bw + 2 * U, 6 * U, Ink);
 				Rect(Bx, By, Bw, 4 * U, FLinearColor(FColor(26, 24, 56)));
 				Rect(Bx, By, Bw * O2, 4 * U, Oc);
 				if (O2 <= 0.f) { Txt(TEXT("ASPHYXIE"), SX * 0.5f, By + 8 * U, bF8 ? FLinearColor::White : Red, U / 4.f, true); }
-				else if (bOn) { Txt(TEXT("CONFINEMENT PRET"), SX * 0.5f, By + 8 * U, Grn, U / 4.f, true); }
+				else if (bOn) { Txt(TEXT("CONFINEMENT PRÊT"), SX * 0.5f, By + 8 * U, Grn, U / 4.f, true); }
 				// Repère de bord d'écran : la console hors champ, flèche qui pulse et distance (px du proto).
 				const bool bOff = !bConfVis || Cs.X < 24 * U || Cs.X > SX - 24 * U || Cs.Y < 30 * U || Cs.Y > SY - 30 * U;
 				if (bOff)
@@ -321,7 +321,7 @@ void AEONHUD::DrawHUD()
 		const float K = J->GetQTETime01();
 		Rect(X0, Y0 + Bw + 8 * U, Tot, 3 * U, FLinearColor(FColor(26, 24, 56)));
 		Rect(X0, Y0 + Bw + 8 * U, Tot * K, 3 * U, K < 0.3f ? Red : Cyan);
-		Txt(TEXT("ZQSD / fleches / croix directionnelle"), SX * 0.5f, Y0 + Bw + 16 * U, Dim, U / 4.f, true);
+		Txt(TEXT("ZQSD / flèches / croix directionnelle"), SX * 0.5f, Y0 + Bw + 16 * U, Dim, U / 4.f, true);
 	}
 	// --- Cut-in « Protocole thoracique » (1,1 s)
 	if (J->GetCutin() > 0.f)
@@ -376,7 +376,7 @@ void AEONHUD::DrawHUD()
 		Rect(0, 0, SX, SY, FLinearColor(FColor(7, 6, 15, (uint8)(200 * K))));
 		const FLinearColor Green(FColor(138, 240, 122));
 		Txt(FString::Printf(TEXT("NIVEAU %d - ADN ASSIMILE"), J->GetLevel()), SX * 0.5f, SY * 0.5f - 70 * U, Green, U / 2.f, true);
-		Txt(TEXT("Choisis une amelioration  [1] [2] [3]  ou greffe suivante puis tir"), SX * 0.5f, SY * 0.5f - 52 * U, Dim, U / 4.f, true);
+		Txt(TEXT("Choisis une amélioration  [1] [2] [3]  ou greffe suivante puis tir"), SX * 0.5f, SY * 0.5f - 52 * U, Dim, U / 4.f, true);
 		const TArray<FName>& Opts = J->GetLevelOpts();
 		const float Cw = 132 * U, Chh = 74 * U, Gap = 10 * U, X0 = SX * 0.5f - (Cw * 3 + Gap * 2) * 0.5f, Cy = SY * 0.5f - Chh * 0.5f + 6 * U;
 		for (int32 I = 0; I < Opts.Num(); ++I)
@@ -407,7 +407,7 @@ void AEONHUD::DrawHUD()
 		if (const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this); MS && MS->GetRunUnlocks().Num())
 		{
 			const FLinearColor Am(FColor(255, 194, 61));
-			Txt(TEXT("DEBLOQUE PENDANT LA RUN"), SX * 0.5f, SY * 0.4f + 36 * U, Am, U / 3.5f, true);
+			Txt(TEXT("DÉBLOQUÉ PENDANT LA RUN"), SX * 0.5f, SY * 0.4f + 36 * U, Am, U / 3.5f, true);
 			int32 K = 0;
 			for (const FName& Id : MS->GetRunUnlocks())
 			{
@@ -466,7 +466,7 @@ void AEONHUD::DrawToast()
 	const FLinearColor Am(1.f, 0.76f, 0.24f, K);
 	const float W = 210 * U, X = Canvas->ClipX * 0.5f - W * 0.5f, Y = 80 * U;
 	Box(X, Y, W, 26 * U, Am, FLinearColor(0.027f, 0.024f, 0.06f, 0.9f * K));
-	Txt(TEXT("DEBLOQUE  -  ") + Ud->Kind, Canvas->ClipX * 0.5f, Y + 3 * U, Am, U / 4.f, true);
+	Txt(TEXT("DÉBLOQUÉ  -  ") + Ud->Kind, Canvas->ClipX * 0.5f, Y + 3 * U, Am, U / 4.f, true);
 	Txt(Ud->Name, Canvas->ClipX * 0.5f, Y + 12 * U, FLinearColor(1.f, 1.f, 1.f, K), U / 3.f, true);
 }
 
@@ -488,8 +488,8 @@ void AEONHUD::DrawCom()
 	const float Bx = 28, By = 18, Bw = 424, Bh = 236;
 	Box(PX(Bx), PY(By), Bw * U, Bh * U, Cyan, FLinearColor(FColor(11, 10, 28)));
 	Txt(TEXT("C.O.M // TERMINAL"), PX(Bx + 10), PY(By + 4), Cyan, U / 3.6f);
-	Txt(FString::Printf(TEXT("%s  -  Jira"), UI->IsDocked() ? TEXT("A quai") : *FString::Printf(TEXT("Etage %d"), F ? F->GetFloorN() : 0)), PX(Bx + Bw - 90), PY(By + 5), Dim, U / 4.1f);
-	static const TCHAR* Tabs[5] = { TEXT("Ameliorations"), TEXT("Logs"), TEXT("Quetes"), TEXT("Descente"), TEXT("Cassettes") };
+	Txt(FString::Printf(TEXT("%s  -  Jira"), UI->IsDocked() ? TEXT("À quai") : *FString::Printf(TEXT("Étage %d"), F ? F->GetFloorN() : 0)), PX(Bx + Bw - 90), PY(By + 5), Dim, U / 4.1f);
+	static const TCHAR* Tabs[5] = { TEXT("Améliorations"), TEXT("Logs"), TEXT("Quêtes"), TEXT("Descente"), TEXT("Cassettes") };
 	const int32 Tab = UI->GetComTab();
 	for (int32 I = 0; I < 5; ++I)
 	{
@@ -511,12 +511,12 @@ void AEONHUD::DrawCom()
 		Rect(Lx + 22 * U, Ly + 10 * U, 4 * U, 90 * U, Off);
 		const float Hy = bReady ? Ly + 14 * U : Ly + 80 * U;
 		Rect(Lx + 12 * U, Hy, 24 * U, 8 * U, bReady ? Cyan : Dk);
-		Txt(bReady ? TEXT("LEVIER PRET") : TEXT("VERROUILLE"), SX * 0.5f, Ly + 116 * U, bReady ? Cyan : Red, U / 3.5f, true);
+		Txt(bReady ? TEXT("LEVIER PRÊT") : TEXT("VERROUILLÉ"), SX * 0.5f, Ly + 116 * U, bReady ? Cyan : Red, U / 3.5f, true);
 		if (!bReady && F)
 		{
-			Txt(FString::Printf(TEXT("Gardien : %s du C.O.M  -  carte rouge %s"), *F->GuardDir().ToUpper(), F->HasRedCard() ? TEXT("en main") : TEXT("a trouver")), SX * 0.5f, Ly + 128 * U, Txc, U / 4.1f, true);
+			Txt(FString::Printf(TEXT("Gardien : %s du C.O.M  -  carte rouge %s"), *F->GuardDir().ToUpper(), F->HasRedCard() ? TEXT("en main") : TEXT("à trouver")), SX * 0.5f, Ly + 128 * U, Txc, U / 4.1f, true);
 		}
-		Help(TEXT("Entree / (A) : tirer le levier     Q/D : onglet     C ou Echap / (B) : fermer"));
+		Help(TEXT("Entrée / (A) : tirer le levier     Q/D : onglet     C ou Échap / (B) : fermer"));
 		return;
 	}
 
@@ -538,14 +538,14 @@ void AEONHUD::DrawCom()
 			const FLinearColor Cc = St == 0 ? Gr : St == 1 ? Wh : St == 2 ? Am : Dk;
 			Txt((St == 0 ? TEXT("[X] ") : St == 1 ? TEXT("[+] ") : TEXT("[ ] ")) + Lbl, PX(Bx + 12), Yy + 0.5f * U, bOn ? Wh : Cc, U / 4.1f);
 		}
-		Txt(FString::Printf(TEXT("Donnees : %d"), MS ? MS->GetDonnees() : 0), PX(Bx + Bw - 70), Ry, FLinearColor(FColor(154, 216, 255)), U / 4.2f);
+		Txt(FString::Printf(TEXT("Données : %d"), MS ? MS->GetDonnees() : 0), PX(Bx + Bw - 70), Ry, FLinearColor(FColor(154, 216, 255)), U / 4.2f);
 		const UEONUISubsystem::FCassRow& Rw = Rows[Sel];
 		FString T; int32 Cost = 0;
 		const int32 St = UI->CassState(Rw, T, Cost);
 		if (Rw.Lock.Len())
 		{
 			Txt(Rw.Lock, Rx, Ry, Dk, U / 3.6f);
-			Lines({ TEXT("Categorie prevue par le GDD Items (Survie, Mobilite, Cobra/Attaque)."), TEXT("A definir ensemble avant de la coder.") }, Rx, Ry + 14 * U, Dim, Rn);
+			Lines({ TEXT("Catégorie prévue par le GDD Items (Survie, Mobilité, Cobra/Attaque)."), TEXT("À définir ensemble avant de la coder.") }, Rx, Ry + 14 * U, Dim, Rn);
 		}
 		else
 		{
@@ -553,18 +553,18 @@ void AEONHUD::DrawCom()
 			const FString Br = MS ? MS->CasBr(TEXT("shield")) : FString();
 			Txt(TEXT("Cassette Shield"), Rx, Ry, Cyan, U / 3.6f);
 			for (int32 K = 1; K <= 3; ++K) { Rect(Rx + (K * 14 - 14) * U, Ry + 12 * U, 10 * U, 4 * U, L >= K ? Cyan : Off); }
-			Txt(L ? FString::Printf(TEXT("NV%d%s"), L, Br.Len() ? *(TEXT(" ") + Br) : TEXT("")) : FString(TEXT("Pas encore trouvee")), Rx + 48 * U, Ry + 10.5f * U, L ? Wh : Dim, U / 4.1f);
+			Txt(L ? FString::Printf(TEXT("NV%d%s"), L, Br.Len() ? *(TEXT(" ") + Br) : TEXT("")) : FString(TEXT("Pas encore trouvée")), Rx + 48 * U, Ry + 10.5f * U, L ? Wh : Dim, U / 4.1f);
 			// Textes de dialogues.json (cassettes.shield).
-			Lines({ TEXT("NV1 - Absorbe 1 coup. Revient a l'etage suivant."), TEXT("NV2 - Se recharge apres 10 s sans degats."),
-				TEXT("NV3 A - Shield nettoyant : a l'impact, explose et nettoie la salle autour de Jira."), TEXT("NV3 B - Shield miroir : a l'impact, renvoie les tirs ennemis a l'expediteur.") }, Rx, Ry + 24 * U, Txc, Rn);
-			if (Rw.Lvl == 3) { Txt(TEXT("Choix de branche definitif."), Rx, Ry + 92 * U, Am, U / 4.1f); }
+			Lines({ TEXT("NV1 - Absorbe 1 coup. Revient à l'étage suivant."), TEXT("NV2 - Se recharge après 10 s sans dégâts."),
+				TEXT("NV3 A - Shield nettoyant : à l'impact, explose et nettoie la salle autour de Jira."), TEXT("NV3 B - Shield miroir : à l'impact, renvoie les tirs ennemis à l'expéditeur.") }, Rx, Ry + 24 * U, Txc, Rn);
+			if (Rw.Lvl == 3) { Txt(TEXT("Choix de branche définitif."), Rx, Ry + 92 * U, Am, U / 4.1f); }
 		}
 		const bool bCan = St == 1 && UI->IsDocked();
 		const float Bbx = PX(Bx + Bw - 110), Bby = PY(By + Bh - 40);
 		Box(Bbx, Bby, 100 * U, 14 * U, bCan ? Cyan : Off, bCan ? FLinearColor(FColor(29, 42, 68)) : FLinearColor(FColor(20, 17, 40)));
-		const FString Bt = St == 0 ? FString(TEXT("INSTALLE")) : (!UI->IsDocked() && St == 1) ? FString(TEXT("AU KIBO (A QUAI)")) : St == 1 ? TEXT("INSTALLER  ") + T : T.ToUpper();
+		const FString Bt = St == 0 ? FString(TEXT("INSTALLÉ")) : (!UI->IsDocked() && St == 1) ? FString(TEXT("AU KIBO (À QUAI)")) : St == 1 ? TEXT("INSTALLER  ") + T : T.ToUpper();
 		Txt(Bt, Bbx + 50 * U, Bby + 3 * U, bCan ? Wh : Dim, U / 4.8f, true);
-		Help(TEXT("Z/S : choisir     Entree / (A) : installer     Q/D : onglet     C ou Echap / (B) : fermer"));
+		Help(TEXT("Z/S : choisir     Entrée / (A) : installer     Q/D : onglet     C ou Échap / (B) : fermer"));
 		return;
 	}
 
@@ -615,9 +615,9 @@ void AEONHUD::DrawCom()
 			FString::Printf(TEXT("Niveau ADN : %d   (%d / %d)"), J->GetLevel(), FMath::FloorToInt(J->GetADN()), FMath::RoundToInt(J->GetADNNeed())),
 			FString::Printf(TEXT("PV : %d / %d"), J->GetHP(), J->GetMaxHP()) + (Hb ? FString::Printf(TEXT("   dont +%d permanents (insignes)"), Hb) : FString()),
 			FString::Printf(TEXT("Dash : %d charge%s   Scrap : %d"), J->GetDashMax(), J->GetDashMax() > 1 ? TEXT("s") : TEXT(""), J->GetScrap()),
-			FString::Printf(TEXT("Ameliorations prises : %d"), J->GetItems().Num()) }, Rx, Ry + 12 * U, Txc, Rn);
+			FString::Printf(TEXT("Améliorations prises : %d"), J->GetItems().Num()) }, Rx, Ry + 12 * U, Txc, Rn);
 		Rect(Rx, Ry + 56 * U, PX(Bx + Bw - 10) - Rx, U * 0.5f, Off);
-		if (!Items.IsValidIndex(Sel)) { Lines({ TEXT("Aucune amelioration pour l'instant."), TEXT("Les salles Opportunite, le marchand et les niveaux d'ADN en proposent.") }, Rx, Ry + 64 * U, Dim, Rn); }
+		if (!Items.IsValidIndex(Sel)) { Lines({ TEXT("Aucune amélioration pour l'instant."), TEXT("Les salles Opportunité, le marchand et les niveaux d'ADN en proposent.") }, Rx, Ry + 64 * U, Dim, Rn); }
 		else if (const FEONItemDef* It = EONItems::Find(Items[Sel].Key))
 		{
 			const FLinearColor Rc = EONItems::Color(It->Rar);
@@ -629,18 +629,18 @@ void AEONHUD::DrawCom()
 	}
 	else if (Tab == 1)
 	{
-		Txt(FString::Printf(TEXT("Logs retrouves : %d / %d"), LogN, UEONUISubsystem::NumLogs()), PX(Bx + Bw - 80), Ry, Dim, U / 4.1f);
+		Txt(FString::Printf(TEXT("Logs retrouvés : %d / %d"), LogN, UEONUISubsystem::NumLogs()), PX(Bx + Bw - 80), Ry, Dim, U / 4.1f);
 		if (Sel < LogN) { Txt(FString::Printf(TEXT("LOG %02d"), Sel + 1), Rx, Ry, Cyan, U / 3.6f); Lines({ UEONUISubsystem::Log(Sel) }, Rx, Ry + 14 * U, FLinearColor(FColor(232, 228, 255)), Rn); }
-		else { Lines({ TEXT("Signal non capte."), TEXT("Ce log est quelque part dans les etages. Les logs se trouvent dans les salles calmes et au sol, apres les combats.") }, Rx, Ry + 14 * U, Dk, Rn); }
+		else { Lines({ TEXT("Signal non capté."), TEXT("Ce log est quelque part dans les étages. Les logs se trouvent dans les salles calmes et au sol, après les combats.") }, Rx, Ry + 14 * U, Dk, Rn); }
 	}
 	else if (Qs.IsValidIndex(Sel))
 	{
 		const UEONUISubsystem::FQuest& Q = Qs[Sel];
 		Txt(Q.T, Rx, Ry, FLinearColor(Q.C), U / 3.6f);
-		Txt(Q.bOk ? TEXT("Terminee") : TEXT("En cours"), PX(Bx + Bw - 50), Ry, Q.bOk ? Gr : Am, U / 4.1f);
+		Txt(Q.bOk ? TEXT("Terminée") : TEXT("En cours"), PX(Bx + Bw - 50), Ry, Q.bOk ? Gr : Am, U / 4.1f);
 		Lines(Q.L, Rx, Ry + 14 * U, Txc, Rn);
 	}
-	Help(TEXT("Q/D : onglet     Z/S : choisir     C ou Echap / (B) : fermer"));
+	Help(TEXT("Q/D : onglet     Z/S : choisir     C ou Échap / (B) : fermer"));
 }
 
 void AEONHUD::DrawTitle()
@@ -659,8 +659,8 @@ void AEONHUD::DrawTitle()
 		if (M->bUlysse) { Info += TEXT(" - Ulysse au Kibo"); }
 		if (M->bCobUnlock) { Info += TEXT(" - Cobaye"); }
 		if (M->Crew.Num()) { Info += FString::Printf(TEXT(" - insignes %d/6"), M->Crew.Num()); }
-		if (M->Donnees) { Info += FString::Printf(TEXT(" - donnees %d"), M->Donnees); }
-		Info += FString::Printf(TEXT(" - %d run%s, %d deblocage%s"), M->Runs, M->Runs > 1 ? TEXT("s") : TEXT(""), M->Unl.Num(), M->Unl.Num() > 1 ? TEXT("s") : TEXT(""));
+		if (M->Donnees) { Info += FString::Printf(TEXT(" - données %d"), M->Donnees); }
+		Info += FString::Printf(TEXT(" - %d run%s, %d déblocage%s"), M->Runs, M->Runs > 1 ? TEXT("s") : TEXT(""), M->Unl.Num(), M->Unl.Num() > 1 ? TEXT("s") : TEXT(""));
 	}
 	Txt(Info, Cx, Cy - 20 * U, FLinearColor(FColor(207, 211, 255)), U / 3.8f, true);
 	for (int32 I = 0; I < 2; ++I)
@@ -670,7 +670,7 @@ void AEONHUD::DrawTitle()
 		Box(Bx, By, 120 * U, 22 * U, bWarn ? Red : bOn ? Cyan : FLinearColor(FColor(58, 52, 96)), bOn ? FLinearColor(FColor(29, 42, 68)) : FLinearColor(FColor(20, 17, 40)));
 		Txt(I == 0 ? TEXT("Continuer") : bWarn ? TEXT("Confirmer : tout effacer") : TEXT("Nouvelle partie"), Bx + 60 * U, By + 8 * U, bWarn ? Red : bOn ? FLinearColor::White : Dim, U / 3.6f, true);
 	}
-	Txt(UI->IsTitleConfirm() ? TEXT("La progression sera effacee : Ulysse, Cobaye, insignes, logs, cassettes, donnees.") : TEXT("Fleches ou Q/D : choisir     Entree / (A) : valider"),
+	Txt(UI->IsTitleConfirm() ? TEXT("La progression sera effacée : Ulysse, Cobaye, insignes, logs, cassettes, données.") : TEXT("Flèches ou Q/D : choisir     Entrée / (A) : valider"),
 		Cx, Cy + 42 * U, UI->IsTitleConfirm() ? FLinearColor(FColor(255, 194, 61)) : Dim, U / 4.2f, true);
 }
 

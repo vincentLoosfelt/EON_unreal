@@ -625,7 +625,7 @@ void AEONCombatDirector::UpdateWaves(float Dt)
 	if (bWasLocked)
 	{
 		// « Retourne au C.O.M » (gardien) : jalon 7. Énergie au centre : ramassable du jalon 6.
-		Banner(Cur.Role == TEXT("CORRIDOR") ? TEXT("Le corridor est franchi") : TEXT("Salle nettoyee"), ColCy);
+		Banner(Cur.Role == TEXT("CORRIDOR") ? TEXT("Le corridor est franchi") : TEXT("Salle nettoyée"), ColCy);
 		// Une énergie au centre de la salle.
 		if (AEONTileRoom* Rm = CurRoom.Get()) { AEONPickup::Spawn(GetWorld(), Rm, EEONPickup::Energy, FVector2D(Rm->GetGrid().W * 8.f, Rm->GetGrid().H * 8.f - 20.f), FVector2D::ZeroVector, 1.f, 1.f); }
 	}
@@ -764,9 +764,9 @@ void AEONCombatDirector::UpdateDeathScreen()
 		// Clés fixes : les lignes se remplacent d'une image à l'autre (ordre inverse d'affichage).
 		GEngine->AddOnScreenDebugMessage(9105, 0.f, ColCy, TEXT("Clic ou R pour relancer  /  (A) pour relancer"), true, FVector2D(1.6f, 1.6f));
 		GEngine->AddOnScreenDebugMessage(9104, 0.f, Wh, FString::Printf(TEXT("Chutes : %d   Scrap : %d   ADN : %d"), J ? J->GetFallCount() : 0, Scrap, AdnGained), true, FVector2D(1.4f, 1.4f));
-		GEngine->AddOnScreenDebugMessage(9103, 0.f, Wh, FString::Printf(TEXT("Ennemis elimines : %d"), Kills), true, FVector2D(1.4f, 1.4f));
-		GEngine->AddOnScreenDebugMessage(9102, 0.f, Wh, FString::Printf(TEXT("Salles traversees : %d"), F ? F->GetRoomN() : 0), true, FVector2D(1.4f, 1.4f));
-		GEngine->AddOnScreenDebugMessage(9101, 0.f, Wh, FString::Printf(TEXT("Etage atteint : %d"), FMath::Max(1, GetFloorN())), true, FVector2D(1.4f, 1.4f));
+		GEngine->AddOnScreenDebugMessage(9103, 0.f, Wh, FString::Printf(TEXT("Ennemis éliminés : %d"), Kills), true, FVector2D(1.4f, 1.4f));
+		GEngine->AddOnScreenDebugMessage(9102, 0.f, Wh, FString::Printf(TEXT("Salles traversées : %d"), F ? F->GetRoomN() : 0), true, FVector2D(1.4f, 1.4f));
+		GEngine->AddOnScreenDebugMessage(9101, 0.f, Wh, FString::Printf(TEXT("Étage atteint : %d"), FMath::Max(1, GetFloorN())), true, FVector2D(1.4f, 1.4f));
 		GEngine->AddOnScreenDebugMessage(9100, 0.f, ColRed, TEXT("Signal perdu"), true, FVector2D(2.5f, 2.5f));
 	}
 	if (Now - DeadSince < 0.5) { return; }   // pas de relance sur un clic de tir encore enfoncé
@@ -886,7 +886,7 @@ void AEONCombatDirector::ShieldBurst(bool bMirror)
 		++N;
 	}
 	EONFx::Anneau(this, Rm->RoomPxToWorld(P, 0.f), 46.f, 0.25f, EONFx::Hex(TEXT("e8f6ff")));
-	if (N) { Banner(FString::Printf(TEXT("Miroir : %d tirs renvoyes"), N), FColor(62, 242, 224)); }
+	if (N) { Banner(FString::Printf(TEXT("Miroir : %d tirs renvoyés"), N), FColor(62, 242, 224)); }
 }
 
 int32 AEONCombatDirector::ClearBullets(TFunctionRef<bool(const FVector2D&)> Pred)

@@ -95,16 +95,16 @@ const TArray<FEONUnlockDef>& UEONMetaSubsystem::Unlocks()
 	// DONNEES/deblocages.json (ordre et textes du proto).
 	static const TArray<FEONUnlockDef> L = {
 		{ TEXT("u_cobaye"), TEXT("Perso"), TEXT("Le Cobaye"), TEXT("Vaincre un gardien"), NAME_None, NAME_None },
-		{ TEXT("u_laser"), TEXT("Greffe"), TEXT("Laser"), TEXT("Atteindre l'etage 2"), TEXT("laser"), NAME_None },
+		{ TEXT("u_laser"), TEXT("Greffe"), TEXT("Laser"), TEXT("Atteindre l'étage 2"), TEXT("laser"), NAME_None },
 		{ TEXT("u_multi"), TEXT("Objet"), TEXT("Double canon"), TEXT("Faire 3 runs"), NAME_None, TEXT("j_multi") },
-		{ TEXT("u_shield"), TEXT("Cassette"), TEXT("Shield"), TEXT("Atteindre l'etage 3"), NAME_None, TEXT("c_shield") },
-		{ TEXT("u_lame"), TEXT("Greffe"), TEXT("Lame"), TEXT("Eliminer 150 ennemis au total"), TEXT("lame"), NAME_None },
+		{ TEXT("u_shield"), TEXT("Cassette"), TEXT("Shield"), TEXT("Atteindre l'étage 3"), NAME_None, TEXT("c_shield") },
+		{ TEXT("u_lame"), TEXT("Greffe"), TEXT("Lame"), TEXT("Éliminer 150 ennemis au total"), TEXT("lame"), NAME_None },
 		{ TEXT("u_berserk"), TEXT("Objet"), TEXT("Catalyseur Berserk"), TEXT("Atteindre le stade 3 de mutation"), NAME_None, TEXT("e_berserk") },
-		{ TEXT("u_shotgun"), TEXT("Greffe"), TEXT("Shotgun"), TEXT("Vaincre Mechakuve (etage 2)"), TEXT("shotgun"), NAME_None },
-		{ TEXT("u_plaque"), TEXT("Objet"), TEXT("Plaque de blindage"), TEXT("Rendre 3 insignes a Ulysse"), NAME_None, TEXT("n_plaque") },
+		{ TEXT("u_shotgun"), TEXT("Greffe"), TEXT("Shotgun"), TEXT("Vaincre Mechakuve (étage 2)"), TEXT("shotgun"), NAME_None },
+		{ TEXT("u_plaque"), TEXT("Objet"), TEXT("Plaque de blindage"), TEXT("Rendre 3 insignes à Ulysse"), NAME_None, TEXT("n_plaque") },
 		{ TEXT("u_revive"), TEXT("Objet"), TEXT("Renaissance"), TEXT("Mourir 5 fois"), NAME_None, TEXT("p_revive") },
-		{ TEXT("u_reg"), TEXT("Objet"), TEXT("Regulateur"), TEXT("Vaincre Le Chercheur (etage 3)"), NAME_None, TEXT("e_reg") },
-		{ TEXT("u_dashc"), TEXT("Objet"), TEXT("Charge de dash +"), TEXT("Atteindre les serres (etage 4)"), NAME_None, TEXT("p_dashc") },
+		{ TEXT("u_reg"), TEXT("Objet"), TEXT("Régulateur"), TEXT("Vaincre Le Chercheur (étage 3)"), NAME_None, TEXT("e_reg") },
+		{ TEXT("u_dashc"), TEXT("Objet"), TEXT("Charge de dash +"), TEXT("Atteindre les serres (étage 4)"), NAME_None, TEXT("p_dashc") },
 		{ TEXT("u_double"), TEXT("Objet"), TEXT("Double griffe"), TEXT("Vaincre un gardien avec le Cobaye"), NAME_None, TEXT("k_double") },
 	};
 	return L;

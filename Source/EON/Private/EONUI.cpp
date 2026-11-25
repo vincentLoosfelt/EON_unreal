@@ -173,33 +173,33 @@ TArray<UEONUISubsystem::FQuest> UEONUISubsystem::Quests() const
 	const FColor Cy(62, 242, 224), Am(255, 194, 61);
 	if (!F || F->GetFloorN() <= 0)
 	{
-		Q.Add({ TEXT("Le C.O.M, a quai"), Cy, false, { TEXT("Tire le levier (onglet Descente) pour descendre a l'etage 1.") } });
+		Q.Add({ TEXT("Le C.O.M, à quai"), Cy, false, { TEXT("Tire le levier (onglet Descente) pour descendre à l'étage 1.") } });
 	}
 	else if (F->GetFloorN() == 4)
 	{
-		Q.Add({ TEXT("Etage 4 - Les serres"), FColor(154, 200, 96), F->IsFloorDone(), { TEXT("Pas de carte rouge ici."),
-			F->IsFloorDone() ? TEXT("[X] Parler a la vieille dame, sous le saule") : TEXT("[ ] Traverser les serres jusqu'au grand saule") } });
+		Q.Add({ TEXT("Étage 4 - Les serres"), FColor(154, 200, 96), F->IsFloorDone(), { TEXT("Pas de carte rouge ici."),
+			F->IsFloorDone() ? TEXT("[X] Parler à la vieille dame, sous le saule") : TEXT("[ ] Traverser les serres jusqu'au grand saule") } });
 	}
 	else
 	{
 		const bool bDone = F->IsFloorDone(), bCard = F->HasRedCard();
-		Q.Add({ FString::Printf(TEXT("Etage %d"), F->GetFloorN()), Cy, bDone, {
+		Q.Add({ FString::Printf(TEXT("Étage %d"), F->GetFloorN()), Cy, bDone, {
 			TEXT("Gardien : ") + F->GuardDir().ToUpper() + TEXT(" du C.O.M"),
-			bDone ? TEXT("[X] Gardien neutralise : tire le levier (onglet Descente)") : TEXT("[ ] Neutraliser le gardien"),
-			bCard ? TEXT("[X] Carte rouge en main") : TEXT("[ ] Trouver la carte rouge, sur le chemin de l'autre entree du gardien"),
-			bCard ? TEXT("[ ] Rejoindre l'ascenseur et vaincre son gardien") : TEXT("[ ] L'ascenseur reste verrouille sans elle") } });
+			bDone ? TEXT("[X] Gardien neutralisé : tire le levier (onglet Descente)") : TEXT("[ ] Neutraliser le gardien"),
+			bCard ? TEXT("[X] Carte rouge en main") : TEXT("[ ] Trouver la carte rouge, sur le chemin de l'autre entrée du gardien"),
+			bCard ? TEXT("[ ] Rejoindre l'ascenseur et vaincre son gardien") : TEXT("[ ] L'ascenseur reste verrouillé sans elle") } });
 	}
 	if (M && M->bUlysse)
 	{
 		// Équipage d'Ulysse : les insignes arrivent avec les salles Événement (jalon 9).
-		FQuest U{ TEXT("Ulysse et son equipage"), Am, false, { TEXT("[X] Ulysse sauve, a l'abri au Kibo.") } };
+		FQuest U{ TEXT("Ulysse et son équipage"), Am, false, { TEXT("[X] Ulysse sauvé, à l'abri au Kibo.") } };
 		int32 Rendus = 0;
 		for (int32 I = 0; I < (int32)UE_ARRAY_COUNT(GCrew); ++I)
 		{
 			const FString* St = M->Crew.Find(GCrew[I]);
 			if (St && *St == TEXT("rendu")) { ++Rendus; U.L.Add(FString(TEXT("[X] ")) + GCrew[I] + TEXT(" : insigne rendu")); }
-			else if (St && *St == TEXT("poche")) { U.L.Add(FString(TEXT("[>] ")) + GCrew[I] + TEXT(" : insigne en poche, a rendre au Kibo")); }
-			else { U.L.Add(TEXT("[ ] ??? : quelque part dans les etages")); }
+			else if (St && *St == TEXT("poche")) { U.L.Add(FString(TEXT("[>] ")) + GCrew[I] + TEXT(" : insigne en poche, à rendre au Kibo")); }
+			else { U.L.Add(TEXT("[ ] ??? : quelque part dans les étages")); }
 		}
 		U.bOk = Rendus >= (int32)UE_ARRAY_COUNT(GCrew);
 		U.L.Add(FString::Printf(TEXT("Rendus %d / %d  -  PV max +%d / 2"), Rendus, (int32)UE_ARRAY_COUNT(GCrew), M->HpBonus));
@@ -209,14 +209,14 @@ TArray<UEONUISubsystem::FQuest> UEONUISubsystem::Quests() const
 	{
 		Q.Add({ TEXT("La gamine"), FColor(232, 176, 192), true, M->NewtEnd == TEXT("perdue")
 			? TArray<FString>{ TEXT("Elle ne souffre plus."), TEXT("Sans Lapin, elle n'a pas pu se calmer.") }
-			: TArray<FString>{ TEXT("Lapin l'a calmee. Elle t'a laisse un objet.") } });
+			: TArray<FString>{ TEXT("Lapin l'a calmée. Elle t'a laissé un objet.") } });
 	}
 	if (M && M->bCobUnlock) { Q.Add({ TEXT("Le Cobaye"), FColor(224, 80, 58), true, { TEXT("Il t'attend au Kibo."), TEXT("Parle-lui au Kibo pour changer de perso.") } }); }
-	if (M && M->bVieille) { Q.Add({ TEXT("La vieille dame"), FColor(200, 224, 168), false, { TEXT("Elle attend sous le saule, aux serres."), TEXT("Elle ne sait plus pourquoi elle est la."), TEXT("Quelqu'un lui a dit d'attendre. Qui ?") } }); }
+	if (M && M->bVieille) { Q.Add({ TEXT("La vieille dame"), FColor(200, 224, 168), false, { TEXT("Elle attend sous le saule, aux serres."), TEXT("Elle ne sait plus pourquoi elle est là."), TEXT("Quelqu'un lui a dit d'attendre. Qui ?") } }); }
 	{
 		const TArray<FEONUnlockDef>& U = UEONMetaSubsystem::Unlocks();
 		int32 N = 0;
-		FQuest D{ TEXT("Deblocages"), Am, false, {} };
+		FQuest D{ TEXT("Déblocages"), Am, false, {} };
 		for (const FEONUnlockDef& Ud : U)
 		{
 			const bool bOn = MS && MS->IsUnlocked(Ud.Id);
@@ -224,11 +224,11 @@ TArray<UEONUISubsystem::FQuest> UEONUISubsystem::Quests() const
 			D.L.Add(bOn ? FString::Printf(TEXT("[X] %s : %s"), *Ud.Kind, *Ud.Name) : FString::Printf(TEXT("[ ] %s ??? : %s"), *Ud.Kind, *Ud.Cond));
 		}
 		D.bOk = N >= U.Num();
-		D.L.Insert(FString::Printf(TEXT("Debloques : %d / %d  (persos, greffes, cassettes, objets)"), N, U.Num()), 0);
+		D.L.Insert(FString::Printf(TEXT("Débloqués : %d / %d  (persos, greffes, cassettes, objets)"), N, U.Num()), 0);
 		Q.Add(D);
 	}
 	const int32 Ln = FMath::Min(M ? M->LogN : 0, NumLogs());
-	Q.Add({ TEXT("Archives de la station"), FColor(154, 150, 200), Ln >= NumLogs(), { FString::Printf(TEXT("Logs retrouves : %d / %d"), Ln, NumLogs()), TEXT("Relis-les dans l'onglet Logs.") } });
+	Q.Add({ TEXT("Archives de la station"), FColor(154, 150, 200), Ln >= NumLogs(), { FString::Printf(TEXT("Logs retrouvés : %d / %d"), Ln, NumLogs()), TEXT("Relis-les dans l'onglet Logs.") } });
 	return Q;
 }
 
@@ -238,7 +238,7 @@ const TArray<UEONUISubsystem::FCassRow>& UEONUISubsystem::CassRows()
 		{ TEXT("shield"), 2, TEXT(""), TEXT("") },
 		{ TEXT("shield"), 3, TEXT("A"), TEXT("") },
 		{ TEXT("shield"), 3, TEXT("B"), TEXT("") },
-		{ NAME_None, 0, TEXT(""), TEXT("Cassette Mobilite") },
+		{ NAME_None, 0, TEXT(""), TEXT("Cassette Mobilité") },
 		{ NAME_None, 0, TEXT(""), TEXT("Cassette Cobra") },
 	};
 	return R;
@@ -247,17 +247,17 @@ const TArray<UEONUISubsystem::FCassRow>& UEONUISubsystem::CassRows()
 int32 UEONUISubsystem::CassState(const FCassRow& R, FString& OutT, int32& OutCost) const
 {
 	OutCost = 0;
-	if (!R.Lock.IsEmpty()) { OutT = TEXT("A definir (GDD)"); return 3; }
+	if (!R.Lock.IsEmpty()) { OutT = TEXT("À définir (GDD)"); return 3; }
 	const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
 	const int32 L = MS ? MS->CasLvl(R.K) : 0;
 	const FString B = MS ? MS->CasBr(R.K) : FString();
 	static const int32 Cost[4] = { 0, 0, 30, 60 };   // dialogues.json, cassettes.shield.cost
 	if (L >= R.Lvl && (R.Br.IsEmpty() || B == R.Br)) { OutT = TEXT("Installe"); return 0; }
-	if (L == 0) { OutT = TEXT("NV1 a trouver en run"); return 3; }
+	if (L == 0) { OutT = TEXT("NV1 à trouver en run"); return 3; }
 	if (R.Lvl == 3 && !B.IsEmpty() && B != R.Br) { OutT = TEXT("Branche ") + B + TEXT(" choisie"); return 3; }
 	if (L < R.Lvl - 1) { OutT = FString::Printf(TEXT("NV%d requis"), R.Lvl - 1); return 3; }
 	OutCost = Cost[FMath::Clamp(R.Lvl, 0, 3)];
-	OutT = FString::Printf(TEXT("%d donnees"), OutCost);
+	OutT = FString::Printf(TEXT("%d données"), OutCost);
 	return MS && MS->GetDonnees() >= OutCost ? 1 : 2;
 }
 
@@ -273,7 +273,7 @@ void UEONUISubsystem::ComAct()
 	{
 		// pullCOM : le levier.
 		if (F && F->IsFloorDone()) { CloseCom(); F->PullLever(); }
-		else if (F) { F->ShowBanner(TEXT("Levier verrouille : neutralise le gardien"), FLinearColor(FColor(140, 134, 180))); }
+		else if (F) { F->ShowBanner(TEXT("Levier verrouillé : neutralise le gardien"), FLinearColor(FColor(140, 134, 180))); }
 		return;
 	}
 	if (ComTab == 4)
@@ -284,7 +284,7 @@ void UEONUISubsystem::ComAct()
 		const FCassRow& R = Rows[ComSel[4]];
 		FString T; int32 C = 0;
 		const int32 St = CassState(R, T, C);
-		if (!IsDocked()) { if (F) { F->ShowBanner(TEXT("Ameliorations au Kibo : C.O.M a quai"), FLinearColor(FColor(140, 134, 180))); } return; }
+		if (!IsDocked()) { if (F) { F->ShowBanner(TEXT("Améliorations au Kibo : C.O.M à quai"), FLinearColor(FColor(140, 134, 180))); } return; }
 		UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
 		if (St != 1 || !MS || !MS->BuyCass(R.K, R.Lvl, R.Br, C)) { return; }
 		if (AEONCharacter* J = Cast<AEONCharacter>(UGameplayStatics::GetPlayerPawn(this, 0))) { J->ApplyCassettes(); }
