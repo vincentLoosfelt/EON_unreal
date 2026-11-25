@@ -849,8 +849,8 @@ void AEONCharacter::OnShot(const FEONGreffeRow& G, const FEONGameFeelRow& Feel, 
 		MuzzleLight->SetLightColor(G.Col);
 		MuzzleLight->SetVisibility(true);
 		MuzzleTimer = 0.06f;
-		// JIR-V2 : sprite du flash (halo couleur de la greffe, trait et cœur blancs), 0,06 s.
-		EONFx::Eclair(this, GetMuzzleLocation(AimAngle), Dir, G.Col, 0.06f);
+		// JIR-V2 : flash du tir, étoile dessinée (planche P4) couleur de la greffe, une image à 12 i/s.
+		EONFx::FlashTir(this, GetMuzzleLocation(AimAngle), Dir, G.Col);
 	}
 	// JIR-U2 : le réticule s'écarte (crossT += 0,35, plafonné à 1).
 	CrossT = FMath::Min(1.f, CrossT + 0.35f);

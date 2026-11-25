@@ -352,20 +352,6 @@ void EONFx::Explosion(const UObject* Ctx, const FVector& At, float RadiusCm, con
 	Eclat(Ctx, At, R, Col, bFumee);
 }
 
-void EONFx::Eclair(const UObject* Ctx, const FVector& At, const FVector& Dir, const FLinearColor& Col, float Life, float Scale, float LightRadiusPx)
-{
-	AEONFxPiece* F = SpawnPiece(Ctx, At, Life);
-	if (!F) { return; }
-	const FVector D = Dir.GetSafeNormal2D();
-	const float Yaw = D.Rotation().Yaw;
-	const float S = EON::PxToCm(1.f) * Scale;
-	// Halo 10 px couleur du tir, trait blanc de 6 px dans l'axe, cœur blanc de 4 px (draw du proto, l. 3428).
-	F->AddPlane(Glow(F, EForme::Rond, Col, 2.5f), FVector::ZeroVector, Yaw, 14.f * S, 14.f * S);
-	F->AddPlane(Glow(F, EForme::Uni, FLinearColor::White, 2.f), D * 3.f * S, Yaw, 6.f * S, 1.6f * S);
-	F->AddPlane(Glow(F, EForme::Rond, FLinearColor::White, 4.f), FVector::ZeroVector, Yaw, 6.f * S, 6.f * S);
-	if (LightRadiusPx > 0.f) { F->AddLight(Col, 6000.f, EON::PxToCm(LightRadiusPx)); }
-}
-
 AEONFxPiece* EONFx::Fantome(const UObject* Ctx, USkeletalMeshComponent* Src, const FLinearColor& Col, float Alpha, float Life)
 {
 	if (!Src) { return nullptr; }
@@ -486,6 +472,29 @@ namespace
 		F->FacePlane = F->AddPlane(M, FVector::ZeroVector, 0.f, SizeCm, SizeCm);
 		F->UpdateFace();
 	}
+}
+
+void EONFx::FlashTir(const UObject* Ctx, const FVector& At, const FVector& Dir, const FLinearColor& Col, float SizePx, float LightRadiusPx)
+{
+	// Une image à 12 i/s : le flash est un seul dessin, tenu 1/12 s.
+	AEONFxPiece* F = SpawnPiece(Ctx, At, 1.f / 12.f);
+	if (!F) { return; }
+	UMaterialInstanceDynamic* M = PlancheMid(F, TEXT("/Game/EON/VFX/Planches/T_EON_VFX_P4_Flash.T_EON_VFX_P4_Flash"), 2.f, 2.f, FMath::Lerp(FLinearColor::White, Col, 0.55f));
+	if (!M) { F->Destroy(); return; }
+	static int32 Dernier = -1;
+	int32 Img = FMath::RandRange(0, 2);
+	if (Img >= Dernier) { ++Img; }
+	Dernier = Img;
+	M->SetScalarParameterValue(TEXT("Image"), (float)Img);
+	const float S = EON::PxToCm(SizePx);
+	F->bNoFade = true;
+	F->FaceDir = Dir.GetSafeNormal();
+	F->FaceSize = S;
+	F->FaceAnchor = 0.2f;   // centre de l'étoile un peu devant le canon
+	F->FaceLift = 0.f;
+	F->FacePlane = F->AddPlane(M, FVector::ZeroVector, 0.f, S, S);
+	F->UpdateFace();
+	if (LightRadiusPx > 0.f) { F->AddLight(Col, 6000.f, EON::PxToCm(LightRadiusPx)); }
 }
 
 void EONFx::Giclee(const UObject* Ctx, const FVector& At, const FVector& Dir, float SizeCm, const FLinearColor& Col, float Life, float LiftCm)
@@ -622,7 +631,7 @@ void EONFx::TacheSol(const UObject* Ctx, const FVector& At, float Yaw, float Siz
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Pawn.h"
 #include "HAL/IConsoleManager.h"
-static FAutoConsoleCommandWithWorldAndArgs GEONCmdFx(TEXT("eon.fx"), TEXT("eon.fx [anneau|gerbe|dir|eclair|lumiere|flaque|organique|cercle|cone|ligne] : effet de test sur Jira"),
+static FAutoConsoleCommandWithWorldAndArgs GEONCmdFx(TEXT("eon.fx"), TEXT("eon.fx [anneau|gerbe|dir|flash|lumiere|flaque|organique|cercle|cone|ligne] : effet de test sur Jira"),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* W)
 	{
 		const APawn* P = W ? UGameplayStatics::GetPlayerPawn(W, 0) : nullptr;
@@ -631,7 +640,7 @@ static FAutoConsoleCommandWithWorldAndArgs GEONCmdFx(TEXT("eon.fx"), TEXT("eon.f
 		const FString K = Args.Num() ? Args[0] : TEXT("anneau");
 		if (K == TEXT("gerbe")) { EONFx::Gerbe2(P, Feet + FVector(0.f, 0.f, 30.f), 34, 3, EONFx::Hex(TEXT("ff9a3d")), FLinearColor::White, 180.f, 0.5f, 1.25f, 5.f); }
 		else if (K == TEXT("dir")) { EONFx::GerbeDir2(P, Feet + FVector(0.f, 0.f, 30.f), P->GetActorForwardVector(), 18, 3, EONFx::Hex(TEXT("e0405a")), FLinearColor::White, 170.f, 0.6f, 1.3f, 5.f); }
-		else if (K == TEXT("eclair")) { EONFx::Eclair(P, Feet + FVector(0.f, 0.f, 90.f), P->GetActorForwardVector(), EONFx::Hex(TEXT("3ef2e0")), 1.5f); }
+		else if (K == TEXT("flash")) { EONFx::FlashTir(P, Feet + FVector(0.f, 0.f, 90.f), P->GetActorForwardVector(), EONFx::Hex(TEXT("3ef2e0"))); }
 		else if (K == TEXT("explosion")) { EONFx::Explosion(P, Feet + P->GetActorForwardVector() * 200.f, Args.Num() > 1 ? FCString::Atof(*Args[1]) : 160.f, EONFx::Hex(TEXT("ff7a1a")), true, 0.5f); }
 		else if (K == TEXT("lumiere")) { EONFx::Lumiere(P, Feet + FVector(0.f, 0.f, 60.f), EONFx::Hex(TEXT("ff7a1a")), 60000.f, 60.f, 1.f); }
 		// Gardiens 2 et 3 (GAR-V18, GAR-V19) : effets prêts, branchés quand la Mechakuve et le Chercheur seront portés.

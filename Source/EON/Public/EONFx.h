@@ -67,9 +67,11 @@ namespace EONFx
 	EON_API UMaterialInstanceDynamic* Glow(UObject* Outer, EForme Forme, const FLinearColor& Col, float Intensite = 1.f);
 	/** Lumière ponctuelle qui décroît (carré de la vie restante). */
 	EON_API void Lumiere(const UObject* Ctx, const FVector& At, const FLinearColor& Col, float Intensity, float RadiusPx, float Life);
-	/** Flash de bouche du proto : halo carré de 10 px couleur Col (35 %), trait blanc de 6 px vers Dir, cœur blanc de 4 px.
-	 *  LightRadiusPx > 0 : lumière en plus (tirs ennemis ; Jira a déjà la sienne, JIR-V1). */
-	EON_API void Eclair(const UObject* Ctx, const FVector& At, const FVector& Dir, const FLinearColor& Col, float Life, float Scale = 1.f, float LightRadiusPx = 0.f);
+	/** Flash des tirs (Vincent, 25/11) : une étoile dessinée de la planche P4 (2 à 4 branches, 2 à 6 branches ; jamais
+	 *  deux fois la même de suite), face caméra, teintée de Col avec un cœur clair, tenue une image à 12 i/s.
+	 *  SizePx : taille de l'étoile (px du proto). LightRadiusPx > 0 : lumière en plus (tirs ennemis ; Jira a déjà la
+	 *  sienne, JIR-V1). */
+	EON_API void FlashTir(const UObject* Ctx, const FVector& At, const FVector& Dir, const FLinearColor& Col, float SizePx = 14.f, float LightRadiusPx = 0.f);
 	/** Fantôme : copie de la pose de Src, couleur Col additive à Alpha, qui s'efface sur Life. */
 	EON_API AEONFxPiece* Fantome(const UObject* Ctx, USkeletalMeshComponent* Src, const FLinearColor& Col, float Alpha, float Life);
 	/** Rayon lumineux de From à To (Vincent, 24/11 : armes de Jira hors debug) : ruban couleur Col de largeur WidthCm,

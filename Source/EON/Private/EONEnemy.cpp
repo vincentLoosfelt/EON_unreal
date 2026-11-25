@@ -853,12 +853,12 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 				const float V = 170.f;
 				Dir->FireEnemyBullet(FVector2D(Pos.X + L.X * 12.f, Pos.Y - 13.f + L.Y * 12.f), L * V, 3.f, true, 13.f);
 				Dir->Shake(0.14f);
-				// IKI-V2 : éclair au canon (halo orange, trait et cœur blancs) et lumière de 22 px, 0,08 s.
+				// IKI-V2 : flash au canon (étoile dessinée P4, orange) et lumière de 22 px.
 				if (const AEONTileRoom* Rk = Room.Get())
 				{
 					const FVector Mz = Rk->RoomPxToWorld(Pos + L * 12.f, EON::PxToCm(13.f));
 					const FVector Dk = Rk->RoomPxToWorld(Pos + L) - Rk->RoomPxToWorld(Pos);
-					EONFx::Eclair(this, Mz, Dk, EONFx::Hex(TEXT("e8923a")), 0.08f, 1.5f, 22.f);
+					EONFx::FlashTir(this, Mz, Dk, EONFx::Hex(TEXT("e8923a")), 20.f, 22.f);
 				}
 				St = EEONEnemySt::Rec; StT = 0.5f; Cd = 2.6f + FRand01() * 0.9f;
 			}
