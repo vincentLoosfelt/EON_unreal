@@ -156,6 +156,13 @@ protected:
 	UPROPERTY() TObjectPtr<UAnimSequence> AnimIdle;
 	UPROPERTY() TObjectPtr<UAnimSequence> AnimAttack;
 	UPROPERTY() TObjectPtr<UAnimSequence> AnimExplode;
+	/** Kama : provocation après un dash qui touche Jira ; Onibi : départ de course (se ramasse puis s'élance). */
+	UPROPERTY() TObjectPtr<UAnimSequence> AnimTaunt;
+	UPROPERTY() TObjectPtr<UAnimSequence> AnimStart;
+	/** Onibi : temps restant du départ de course (immobile pendant ce temps). */
+	float StartT = 0.f;
+	/** Kama : son dash a touché Jira (la récupération devient une provocation). */
+	bool bDashHit = false;
 	UPROPERTY() TArray<TObjectPtr<UAnimSequence>> AnimDeaths;
 	UPROPERTY() TObjectPtr<UAnimSequence> CurAnim;
 	float AttackRate = 1.f;

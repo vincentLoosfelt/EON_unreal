@@ -61,6 +61,9 @@ namespace
 		TArray<const TCHAR*> Deaths;   // une au hasard sur le cadavre (BeginCorpse)
 		float ModelHCm = 0.f;          // > 0 : hauteur du modèle imposée en cm ; hitbox HH/HR mise à la même échelle (Vincent, 23/11 :
 		                               // Nuke 40, Onibi 150, Kama 180, Ubume 200, Ikiryo 180 ; Jira 181)
+		const TCHAR* Taunt = nullptr;  // Kama : provocation après un dash qui touche (Vincent, 25/11)
+		const TCHAR* Start = nullptr;  // Onibi : départ de course à l'apparition (Vincent, 25/11)
+		const TCHAR* MoveAlt = nullptr;   // Onibi : autre boucle de course, tirée au hasard pour un ennemi sur deux (Vincent, 25/11)
 	};
 	// Anim du studio : /Game/EON/Ennemis/<Nom>/Anims/A_<Nom>_<Anim>
 #define EON_ANIM(N, A) TEXT("/Game/EON/Ennemis/" N "/Anims/A_" N "_" A ".A_" N "_" A)
@@ -74,9 +77,11 @@ namespace
 			{ TEXT("sniper"), { TEXT("/Game/EON/Ennemis/Ikiryo/SK_Ikiryo.SK_Ikiryo") }, nullptr, -90.f, 1.f, 0.f, nullptr, nullptr, 1.f, nullptr, {}, 180.f },
 			{ TEXT("brainless"), { TEXT("/Game/EON/Unity/import/fbx/chara/Brain_Crawler.Brain_Crawler") }, TEXT("/Game/EON/Unity/import/fbx/chara/Brain_CrawlerArmature_Armature_Armature_Armature_Unreal_Take_baselayer.Brain_CrawlerArmature_Armature_Armature_Armature_Unreal_Take_baselayer"), -90.f, 1.f, 0.f },
 			{ TEXT("slasher"), { TEXT("/Game/EON/Ennemis/Kama/SK_Kama.SK_Kama") }, EON_ANIM("Kama", "Run"), -90.f, 1.f, 0.f,
-				nullptr, EON_ANIM("Kama", "Attack"), 1.f, nullptr, { EON_ANIM("Kama", "Death") }, 180.f },
+				nullptr, EON_ANIM("Kama", "Attack"), 1.f, nullptr, { EON_ANIM("Kama", "Death") }, 180.f, EON_ANIM("Kama", "Taunt") },
 			{ TEXT("kamikaze"), { TEXT("/Game/EON/Ennemis/Onibi/SK_Onibi.SK_Onibi") }, EON_ANIM("Onibi", "Run"), -90.f, 1.f, 0.f,
-				EON_ANIM("Onibi", "Walk"), nullptr, 1.f, EON_ANIM("Onibi", "Explosion"), { EON_ANIM("Onibi", "Death_01"), EON_ANIM("Onibi", "Death_02") }, 150.f },
+				// Attack : il plonge quand il s'arme (×2, 0,45 s), l'explosion se joue ensuite sur le cadavre (Vincent, 25/11).
+				EON_ANIM("Onibi", "Walk"), EON_ANIM("Onibi", "Attack"), 2.f, EON_ANIM("Onibi", "Explosion"), { EON_ANIM("Onibi", "Death_01"), EON_ANIM("Onibi", "Death_02") }, 150.f,
+				nullptr, EON_ANIM("Onibi", "Run_Anticipation"), EON_ANIM("Onibi", "Run_Variation") },
 			{ TEXT("invocateur"), { TEXT("/Game/EON/Ennemis/Ubume/SK_Ubume.SK_Ubume") }, EON_ANIM("Ubume", "Walk"), -90.f, 1.f, 0.f,
 				EON_ANIM("Ubume", "Idle"), EON_ANIM("Ubume", "Attack"), 2.f, nullptr, { EON_ANIM("Ubume", "Death") }, 200.f },   // mort clée par nous (25/11)
 			{ TEXT("meduse"), { TEXT("/Game/EON/Unity/import/fbx/xeno/Meshy_AI_Unyielding_Chimera_0111100029_generate.Meshy_AI_Unyielding_Chimera_0111100029_generate") }, nullptr, -90.f, 1.f, 6.f },
@@ -229,6 +234,13 @@ void AEONEnemy::BuildModel()
 		AnimExplode = LoadAnim(Lk->Explode);
 		AttackRate = Lk->AttackRate;
 		for (const TCHAR* P : Lk->Deaths) { if (UAnimSequence* A = LoadAnim(P)) { AnimDeaths.Add(A); } }
+		AnimTaunt = LoadAnim(Lk->Taunt);
+		AnimStart = LoadAnim(Lk->Start);
+		if (Lk->MoveAlt && FMath::FRand() < 0.5f)
+		{
+			if (UAnimSequence* Alt = LoadAnim(Lk->MoveAlt)) { AnimMove = Alt; PlayAnim(Alt, true, 1.f); }
+		}
+		if (AnimStart) { StartT = 0.7f; }   // départ de course dès l'apparition
 	}
 	// Taille : la hauteur du modèle vaut la hauteur de hitbox du proto ; pieds au sol, centré sur la position.
 	ModelScale = TargetH / FMath::Max(1.f, B0.BoxExtent.Z * 2.f);
@@ -326,8 +338,18 @@ void AEONEnemy::UpdateAnim(float Dt, float DistToTarget)
 	PrevSt = St;
 	UAnimSequence* Shot = nullptr;
 	float Rate = AttackRate;
-	if (Type == TEXT("kamikaze")) { if (bEnter && St == EEONEnemySt::Arm) { Shot = AnimExplode; Rate = 1.f; } }
-	else if (Type == TEXT("slasher")) { if (bEnter && St == EEONEnemySt::Wind) { Shot = AnimAttack; } }
+	if (Type == TEXT("kamikaze"))
+	{
+		if (bEnter && St == EEONEnemySt::Arm) { Shot = AnimAttack ? AnimAttack : AnimExplode; Rate = AnimAttack ? AttackRate : 1.f; }
+		// Départ de course à l'apparition : se ramasse puis s'élance (0,7 s, sur place).
+		else if (AnimStart && StartT > 0.f && CurAnim != AnimStart) { Shot = AnimStart; Rate = AnimStart->GetPlayLength() / StartT; }
+	}
+	else if (Type == TEXT("slasher"))
+	{
+		if (bEnter && St == EEONEnemySt::Wind) { Shot = AnimAttack; }
+		// Dash qui a touché Jira : il parade pendant toute sa récupération.
+		else if (bEnter && St == EEONEnemySt::Rec && bDashHit && AnimTaunt) { Shot = AnimTaunt; Rate = AnimTaunt->GetPlayLength() / FMath::Max(0.1f, StT); }
+	}
 	else if (Type == TEXT("invocateur")) { if (bEnter && St == EEONEnemySt::Lay) { Shot = AnimAttack; } }
 	else if (bContact && ActionT <= 0.f && DistToTarget < R + PlayerR + 4.f) { Shot = AnimAttack; }   // Nuke au contact de Jira
 	if (Shot)
@@ -726,7 +748,11 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 	}
 	else if (N == TEXT("kamikaze"))
 	{
-		if (St == EEONEnemySt::Move)
+		if (St == EEONEnemySt::Move && StartT > 0.f)
+		{
+			StartT -= Dt; Tvx = 0.f; Tvy = 0.f;   // départ de course : sur place
+		}
+		else if (St == EEONEnemySt::Move)
 		{
 			const float W = 1.f + 0.3f * FMath::Sin(T * 8.f);
 			const FVector2D C = ChaseDir(Tg);
@@ -779,7 +805,7 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 		{
 			const FVector2D C = ChaseDir(Tg);
 			Tvx = C.X * Sp; Tvy = C.Y * Sp;
-			if (D < 85.f && Cd <= 0.f) { St = EEONEnemySt::Wind; StT = 0.55f; L = FVector2D(Nx, Ny); }
+			if (D < 85.f && Cd <= 0.f) { St = EEONEnemySt::Wind; StT = 0.55f; L = FVector2D(Nx, Ny); bDashHit = false; }
 		}
 		else if (St == EEONEnemySt::Wind)
 		{
@@ -792,7 +818,8 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 			Tvx = L.X * 235.f; Tvy = L.Y * 235.f;
 			// Traînée du dash : points rouges immobiles de 2 px (0,2 s), 8 images sur 10 du proto (48 par seconde).
 			if (FRand01() < 48.f * Dt) { EONFx::Gerbe(this, Rm->RoomPxToWorld(Pos, EON::PxToCm(2.f)), 1, EONFx::Hex(TEXT("e0405a")), 0.f, 0.2f, 2.f, 0.f); }
-			if (StT <= 0.f) { St = EEONEnemySt::Rec; StT = 0.6f; }
+			// Dash qui a touché Jira : récupération plus longue (1,5 s), le temps de parader ; Jira peut riposter.
+			if (StT <= 0.f) { St = EEONEnemySt::Rec; StT = (bDashHit && AnimTaunt) ? 1.5f : 0.6f; }
 		}
 		else
 		{
@@ -948,7 +975,11 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		return;
 	}
-	if (bContact && D < R + PlayerR + 1.f) { Dir->HurtJira(1, Pos); }
+	if (bContact && D < R + PlayerR + 1.f)
+	{
+		Dir->HurtJira(1, Pos);
+		if (St == EEONEnemySt::Dash) { bDashHit = true; }
+	}
 }
 
 void AEONEnemy::UpdateVisual(float Dt, const FVector2D& Tg)

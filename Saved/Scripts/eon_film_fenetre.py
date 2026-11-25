@@ -10,6 +10,16 @@ os.makedirs(out, exist_ok=True)
 u = ctypes.windll.user32
 try: ctypes.windll.shcore.SetProcessDpiAwareness(2)
 except Exception: pass
+k32 = ctypes.windll.kernel32
+k32.OpenProcess.restype = ctypes.c_void_p; k32.CloseHandle.argtypes = [ctypes.c_void_p]
+k32.QueryFullProcessImageNameW.argtypes = [ctypes.c_void_p, W.DWORD, ctypes.c_wchar_p, ctypes.POINTER(W.DWORD)]
+def exe(h):   # nom de l'exécutable de la fenêtre : seul le jeu (UnrealEditor -game) compte, pas une visionneuse « EON_… »
+    pid = W.DWORD(); u.GetWindowThreadProcessId(h, ctypes.byref(pid))
+    hp = k32.OpenProcess(0x1000, False, pid.value)
+    if not hp: return ""
+    b = ctypes.create_unicode_buffer(520); n = W.DWORD(520)
+    ok = k32.QueryFullProcessImageNameW(hp, 0, b, ctypes.byref(n)); k32.CloseHandle(hp)
+    return b.value.replace("\\", "/").split("/")[-1] if ok else ""
 def trouve():
     res = []
     @ctypes.WINFUNCTYPE(ctypes.c_bool, W.HWND, W.LPARAM)
@@ -18,7 +28,7 @@ def trouve():
         if n and u.IsWindowVisible(h):
             b = ctypes.create_unicode_buffer(n + 1); u.GetWindowTextW(h, b, n + 1)
             r = W.RECT(); u.GetClientRect(h, ctypes.byref(r))
-            if "EON" in b.value and "Unreal Editor" not in b.value and r.right > 800: res.append(h)
+            if "EON" in b.value and "Unreal Editor" not in b.value and r.right > 800 and exe(h).lower().startswith("unrealeditor"): res.append(h)
         return True
     u.EnumWindows(cb, 0)
     return res[0] if res else None

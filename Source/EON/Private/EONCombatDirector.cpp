@@ -54,6 +54,29 @@ namespace
 			if (D->GetCombatN() < 1) { D->CombatNOverride = 1; }   // combatN 0 : aucun type autorisé (min 1)
 			D->SpawnWave(Args.Num() ? FCString::Atof(*Args[0]) : 1.f);
 		}));
+	// Outil de test des anims (25/11) : un ennemi d'un type donné, sur du sol libre à DIST px de Jira.
+	FAutoConsoleCommandWithWorldAndArgs GEONCmdSpawn(TEXT("eon.spawn"), TEXT("eon.spawn <type> [nombre=1] [distance px=140] : fait apparaître des ennemis de ce type (DT_Ennemis) près de Jira"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+		{
+			AEONCombatDirector* D = AEONCombatDirector::Get(World);
+			AEONTileRoom* Rm = EnsureRoom(D);
+			if (!Rm || !Args.Num()) { UE_LOG(LogEON, Warning, TEXT("eon.spawn : type manquant ou Jira hors salle")); return; }
+			if (D->GetCombatN() < 1) { D->CombatNOverride = 1; }
+			const int32 N = Args.Num() > 1 ? FMath::Clamp(FCString::Atoi(*Args[1]), 1, 12) : 1;
+			const float Dist = Args.Num() > 2 ? FCString::Atof(*Args[2]) : 140.f;
+			const FVector2D J = D->GetJiraPx();
+			int32 Fait = 0;
+			for (int32 I = 0; I < 24 && Fait < N; ++I)
+			{
+				const float A = PI * 0.5f + I * (2.f * PI / 24.f) * 5.f;   // directions espacées
+				const FVector2D C = J + FVector2D(FMath::Cos(A), FMath::Sin(A)) * Dist;
+				const FVector W = Rm->RoomPxToWorld(C, 0.f);
+				FHitResult H;
+				if (Rm->PitAtPx(C) || !World->LineTraceSingleByChannel(H, W + FVector(0, 0, 150.f), W - FVector(0, 0, 150.f), ECC_Visibility)) { continue; }
+				if (D->SpawnEnemyAt(FName(*Args[0]), C, false)) { ++Fait; }
+			}
+			UE_LOG(LogEON, Display, TEXT("EON_SPAWN %s : %d / %d"), *Args[0], Fait, N);
+		}));
 	FAutoConsoleCommandWithWorldAndArgs GEONCmdCombat(TEXT("eon.combat"), TEXT("eon.combat [vagues] : transforme la salle de Jira en salle Combat verrouillée (2 vagues par défaut)"),
 		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
 		{
