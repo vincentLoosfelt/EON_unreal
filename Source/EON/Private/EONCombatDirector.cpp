@@ -436,6 +436,7 @@ void AEONCombatDirector::KillEnemy(AEONEnemy* E, float Dx, float Dy)
 	const FEONGameFeelRow F = UEONStatics::GetGameFeel(this);
 	Hitstop(F.Hitstop);
 	Shake(0.18f);
+	EONSfx::Event(E, TEXT("kill"));   // joué depuis l'ennemi : placé à sa position
 	// Gerbe de mort (killEnemy) : 18 éclats dans le sens du coup (±63°), 40 à 170 px/s, 0,4 à 0,8 s, 1 sur 3 blanc, frein 5.
 	if (const AEONTileRoom* Rm0 = CurRoom.Get())
 	{
@@ -463,6 +464,7 @@ void AEONCombatDirector::KillEnemy(AEONEnemy* E, float Dx, float Dy)
 
 void AEONCombatDirector::Aoe(const FVector2D& At, float RPx, float Dmg, bool bHurtsPlayer, const FLinearColor& Col)
 {
+	EONSfx::Event(this, TEXT("explode"));
 	for (int32 I = 0; I < Enemies.Num(); ++I)
 	{
 		AEONEnemy* E = Enemies[I];

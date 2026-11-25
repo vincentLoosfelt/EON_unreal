@@ -2034,7 +2034,7 @@ void AEONFloorManager::RiftOpen(FEONFloorCell& C, int32 N)
 	Room->SetRedDoor(Red);
 	Room->SetInfest(C.Infest, C.InfestK);
 	if (AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld())) { D->Shake(0.6f); }
-	EONSfx::Play(this, TEXT("SFX_Proto_explode"), 0.9f);
+	EONSfx::Event(this, TEXT("explode"), 1.3f);
 	// Brèche : 40 éclats cyan et blancs répartis sur ±30 px autour de la paroi (120 px/s), 0,5 s.
 	EONFx::Gerbe2(this, Room->RoomPxToWorld(C.RiftPx, EON::PxToCm(4.f)), 40, 3, EONFx::Hex(TEXT("3ef2e0")), FLinearColor::White, 120.f, 0.5f, 1.25f, 4.f, 30.f);
 }

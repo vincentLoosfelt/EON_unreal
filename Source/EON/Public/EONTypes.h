@@ -85,7 +85,13 @@ struct EON_API FEONGameFeelRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Triche") bool InfDash = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Triche") bool OneShot = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Son") bool Sound = true;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Son") float Vol = 0.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Son") float Vol = 0.5f;   // volume général ; 0,5 = volume de référence des sons
+	// Groupes de sons (EONSfx) : multiplicateurs, 1 = volume de la table.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Son") float VolJira = 1.f;      // tirs, dash, pouvoirs, blessure de Jira
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Son") float VolImpacts = 1.f;   // coups qui touchent, morts, explosions
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Son") float VolEnnemis = 1.f;   // tirs ennemis, rugissements, chutes
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Son") float VolMonde = 1.f;     // portes, cuves, alarme, objets
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Son") bool SonSpatial = true;   // sons des ennemis placés à gauche / à droite autour de Jira
 
 	// --- Multiplicateurs d'écart 3D (MANQUANTS.md §9). 1 = valeur du proto. ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Écarts 3D") float SpeedMul3D = 0.55f;   // Vincent 14/11 : Jira trop rapide (MANQUANTS §9)

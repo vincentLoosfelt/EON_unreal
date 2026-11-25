@@ -404,6 +404,7 @@ void AEONEnemy::HitPx(float Dmg, float Dx, float Dy, float KMul)
 	const FEONGameFeelRow F = UEONStatics::GetGameFeel(this);
 	Hp -= Dmg;
 	Flash = F.HitFlash ? 0.07f : 0.f;
+	EONSfx::Event(this, TEXT("hit"));
 	const float M = Mass * MassM;
 	Knock.X += Dx * 95.f * F.Knock * KMul / M;
 	Knock.Y += Dy * 95.f * F.Knock * KMul / M;
@@ -752,6 +753,7 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 	if (!bFly && Rm->PitAtPx(Pos))
 	{
 		Falling = 0.45f; St = EEONEnemySt::Move;
+		EONSfx::Event(this, TEXT("efall"));
 		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		return;
 	}

@@ -95,6 +95,14 @@ void FEONDevMenu::Rebuild()
 		Val(TEXT("Armure : coût"), TEXT("ArmCost"), 0.02f);
 		Val(TEXT("Armure : mutation"), TEXT("ArmMut"), 0.02f);
 		Val(TEXT("Dégâts de chute (x)"), TEXT("FallDmg"), 0.1f);
+		Sec(TEXT("Son"));
+		Sw(TEXT("Son actif"), TEXT("Sound"));
+		Val(TEXT("Volume général (0,5 = référence)"), TEXT("Vol"), 0.05f);
+		Val(TEXT("Jira : tirs, dash, pouvoirs (x)"), TEXT("VolJira"), 0.1f);
+		Val(TEXT("Impacts, morts, explosions (x)"), TEXT("VolImpacts"), 0.1f);
+		Val(TEXT("Ennemis (x)"), TEXT("VolEnnemis"), 0.1f);
+		Val(TEXT("Monde : portes, cuves, objets (x)"), TEXT("VolMonde"), 0.1f);
+		Sw(TEXT("Ennemis placés gauche / droite"), TEXT("SonSpatial"));
 		Sec(TEXT("Rendu"));
 		Sw(TEXT("Post-process anime (trait + film)"), TEXT("PPPaint"));
 		Sw(TEXT("Post-process complet (expo, bloom)"), TEXT("PPAll"));

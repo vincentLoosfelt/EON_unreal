@@ -166,6 +166,15 @@ Le proto synthétise tout. Rien n'existe en fichier. Les 31 sons du proto, par l
 
 Plus une petite voix synthétique par personnage pour le défilement des dialogues, et aucune musique.
 
+> **25/11/2026 : pack « Old-School Shonen SFX » de Helton Yan** (120 sons, **CC BY 4.0 : crédit obligatoire** dans le jeu), fourni par Vincent.
+> - Assets : `/Game/EON/Audio/OldSchoolShonen/<Famille>/SFX_Shonen_<Famille>_NN`. Les WAV sources (1 Go, 96 kHz) sont dans `Audio_Sources/OldSchoolShonen`, hors Git. Import : `Saved/Scripts/eon_import_shonen.py`.
+> - Branchés par `EONSfx::Event(clé)`. La table clé → son est dans `EONSfx.cpp`. Choix provisoires, à valider à l'écoute avec `Audio_Sources/OldSchoolShonen/Planche_Ecoute.html` :
+>   - combat : `hit`, `kill`, `hurt`, `dash` (+ `run`, le départ de la course), `fall`, `efall`, `explode` ;
+>   - pouvoirs : `slash`, `charge`, `ready` (charge pleine), `spell`, `pulse` (onde maintenue), `mut`, `grow`, `holo`, `ult`.
+> - Toujours sans son : `shoot`, `burst` et `shotgun` (les placeholders Kenney font le tir), `eshot` (Kenney), `tele`, `whip`, `mortar`, `glass`, `deny`, `pickup`, les pas, les voix de dialogue.
+> - Sons de synthèse encore en place, à remplacer par de vrais enregistrements libres : `SFX_Proto_alarm`, `card`, `door`, `hiss`, `hurt` (Cartographe), `item`, `lift`, `roar`. `explode` est remplacé.
+> - Volume : menu F6, rubrique Son. Réglages `Sound`, `Vol` (0,5 = volume de référence), groupes `VolJira`, `VolImpacts`, `VolEnnemis`, `VolMonde`. Avec `SonSpatial`, les sons joués depuis un ennemi s'entendent à gauche ou à droite selon sa position par rapport à Jira : l'oreille est sur Jira, tournée comme la caméra. Pas de baisse de volume à moins de 15 m.
+
 ## 9. Écarts de réglage
 
 Quand une valeur du proto a dû être corrigée pour la 3D. Une ligne par écart.
@@ -230,7 +239,7 @@ Fait : ADN aspiré et barre de niveau, écran de niveau à 3 cartes (jeu en paus
 - Touches : flèches pour naviguer et changer (Maj x10, Ctrl /5, Maj+haut/bas = rubrique), Entrée pour une action, Échap pour fermer ; Jira reste jouable en ZQSD et souris. F1 à F5 sont pris par Unreal (modes de vue en PIE), d'où F6 / F7.
 - Nouveaux réglages ajoutés au banc (pas dans le proto) : DashMul, EnemyHp, EnemySpeed, EnemyDmg, WaveMul, InfEnergy, InfDash, OneShot.
 - Rubrique « Rendu » du menu F6 : « Filtre peinture » (poids du blendable M_PP_EON_Peinture) et « Post-process complet » (active/coupe PP_Etage ou PP_HUB entier : exposition manuelle, bloom). Réglages PPPaint / PPAll.
-- Retirés du menu F6 car branchés sur rien dans le portage : Crt, Paint, Dark, Holes, Light, Ambient, Sound, Vol, Shells, Regen, BossHp. Ils restent dans DT_GameFeel (données du proto) ; à rebrancher avec le son, les douilles, les boss, ou à supprimer.
+- Retirés du menu F6 car branchés sur rien dans le portage : Crt, Paint, Dark, Holes, Light, Ambient, Shells, Regen, BossHp (Sound et Vol rebranchés le 25/11, rubrique Son). Ils restent dans DT_GameFeel (données du proto) ; à rebrancher avec le son, les douilles, les boss, ou à supprimer.
 
 ## Jalon 8 : la méta (16/11), première partie
 

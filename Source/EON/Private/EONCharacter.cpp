@@ -230,6 +230,7 @@ void AEONCharacter::HurtPlayer(int32 Amount, FVector SourceWorld)
 	if (ArmorPerm > 0 && FMath::FRand() < Feel.ArmBlock * ArmorPerm)
 	{
 		InvTimer = 0.5f;
+		EONSfx::Event(this, TEXT("hit"));
 		if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.15f); }
 		if (AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld())) { D->AddNum(GetActorLocation() + FVector(0.f, 0.f, 120.f), TEXT("Bloque"), FColor(224, 90, 138), 0.8f, -30.f); }
 		// Armure qui bloque : 12 éclats rose et blanc (80 px/s), 0,3 s.
@@ -241,6 +242,7 @@ void AEONCharacter::HurtPlayer(int32 Amount, FVector SourceWorld)
 	ShieldT = 0.f;
 	InvTimer = 1.f;
 	HurtFlash = 0.25f;
+	EONSfx::Event(this, TEXT("hurt"));
 	if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.55f); }
 	if (UEONTuningSubsystem* Tun = UEONTuningSubsystem::Get(this)) { Tun->RequestHitstop(Feel.Hitstop * 1.2f + 30.f); }
 	// Recul : 120 px/s à l'opposé de la source.
@@ -342,6 +344,7 @@ void AEONCharacter::KeepOnGround()
 		RecoilVel = FVector::ZeroVector;
 		SmoothMove = FVector2D::ZeroVector;
 		++FallCount;
+		EONSfx::Event(this, TEXT("fall"));
 	}
 }
 
@@ -507,7 +510,9 @@ void AEONCharacter::Tick(float DeltaSeconds)
 
 	// --- Course (façon Hades) : maintenir le bouton du dash plus de 0,2 s en se déplaçant.
 	HoldTimer = (bDashHeld && DashRemaining <= 0.f && !bFallingIntoVoid) ? HoldTimer + Dt : 0.f;
+	const bool bWasRunning = bRunning;
 	bRunning = (HoldTimer > RunHoldTime || (bSprintHeld && !bFallingIntoVoid)) && DashRemaining <= 0.f && RawMove.Size() > 0.2f;
+	if (bRunning && !bWasRunning) { EONSfx::Event(this, TEXT("run")); }
 	// Poussière de course : un grain toutes les 0,07 s derrière les pieds (0,35 s, sans frein).
 	RunFxT -= Dt;
 	if (bRunning && RunFxT <= 0.f)
@@ -648,6 +653,7 @@ void AEONCharacter::PressDash()
 		DashDir = FVector(FMath::Cos(AimAngle), FMath::Sin(AimAngle), 0.f);
 	}
 	DashRemaining = DashDuration;
+	EONSfx::Event(this, TEXT("dash"));
 	--DashCharges;
 	if (UEONStatics::GetGameFeel(this).InfDash) { DashCharges = DashMax; }
 	InvTimer = FMath::Max(InvTimer, DashInvulnerability);
@@ -734,6 +740,7 @@ void AEONCharacter::Spend(float Cost)
 		Mut = 1;
 		MutT = 0.f;
 		PeakMut = FMath::Max(PeakMut, 1);
+		EONSfx::Event(this, TEXT("mut"));
 		if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.35f); }
 		Banner(TEXT("Mutation - stade 1"), FColor(255, 61, 85));
 	}
@@ -1066,6 +1073,7 @@ void AEONCharacter::UpdateMutation(float Dt, const FEONGameFeelRow& Feel)
 				++Mut;
 				MutT = 0.f;
 				PeakMut = FMath::Max(PeakMut, Mut);
+				EONSfx::Event(this, TEXT("mut"));
 				if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.35f); }
 				Banner(FString::Printf(TEXT("Mutation - stade %d"), Mut), ColRed);
 			}
@@ -1084,7 +1092,7 @@ void AEONCharacter::UpdateMutation(float Dt, const FEONGameFeelRow& Feel)
 					Energy = Cap * 0.3f;
 					const int32 Np = FMath::Max(ArmorPerm, FMath::Min(ArmorPerm + 1, PeakMut));
 					PeakMut = 0;
-					if (Np > ArmorPerm) { ArmorPerm = Np; Banner(TEXT("Etat sain - l'armure reste"), ColAm); }
+					if (Np > ArmorPerm) { ArmorPerm = Np; EONSfx::Event(this, TEXT("grow")); Banner(TEXT("Etat sain - l'armure reste"), ColAm); }
 					else { Banner(TEXT("Etat sain"), ColCy); }
 				}
 			}
@@ -1152,8 +1160,9 @@ void AEONCharacter::UpdateWeapon(float Dt, const FEONGreffeRow& G, const FEONGam
 		const float Full = G.Charge * ChargeM / FMath::Max(0.01f, Feel.RateMul);
 		if (bFire && BurstQ <= 0)
 		{
+			if (Charge <= 0.f) { EONSfx::Event(this, TEXT("charge")); }
 			Charge = FMath::Min(Full, Charge + Dt);
-			if (Charge >= Full && !bCharged) { bCharged = true; }
+			if (Charge >= Full && !bCharged) { bCharged = true; EONSfx::Event(this, TEXT("ready")); }
 		}
 		else if (Charge > 0.f)
 		{
@@ -1222,6 +1231,7 @@ void AEONCharacter::DoSlash(float A, const FEONGreffeRow& G, const FEONGameFeelR
 	AEONTileRoom* Room = GetRoomPx(J, T, A);
 	const float R = G.Range * (1.f + 0.15f * Size) * FMath::Sqrt(RangeM), Arc = G.Arc + Size * 0.15f;
 	if (G.Cost > 0.f) { Spend(G.Cost * Feel.EnergyCost); }   // la Lame ne coûte rien et ne nourrit pas la mutation
+	EONSfx::Event(this, TEXT("slash"));
 	CrossT = 1.f;   // proto : le coup de lame ouvre le réticule en grand
 	if (Room)
 	{
@@ -1358,6 +1368,7 @@ void AEONCharacter::CastHolo()
 	Holo = EONFx::Fantome(this, GetMesh(), EONFx::Hex(TEXT("3ef2e0")), 0.55f, 5.5f);
 	if (AEONFxPiece* Hp = Holo.Get()) { Hp->bNoFade = true; }
 	DecoyHp = 8.f;
+	EONSfx::Event(this, TEXT("holo"));
 	Spend(28.f);
 	// Apparition de l'hologramme : 16 éclats cyan (±30 px/s), 0,4 s, frein 3.
 	EONFx::Gerbe(this, JiraFeetUp(this, 10.f), 16, EONFx::Hex(TEXT("3ef2e0")), 42.f, 0.4f, 1.f, 3.f);
@@ -1381,16 +1392,16 @@ void AEONCharacter::UpdateSpells(float Dt, const FEONGameFeelRow& Feel)
 		SpT += Dt;
 		if (!bSpellHeld || bBlk || bFallingIntoVoid)
 		{
-			if (!bSpMaint && SpellCd <= 0.f && !bBlk) { Shockwave(56.f, 1.f * DmgMult(), 3.4f, true); Spend(18.f); SpellCd = 0.9f * CdM; }
+			if (!bSpMaint && SpellCd <= 0.f && !bBlk) { Shockwave(56.f, 1.f * DmgMult(), 3.4f, true); EONSfx::Event(this, TEXT("spell")); Spend(18.f); SpellCd = 0.9f * CdM; }
 			bSpHold = false;
 			bSpMaint = false;
 		}
 		else if (SpT > 0.25f)
 		{
-			if (!bSpMaint) { bSpMaint = true; SpPulse = 0.f; }
+			if (!bSpMaint) { bSpMaint = true; SpPulse = 0.f; EONSfx::Event(this, TEXT("charge")); }
 			SpPulse -= Dt;
 			Spend(30.f * Dt);
-			if (SpPulse <= 0.f) { Shockwave(44.f, 1.2f * DmgMult(), 1.7f, false); SpPulse = 0.22f; }
+			if (SpPulse <= 0.f) { Shockwave(44.f, 1.2f * DmgMult(), 1.7f, false); SpPulse = 0.22f; EONSfx::Event(this, TEXT("pulse")); }
 		}
 	}
 	if (bHoloPress) { CastHolo(); }
@@ -1448,6 +1459,7 @@ void AEONCharacter::StartQTE()
 	QTEIdx = 0;
 	QTET = 3.2f;
 	bQTE = true;
+	EONSfx::Event(this, TEXT("charge"));
 	bFireHeld = false;
 	QTEPrevDir = 255;   // il faut d'abord relâcher la direction
 	if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.1f); }
@@ -1492,6 +1504,7 @@ void AEONCharacter::UltFire()
 {
 	Ult = 0.f;
 	CutinT = 1.1f;
+	EONSfx::Event(this, TEXT("ult"));
 	if (UEONTuningSubsystem* Tun = UEONTuningSubsystem::Get(this)) { Tun->RequestHitstop(1000.f); }
 	int32 K = 0;
 	for (AEONEnemy* E : LiveEnemies(GetWorld())) { FUltStrike S; S.E = E; S.T = 0.15f + K * 0.09f; UltStrikes.Add(S); ++K; }

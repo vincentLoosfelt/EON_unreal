@@ -14,6 +14,7 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "EONSfx.h"
 
 TWeakObjectPtr<AEONBoss> AEONBoss::Active;
 
@@ -205,6 +206,7 @@ void AEONBoss::HitPx(float Dmg, float Dx, float Dy, float KMul)
 	}
 	const FEONGameFeelRow F = UEONStatics::GetGameFeel(this);
 	Hp -= Dmg;
+	EONSfx::Event(this, TEXT("hit"));
 	// 3 éclats vers le tireur (-d × 40 px/s ± 45), 0,3 s, rose-chair (le premier blanc).
 	if (Rf) { EONFx::GerbeDir2(this, Rf->RoomPxToWorld(FVector2D(Pos.X - Dx * 12.f, Pos.Y - Dy * 10.f), Cm(20.f)), FVector(-Dx, -Dy, 0.f), 3, 3, EONFx::Hex(TEXT("c84a7a")), FLinearColor::White, 85.f, 0.3f); }
 	Flash = F.HitFlash ? 0.07f : 0.f;
