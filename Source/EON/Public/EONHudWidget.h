@@ -41,8 +41,8 @@ private:
 	void PaintNotices(const EONHud::FPaint& P, const AEONCharacter& J, const AEONFloorManager* F, bool bPad) const;
 	/** Écran titre : logotype de la charte, sauvegarde du PC, Continuer / Nouvelle partie. */
 	void PaintTitle(const EONHud::FPaint& P, const class UEONUISubsystem& UI) const;
-	/** Mort : « SIGNAL PERDU » entre crochets rouges, R : nouvelle run, déblocages de la run. */
-	void PaintDead(const EONHud::FPaint& P) const;
+	/** Mort : « SIGNAL PERDU » entre crochets rouges, bilan de la run, R / A : nouvelle run, déblocages de la run. */
+	void PaintDead(const EONHud::FPaint& P, const AEONCharacter& Jr, const AEONFloorManager* F) const;
 	/** Montée de niveau : cartouche « NIVEAU N | ADN ASSIMILÉ » et trois cartes. */
 	void PaintLevelUp(const EONHud::FPaint& P, const AEONCharacter& J) const;
 

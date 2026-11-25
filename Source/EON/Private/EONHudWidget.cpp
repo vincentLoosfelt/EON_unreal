@@ -1,6 +1,7 @@
 #include "EONHudWidget.h"
 #include "EONBoss.h"
 #include "EONCharacter.h"
+#include "EONCombatDirector.h"
 #include "EONEnemy.h"
 #include "EONFloorManager.h"
 #include "EONItems.h"
@@ -224,7 +225,7 @@ int32 UEONHudWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Allott
 	if (J && (J->IsLevelUpOpen() || J->IsDead()))
 	{
 		const FPaint Po(AllottedGeometry, OutDrawElements, LayerId + 14);
-		if (J->IsDead()) { PaintDead(Po); } else { PaintLevelUp(Po, *J); }
+		if (J->IsDead()) { PaintDead(Po, *J, F); } else { PaintLevelUp(Po, *J); }
 		return LayerId + 20;
 	}
 	return LayerId + 12;
@@ -1125,7 +1126,7 @@ void UEONHudWidget::PaintTitle(const EONHud::FPaint& P, const UEONUISubsystem& U
 	P.Rect(390.f, 1040.f, 6.f, 4.f, RedC);
 }
 
-void UEONHudWidget::PaintDead(const EONHud::FPaint& P) const
+void UEONHudWidget::PaintDead(const EONHud::FPaint& P, const AEONCharacter& Jr, const AEONFloorManager* F) const
 {
 	const float SW = P.W(), Cx = SW * 0.5f;
 	P.Rect(0.f, 0.f, SW, 1080.f, A(Bg, 0.86f));
@@ -1149,20 +1150,52 @@ void UEONHudWidget::PaintDead(const EONHud::FPaint& P) const
 	P.Line({ { Bx + Bw - Br, By }, { Bx + Bw, By }, { Bx + Bw, By + Th }, { Bx + Bw - Br, By + Th } }, RedC, 3.f);
 	P.Text(TEXT("LIAISON AVEC JIRA INTERROMPUE"), Cx, Ty + Th + 18.f, 0, 18.f, A(RedC, 0.8f), 1);
 
-	// Invite : touche R, nouvelle run.
+	// Bilan de la run : six tuiles (étage, salles, ennemis, chutes, scrap, ADN).
 	{
+		const AEONCombatDirector* CD = AEONCombatDirector::Get(GetWorld());
+		struct FStat { const TCHAR* L; int32 V; FLinearColor C; };
+		const FStat St[] = {
+			{ TEXT("ÉTAGE"), FMath::Max(1, CD ? CD->GetFloorN() : 1), Amber },
+			{ TEXT("SALLES"), F ? F->GetRoomN() : 0, Amber },
+			{ TEXT("ENNEMIS"), CD ? CD->Kills : 0, Amber },
+			{ TEXT("CHUTES"), Jr.GetFallCount(), Orange },
+			{ TEXT("SCRAP"), CD ? CD->Scrap : 0, White },
+			{ TEXT("ADN"), CD ? CD->AdnGained : 0, Green },
+		};
+		const float Tw2 = 170.f, Gap = 14.f, Th2 = 96.f, Y = 540.f, X0 = Cx - (6.f * Tw2 + 5.f * Gap) * 0.5f;
+		P.Text(TEXT("BILAN DE LA RUN"), Cx, Y - 34.f, 0, 16.f, A(White, 0.5f), 1);
+		for (int32 I = 0; I < 6; ++I)
+		{
+			const float X = X0 + I * (Tw2 + Gap), Ch = 14.f;
+			P.Poly({ { X, Y }, { X + Tw2, Y }, { X + Tw2, Y + Th2 - Ch }, { X + Tw2 - Ch, Y + Th2 }, { X, Y + Th2 } }, A(Bg, 0.9f));
+			P.Line({ { X, Y }, { X + Tw2, Y }, { X + Tw2, Y + Th2 - Ch }, { X + Tw2 - Ch, Y + Th2 }, { X, Y + Th2 }, { X, Y } }, A(St[I].C, 0.55f), 1.5f);
+			P.Rect(X, Y, 6.f, Th2, A(St[I].C, 0.9f));
+			P.Text(St[I].L, X + Tw2 * 0.5f + 3.f, Y + 12.f, 0, 15.f, A(St[I].C, 0.8f), 1);
+			P.Text(FString::FromInt(St[I].V), X + Tw2 * 0.5f + 3.f, Y + 36.f, 0, 42.f, White, 1);
+		}
+	}
+
+	// Invite : R ou clic (clavier), A (manette), nouvelle run.
+	{
+		const APlayerController* OPC = GetOwningPlayer();
+		const AEONPlayerController* EPC = Cast<AEONPlayerController>(OPC);
+		const bool bPad = EPC && EPC->IsUsingGamepad();
+		const FString Key = bPad ? TEXT("A") : TEXT("R");
 		const FString Act = TEXT("NOUVELLE RUN");
-		const float Kw = 48.f, Aw = P.Measure(Act, 0, 28.f).X, X = Cx - (Kw + 18.f + Aw) * 0.5f, Y = 560.f;
-		P.Poly({ { X, Y }, { X + Kw - 12.f, Y }, { X + Kw, Y + 12.f }, { X + Kw, Y + Kw }, { X, Y + Kw } }, White);
-		P.Text(TEXT("R"), X + Kw * 0.5f, Y + 7.f, 0, 28.f, Bg, 1);
+		const float Kw = 48.f, Aw = P.Measure(Act, 0, 28.f).X, X = Cx - (Kw + 18.f + Aw) * 0.5f, Y = 690.f;
+		const bool bOn = Blink(1.2f, 0.9f);
+		P.Poly({ { X, Y }, { X + Kw - 12.f, Y }, { X + Kw, Y + 12.f }, { X + Kw, Y + Kw }, { X, Y + Kw } }, A(White, bOn ? 1.f : 0.75f));
+		P.Text(Key, X + Kw * 0.5f, Y + 7.f, 0, 28.f, Bg, 1);
 		P.Text(Act, X + Kw + 18.f, Y + 7.f, 0, 28.f, White);
+		P.Line({ { X + Kw + 18.f, Y + Kw + 6.f }, { X + Kw + 18.f + Aw, Y + Kw + 6.f } }, Amber, 2.f);
+		if (!bPad) { P.Text(TEXT("ou clic"), Cx, Y + Kw + 18.f, 2, 18.f, A(White, 0.5f), 1); }
 	}
 
 	// Déblocages de la run.
 	const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
 	if (MS && MS->GetRunUnlocks().Num())
 	{
-		float Y = 680.f;
+		float Y = 800.f;
 		P.Text(TEXT("DÉBLOQUÉ PENDANT LA RUN"), Cx, Y, 0, 20.f, Amber, 1);
 		P.Line({ { Cx - 260.f, Y + 36.f }, { Cx + 260.f, Y + 36.f } }, A(Amber, 0.4f), 0.75f);
 		Y += 52.f;

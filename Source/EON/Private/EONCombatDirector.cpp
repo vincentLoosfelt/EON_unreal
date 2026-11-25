@@ -773,25 +773,12 @@ void AEONCombatDirector::RestartRun()
 
 void AEONCombatDirector::UpdateDeathScreen()
 {
-	// drawDead : le titre « Signal perdu » est dessiné par AEONHUD ; ici le bilan de la run et la relance.
+	// drawDead : écran et bilan dessinés par UEONHudWidget::PaintDead ; ici la relance.
 	const double Now = FPlatformTime::Seconds();
 	if (DeadSince < 0.0)
 	{
 		DeadSince = Now;
 		if (const AEONCharacter* J = GetJira()) { UE_LOG(LogEON, Display, TEXT("EON signal perdu : étage %d, %d ennemis, %d chutes, %d scrap"), GetFloorN(), Kills, J->GetFallCount(), Scrap); }
-	}
-	const AEONCharacter* J = GetJira();
-	const AEONFloorManager* F = GetFloor();
-	if (GEngine)
-	{
-		const FColor Wh = FColor::White;
-		// Clés fixes : les lignes se remplacent d'une image à l'autre (ordre inverse d'affichage).
-		GEngine->AddOnScreenDebugMessage(9105, 0.f, ColCy, TEXT("Clic ou R pour relancer  /  (A) pour relancer"), true, FVector2D(1.6f, 1.6f));
-		GEngine->AddOnScreenDebugMessage(9104, 0.f, Wh, FString::Printf(TEXT("Chutes : %d   Scrap : %d   ADN : %d"), J ? J->GetFallCount() : 0, Scrap, AdnGained), true, FVector2D(1.4f, 1.4f));
-		GEngine->AddOnScreenDebugMessage(9103, 0.f, Wh, FString::Printf(TEXT("Ennemis éliminés : %d"), Kills), true, FVector2D(1.4f, 1.4f));
-		GEngine->AddOnScreenDebugMessage(9102, 0.f, Wh, FString::Printf(TEXT("Salles traversées : %d"), F ? F->GetRoomN() : 0), true, FVector2D(1.4f, 1.4f));
-		GEngine->AddOnScreenDebugMessage(9101, 0.f, Wh, FString::Printf(TEXT("Étage atteint : %d"), FMath::Max(1, GetFloorN())), true, FVector2D(1.4f, 1.4f));
-		GEngine->AddOnScreenDebugMessage(9100, 0.f, ColRed, TEXT("Signal perdu"), true, FVector2D(2.5f, 2.5f));
 	}
 	if (Now - DeadSince < 0.5) { return; }   // pas de relance sur un clic de tir encore enfoncé
 	if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
