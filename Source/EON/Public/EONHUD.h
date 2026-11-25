@@ -23,9 +23,7 @@ private:
 	void EnsureHudWidget();
 	UPROPERTY(Transient) TObjectPtr<class UEONHudWidget> HudWidget;
 	void DrawDevMenu();
-	// Jalon 8 : méta et écrans figés (coordonnées du proto 480 × 270, origine O).
-	void Box(float X, float Y, float W, float H, const FLinearColor& Border, const FLinearColor& Fill);
-	void DrawTitle();
+	// Écran titre, terminal, mort, montée de niveau, bannières : UEONHudWidget (charte).
 	/** Chiffres de dégâts manga (Vincent, 25/11) : police Bangers, contour noir épais, qui jaillissent en grossissant. */
 	void DrawNums();
 	/** Gros coup : traits de vitesse radiaux (procéduraux, 12 i/s) centrés sur le point du coup, puis onomatopée P7. */

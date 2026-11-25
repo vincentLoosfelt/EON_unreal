@@ -12,6 +12,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Fonts/SlateFontInfo.h"
+#include "Styling/SlateBrush.h"
 #include "EONHudWidget.generated.h"
 
 class AEONEnemy;
@@ -25,6 +26,7 @@ class EON_API UEONHudWidget : public UUserWidget
 {
 	GENERATED_BODY()
 public:
+	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual int32 NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect,
 		FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
@@ -37,6 +39,12 @@ private:
 	void PaintCom(const EONHud::FPaint& P, const class UEONUISubsystem& UI, const AEONCharacter& J, const AEONFloorManager* F) const;
 	/** Bannière centrale, invites (touche + action), fiche du socle, transmission d'un log, encart « DÉBLOQUÉ ». */
 	void PaintNotices(const EONHud::FPaint& P, const AEONCharacter& J, const AEONFloorManager* F, bool bPad) const;
+	/** Écran titre : logotype de la charte, sauvegarde du PC, Continuer / Nouvelle partie. */
+	void PaintTitle(const EONHud::FPaint& P, const class UEONUISubsystem& UI) const;
+	/** Mort : « SIGNAL PERDU » entre crochets rouges, R : nouvelle run, déblocages de la run. */
+	void PaintDead(const EONHud::FPaint& P) const;
+	/** Montée de niveau : cartouche « NIVEAU N | ADN ASSIMILÉ » et trois cartes. */
+	void PaintLevelUp(const EONHud::FPaint& P, const AEONCharacter& J) const;
 
 	struct FToast { FString Txt; FLinearColor Col; float T = 0.f; };
 	TArray<FToast> Toasts;
@@ -45,4 +53,7 @@ private:
 	TWeakObjectPtr<AEONEnemy> Foe;
 	float FoeT = 0.f;
 	float Clock = 0.f;
+
+	UPROPERTY(Transient) TObjectPtr<class UTexture2D> LogoTex;
+	FSlateBrush LogoBrush;
 };

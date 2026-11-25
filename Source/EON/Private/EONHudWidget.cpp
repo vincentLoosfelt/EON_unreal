@@ -16,6 +16,7 @@
 #include "EngineUtils.h"
 #include "Fonts/CompositeFont.h"
 #include "Fonts/FontMeasure.h"
+#include "ImageUtils.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/HUD.h"
 #include "Kismet/GameplayStatics.h"
@@ -202,7 +203,13 @@ int32 UEONHudWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Allott
 	const FEONDlgLine* Dl = UI && !bTitle ? UI->DlgLine() : nullptr;
 	const bool bHud = J && !(Hud && !Hud->bShowHUD) && !bTitle && !(UI && UI->IsComOpen()) && !(F && F->IsCinematic());   // terminal du C.O.M ouvert : pas de HUD (Vincent, 25/11)
 	const bool bCom = J && UI && UI->IsComOpen() && !bTitle;
-	const bool bNotice = J && !bTitle && !bCom && !(Hud && !Hud->bShowHUD);   // bannières et invites, même en cinématique
+	const bool bNotice = J && !bTitle && !bCom && !(Hud && !Hud->bShowHUD) && !J->IsLevelUpOpen() && !J->IsDead();   // bannières et invites, même en cinématique
+	if (bTitle && UI)
+	{
+		const FPaint Pt(AllottedGeometry, OutDrawElements, LayerId + 1);
+		PaintTitle(Pt, *UI);
+		return LayerId + 12;
+	}
 	if (!bHud && !Dl && !bCom && !bNotice) { return LayerId; }
 	const FPaint P(AllottedGeometry, OutDrawElements, LayerId + 1);
 	if (bHud) { PaintHud(P, J, F, Dl != nullptr); }
@@ -213,6 +220,13 @@ int32 UEONHudWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Allott
 		PaintNotices(P, *J, F, EPC && EPC->IsUsingGamepad());
 	}
 	if (Dl) { PaintDialog(P, *Dl, UI->DlgShown()); }
+	// Écrans par-dessus le HUD : montée de niveau, mort.
+	if (J && (J->IsLevelUpOpen() || J->IsDead()))
+	{
+		const FPaint Po(AllottedGeometry, OutDrawElements, LayerId + 14);
+		if (J->IsDead()) { PaintDead(Po); } else { PaintLevelUp(Po, *J); }
+		return LayerId + 20;
+	}
 	return LayerId + 12;
 }
 
@@ -370,6 +384,25 @@ void UEONHudWidget::PaintHud(const EONHud::FPaint& P, const AEONCharacter* J, co
 		P.Poly({ { X0, Y0 + Mh - 36.f }, { X0 + 36.f, Y0 + Mh }, { X0, Y0 + Mh } }, Amber, 3);
 		P.Text(L1, X0 + Mw - 8.f, Y0 + Mh - 42.f, 1, 19.f, White, 2, 4);
 		P.Text(L2, X0 + Mw - 8.f, Y0 + Mh - 21.f, 2, 13.f, A(White, 0.85f), 2, 4);
+	}
+
+	// Objets de quête en poche (carte rouge, Lapin) : au-dessus des greffes, en bas à gauche.
+	if (F)
+	{
+		float Qx = M;
+		const float Qy = SH - 196.f;
+		auto Tag = [&](const FString& S, const FLinearColor& C, bool bCard)
+		{
+			const float Tw = P.Measure(S, 0, 16.f).X, Wd = 48.f + Tw + 16.f;
+			P.Rect(Qx, Qy, Wd, 30.f, A(Bg, 0.8f));
+			P.Line({ { Qx, Qy }, { Qx + Wd, Qy }, { Qx + Wd, Qy + 30.f }, { Qx, Qy + 30.f }, { Qx, Qy } }, A(C, 0.8f), 1.f);
+			if (bCard) { P.Rect(Qx + 10.f, Qy + 7.f, 26.f, 16.f, C, 1); P.Rect(Qx + 10.f, Qy + 11.f, 26.f, 3.f, White, 2); }
+			else { P.Poly({ { Qx + 23.f, Qy + 6.f }, { Qx + 33.f, Qy + 15.f }, { Qx + 23.f, Qy + 24.f }, { Qx + 13.f, Qy + 15.f } }, C, 1); }
+			P.Text(S, Qx + 48.f, Qy + 5.f, 0, 16.f, C);
+			Qx += Wd + 10.f;
+		};
+		if (F->HasRedCard()) { Tag(TEXT("CARTE ROUGE"), RedC, true); }
+		if (F->HasDoudou()) { Tag(TEXT("LAPIN (PELUCHE)"), Orange, false); }
 	}
 
 	// Pendant un dialogue, la boîte occupe le bas de l'écran : on s'arrête aux éléments du haut.
@@ -974,5 +1007,227 @@ void UEONHudWidget::PaintNotices(const EONHud::FPaint& P, const AEONCharacter& J
 			P.Text(Hd, Bx + 90.f, TopY + 14.f, 0, 16.f, A(Amber, Al));
 			P.Text(Ud->Name, Bx + 90.f, TopY + 40.f, 0, 30.f, A(White, Al));
 		}
+	}
+}
+
+// ---------------------------------------------------------------- écrans plein cadre (charte) : titre, mort, montée de niveau
+
+void UEONHudWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	// Logotype de la charte (page « 01 LOGOTYPE »), PNG transparent lu depuis Content/EON/UI/Images (stagé en UFS).
+	if (!LogoTex)
+	{
+		LogoTex = FImageUtils::ImportFileAsTexture2D(FPaths::ProjectContentDir() / TEXT("EON/UI/Images/EON_Logo.png"));
+		if (LogoTex)
+		{
+			LogoBrush.SetResourceObject(LogoTex);
+			LogoBrush.ImageSize = FVector2D(LogoTex->GetSizeX(), LogoTex->GetSizeY());
+			LogoBrush.DrawAs = ESlateBrushDrawType::Image;
+		}
+	}
+}
+
+namespace EONHud
+{
+	/** Coupe le texte à la largeur Wd (mesure réelle). */
+	TArray<FString> WrapW(const FPaint& P, const FString& S, int32 Fo, float Px, float Wd)
+	{
+		TArray<FString> Out, Words; S.ParseIntoArray(Words, TEXT(" "), true);
+		FString Cur;
+		for (const FString& Wo : Words)
+		{
+			const FString Try = Cur.IsEmpty() ? Wo : Cur + TEXT(" ") + Wo;
+			if (!Cur.IsEmpty() && P.Measure(Try, Fo, Px).X > Wd) { Out.Add(Cur); Cur = Wo; }
+			else { Cur = Try; }
+		}
+		if (!Cur.IsEmpty()) { Out.Add(Cur); }
+		return Out;
+	}
+	/** Grille de fond de la charte (page « 04 PATERNE » : 12 colonnes, trait fin). */
+	void BgGrid(const FPaint& P, float Al)
+	{
+		const float SW = P.W();
+		for (float X = 0.f; X < SW; X += 60.f) { P.Line({ { X, 0.f }, { X, 1080.f } }, A(Amber, 0.035f * Al), 1.f, 0); }
+		for (float Y = 0.f; Y < 1080.f; Y += 60.f) { P.Line({ { 0.f, Y }, { SW, Y } }, A(Amber, 0.035f * Al), 1.f, 0); }
+	}
+	/** Bouton de la charte : plein ambre (choisi), contour blanc (non choisi), crochets rouges (danger). */
+	void Button(const FPaint& P, const FString& S, float Cx, float Y, float Wd, float H, int32 Kind)
+	{
+		const float X = Cx - Wd * 0.5f;
+		if (Kind == 1) { P.Rect(X, Y, Wd, H, Amber, 1); P.Glow(X, Y, Wd, H, Amber); }
+		else if (Kind == 2)
+		{
+			const float Br = 14.f;
+			P.Line({ { X + Br, Y }, { X, Y }, { X, Y + H }, { X + Br, Y + H } }, RedC, 2.f);
+			P.Line({ { X + Wd - Br, Y }, { X + Wd, Y }, { X + Wd, Y + H }, { X + Wd - Br, Y + H } }, RedC, 2.f);
+		}
+		else { P.Line({ { X, Y }, { X + Wd, Y }, { X + Wd, Y + H }, { X, Y + H }, { X, Y } }, A(White, 0.45f), 2.f, 1); }
+		P.Text(S, Cx, Y + H * 0.5f - 16.f, 0, 26.f, Kind == 1 ? Bg : Kind == 2 ? RedC : A(White, 0.7f), 1, 3);
+	}
+	/** Couleur d'une catégorie d'objet (mêmes teintes que les annonces « +1 »). */
+	FLinearColor CatColor(FName Cat)
+	{
+		return Cat == TEXT("GREFFE") ? Green : Cat == TEXT("CASSETTE") ? Orange : Cat == TEXT("DISQUETTE") ? CyanC : Cat == TEXT("PERK") ? Amber : White;
+	}
+}
+
+void UEONHudWidget::PaintTitle(const EONHud::FPaint& P, const UEONUISubsystem& UI) const
+{
+	const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+	const UEONSaveGame* M = MS ? MS->M() : nullptr;
+	const float SW = P.W(), Cx = SW * 0.5f;
+	P.Rect(0.f, 0.f, SW, 1080.f, A(Bg, 0.9f));
+	BgGrid(P, 1.f);
+
+	// Logotype.
+	if (LogoTex)
+	{
+		const float Lw = 720.f, Lh = Lw * LogoBrush.ImageSize.Y / FMath::Max(1.0, LogoBrush.ImageSize.X), Lx = Cx - Lw * 0.5f, Ly = 170.f;
+		FSlateDrawElement::MakeBox(P.L, P.Layer + 2, P.G.ToPaintGeometry(FVector2f(Lw, Lh) * P.K, FSlateLayoutTransform(FVector2f(Lx, Ly) * P.K)), &LogoBrush, ESlateDrawEffect::None, FLinearColor::White);
+	}
+	else { P.Text(TEXT("E.O.N"), Cx, 220.f, 0, 160.f, Amber, 1); }
+
+	// Ligne de transmission rouge : la sauvegarde de ce PC.
+	TArray<FString> Info = { TEXT("PARTIE EN COURS SUR CE PC") };
+	if (M)
+	{
+		if (M->bUlysse) { Info.Add(TEXT("ULYSSE AU KIBO")); }
+		if (M->bCobUnlock) { Info.Add(TEXT("COBAYE")); }
+		if (M->Crew.Num()) { Info.Add(FString::Printf(TEXT("INSIGNES %d/6"), M->Crew.Num())); }
+		if (M->Donnees) { Info.Add(FString::Printf(TEXT("DONNÉES %d"), M->Donnees)); }
+		Info.Add(FString::Printf(TEXT("%d RUN%s"), M->Runs, M->Runs > 1 ? TEXT("S") : TEXT("")));
+		Info.Add(FString::Printf(TEXT("%d DÉBLOCAGE%s"), M->Unl.Num(), M->Unl.Num() > 1 ? TEXT("S") : TEXT("")));
+	}
+	float Tw = 0.f;
+	for (const FString& S : Info) { Tw += P.Measure(S, 0, 16.f).X + 44.f; }
+	float X = Cx - Tw * 0.5f;
+	const float Iy = 600.f;
+	for (const FString& S : Info)
+	{
+		P.Rect(X, Iy + 6.f, 14.f, 6.f, RedC);
+		P.Text(S, X + 24.f, Iy, 0, 16.f, S.StartsWith(TEXT("DONNÉES")) ? CyanC : RedC);
+		X += P.Measure(S, 0, 16.f).X + 44.f;
+	}
+	P.Line({ { Cx - Tw * 0.5f, Iy + 34.f }, { Cx + Tw * 0.5f, Iy + 34.f } }, A(RedC, 0.6f), 0.75f);
+
+	// Continuer / Nouvelle partie (le second appui efface : crochets rouges).
+	const bool bWarn = UI.IsTitleConfirm();
+	for (int32 I = 0; I < 2; ++I)
+	{
+		const bool bOn = UI.GetTitleSel() == I;
+		const FString S = I == 0 ? TEXT("CONTINUER") : bWarn ? TEXT("CONFIRMER : TOUT EFFACER") : TEXT("NOUVELLE PARTIE");
+		Button(P, S, Cx + (I == 0 ? -240.f : 240.f), 690.f, 420.f, 66.f, I == 1 && bWarn ? 2 : bOn ? 1 : 0);
+	}
+	if (bWarn) { P.Text(TEXT("La progression sera effacée : Ulysse, Cobaye, insignes, logs, cassettes, données."), Cx, 790.f, 2, 22.f, Orange, 1); }
+	P.Text(TEXT("FLÈCHES OU Q/D : CHOISIR     ENTRÉE / (A) : VALIDER"), Cx, 980.f, 0, 16.f, A(Amber, 0.7f), 1);
+	P.Rect(60.f, 1040.f, 320.f, 4.f, RedC);
+	P.Rect(390.f, 1040.f, 6.f, 4.f, RedC);
+}
+
+void UEONHudWidget::PaintDead(const EONHud::FPaint& P) const
+{
+	const float SW = P.W(), Cx = SW * 0.5f;
+	P.Rect(0.f, 0.f, SW, 1080.f, A(Bg, 0.86f));
+	P.Rect(0.f, 0.f, SW, 1080.f, A(RedC, 0.06f));
+	BgGrid(P, 0.6f);
+	// Bandes de parasites qui défilent.
+	for (int32 I = 0; I < 4; ++I)
+	{
+		const float By = FMath::Fmod(Clock * (90.f + 53.f * I) + I * 211.f, 1080.f);
+		P.Rect(0.f, By, SW, 2.f + I, A(RedC, 0.08f));
+	}
+	// « SIGNAL PERDU » entre crochets, avec un décalage chromatique qui saute.
+	const FString S = TEXT("SIGNAL PERDU");
+	const float Tw = P.Measure(S, 0, 110.f).X, Ty = 330.f, Th = 130.f;
+	const float J = Blink(0.9f, 0.08f) ? 8.f : 2.f;
+	P.Text(S, Cx - J, Ty, 0, 110.f, A(CyanC, 0.35f), 1, 1);
+	P.Text(S, Cx + J, Ty, 0, 110.f, A(RedC, 0.6f), 1, 1);
+	P.Text(S, Cx, Ty, 0, 110.f, RedC, 1, 2);
+	const float Bx = Cx - Tw * 0.5f - 50.f, Bw = Tw + 100.f, Br = 26.f, By = Ty - 6.f;
+	P.Line({ { Bx + Br, By }, { Bx, By }, { Bx, By + Th }, { Bx + Br, By + Th } }, RedC, 3.f);
+	P.Line({ { Bx + Bw - Br, By }, { Bx + Bw, By }, { Bx + Bw, By + Th }, { Bx + Bw - Br, By + Th } }, RedC, 3.f);
+	P.Text(TEXT("LIAISON AVEC JIRA INTERROMPUE"), Cx, Ty + Th + 18.f, 0, 18.f, A(RedC, 0.8f), 1);
+
+	// Invite : touche R, nouvelle run.
+	{
+		const FString Act = TEXT("NOUVELLE RUN");
+		const float Kw = 48.f, Aw = P.Measure(Act, 0, 28.f).X, X = Cx - (Kw + 18.f + Aw) * 0.5f, Y = 560.f;
+		P.Poly({ { X, Y }, { X + Kw - 12.f, Y }, { X + Kw, Y + 12.f }, { X + Kw, Y + Kw }, { X, Y + Kw } }, White);
+		P.Text(TEXT("R"), X + Kw * 0.5f, Y + 7.f, 0, 28.f, Bg, 1);
+		P.Text(Act, X + Kw + 18.f, Y + 7.f, 0, 28.f, White);
+	}
+
+	// Déblocages de la run.
+	const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+	if (MS && MS->GetRunUnlocks().Num())
+	{
+		float Y = 680.f;
+		P.Text(TEXT("DÉBLOQUÉ PENDANT LA RUN"), Cx, Y, 0, 20.f, Amber, 1);
+		P.Line({ { Cx - 260.f, Y + 36.f }, { Cx + 260.f, Y + 36.f } }, A(Amber, 0.4f), 0.75f);
+		Y += 52.f;
+		for (const FName& Id : MS->GetRunUnlocks())
+		{
+			for (const FEONUnlockDef& Ud : UEONMetaSubsystem::Unlocks())
+			{
+				if (Ud.Id != Id) { continue; }
+				const FString K = Upper(Ud.Kind);
+				const float Kw = P.Measure(K, 0, 15.f).X, Nw = P.Measure(Ud.Name, 1, 24.f).X, X = Cx - (Kw + 20.f + Nw) * 0.5f;
+				P.Text(K, X, Y + 6.f, 0, 15.f, A(Amber, 0.7f));
+				P.Text(Ud.Name, X + Kw + 20.f, Y, 1, 24.f, White);
+				Y += 38.f;
+			}
+		}
+	}
+}
+
+void UEONHudWidget::PaintLevelUp(const EONHud::FPaint& P, const AEONCharacter& J) const
+{
+	const float SW = P.W(), Cx = SW * 0.5f;
+	P.Rect(0.f, 0.f, SW, 1080.f, A(Bg, 0.88f));
+	BgGrid(P, 0.8f);
+
+	// Cartouche « NIVEAU N | ADN ASSIMILÉ ».
+	const FString L = FString::Printf(TEXT("NIVEAU %d"), J.GetLevel()), R = TEXT("ADN ASSIMILÉ");
+	const float Lw = P.Measure(L, 0, 34.f).X + 40.f, Rw = P.Measure(R, 0, 40.f).X + 48.f, Hx = Cx - (Lw + Rw) * 0.5f, Hy = 110.f, Hh = 66.f;
+	P.Rect(Hx, Hy, Lw, Hh, Green);
+	P.Text(L, Hx + Lw * 0.5f, Hy + 11.f, 0, 34.f, Bg, 1);
+	P.Line({ { Hx + Lw, Hy }, { Hx + Lw + Rw, Hy }, { Hx + Lw + Rw, Hy + Hh }, { Hx + Lw, Hy + Hh } }, Green, 2.f);
+	P.Text(R, Hx + Lw + 24.f, Hy + 8.f, 0, 40.f, Green);
+	P.Text(TEXT("Choisis une amélioration : [1] [2] [3], ou greffe suivante puis tir"), Cx, Hy + Hh + 26.f, 2, 22.f, A(White, 0.6f), 1);
+
+	// Trois cartes.
+	const TArray<FName>& Opts = J.GetLevelOpts();
+	const float Cw = 420.f, Ch = 480.f, Gap = 44.f, X0 = Cx - (Cw * 3.f + Gap * 2.f) * 0.5f, Y0 = 300.f, Cc = 28.f;
+	for (int32 I = 0; I < Opts.Num() && I < 3; ++I)
+	{
+		const FEONItemDef* It = EONItems::Find(Opts[I]);
+		if (!It) { continue; }
+		const bool bSel = I == J.GetLevelSel();
+		const FLinearColor Rc = EONItems::Color(It->Rar);
+		const float X = X0 + I * (Cw + Gap), Y = Y0 - (bSel ? 12.f : 0.f), Ccx = X + Cw * 0.5f;
+		P.Poly({ { X, Y }, { X + Cw, Y }, { X + Cw, Y + Ch - Cc }, { X + Cw - Cc, Y + Ch }, { X, Y + Ch } }, A(Bg, 0.96f));
+		P.Line({ { X, Y }, { X + Cw, Y }, { X + Cw, Y + Ch - Cc }, { X + Cw - Cc, Y + Ch }, { X, Y + Ch }, { X, Y } }, bSel ? Amber : A(Amber, 0.3f), 2.f);
+		if (bSel) { P.Glow(X, Y, Cw, Ch, Amber); }
+		P.Rect(X, Y, Cw, 6.f, Rc);
+		// Numéro (touche) et catégorie.
+		P.Rect(X + 20.f, Y + 26.f, 44.f, 44.f, bSel ? Amber : A(Amber, 0.25f));
+		P.Text(FString::FromInt(I + 1), X + 42.f, Y + 32.f, 0, 26.f, bSel ? Bg : Amber, 1);
+		const FLinearColor Kc = CatColor(It->Cat);
+		const FString Cat = Upper(It->Cat.ToString());
+		const float Kw = P.Measure(Cat, 0, 16.f).X + 24.f;
+		P.Line({ { X + Cw - 20.f - Kw, Y + 30.f }, { X + Cw - 20.f, Y + 30.f }, { X + Cw - 20.f, Y + 62.f }, { X + Cw - 20.f - Kw, Y + 62.f }, { X + Cw - 20.f - Kw, Y + 30.f } }, Kc, 2.f);
+		P.Text(Cat, X + Cw - 20.f - Kw * 0.5f, Y + 36.f, 0, 16.f, Kc, 1);
+		// Pictogramme : trois segments penchés de la couleur de rareté.
+		for (int32 Kk = 0; Kk < 3; ++Kk) { P.Slant(Ccx - 100.f + Kk * 62.f, Y + 116.f, 76.f, 34.f, A(Rc, 0.4f + 0.3f * Kk)); }
+		// Nom, rareté, effet.
+		float Ty = Y + 186.f;
+		for (const FString& S : WrapW(P, It->Name, 0, 30.f, Cw - 50.f)) { P.Text(S, Ccx, Ty, 0, 30.f, Rc, 1); Ty += 38.f; }
+		P.Text(Upper(EONItems::RarName(It->Rar)), Ccx, Ty + 4.f, 0, 16.f, A(Rc, 0.8f), 1);
+		Ty += 46.f;
+		P.Line({ { X + 40.f, Ty }, { X + Cw - 40.f, Ty } }, A(Amber, 0.25f), 0.75f);
+		Ty += 20.f;
+		for (const FString& S : WrapW(P, It->Desc, 2, 22.f, Cw - 60.f)) { P.Text(S, Ccx, Ty, 2, 22.f, A(White, 0.86f), 1); Ty += 32.f; }
+		if (bSel) { Button(P, TEXT("CHOISIR"), Ccx, Y + Ch - 84.f, 220.f, 52.f, 1); }
 	}
 }

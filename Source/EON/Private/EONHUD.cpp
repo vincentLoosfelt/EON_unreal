@@ -238,16 +238,6 @@ void AEONHUD::DrawHUD()
 
 	if (const AEONFloorManager* FC = AEONFloorManager::Get(this))
 	{
-		// Carte rouge en main : petite carte rouge et son nom (sous les cœurs).
-		if (FC->HasRedCard())
-		{
-			Rect(6 * U, 34 * U, 9 * U, 6 * U, FLinearColor(FColor(90, 10, 20)));
-			Rect(7 * U, 35 * U, 7 * U, 4 * U, Red);
-			Rect(7 * U, 36 * U, 7 * U, U, FLinearColor::White);
-			Txt(TEXT("Carte rouge"), 18 * U, 34 * U, Red, U / 4.f);
-		}
-		// La peluche en poche (Lapin), sous la carte rouge.
-		if (FC->HasDoudou()) { Txt(TEXT("Lapin (peluche)"), 6 * U, (FC->HasRedCard() ? 42 : 34) * U, FLinearColor(FColor(232, 176, 192)), U / 4.f); }
 		// Repère au-dessus du PNJ d'event : « ? » de la gamine, « ?! » puis « ! » d'Ulysse.
 		{
 			FVector Ew; FString Et; FLinearColor Ec; FVector2D Es;
@@ -424,100 +414,12 @@ void AEONHUD::DrawHUD()
 		Txt(TEXT("Frappe de saturation - tous les ennemis de la salle"), Px + 82 * U, Cy + 46 * U, C, U / 4.f);
 	}
 
-	// --- Choix de niveau (drawLevelUp) : « NIVEAU N - ADN ASSIMILE », 3 cartes.
-	if (J->IsLevelUpOpen())
-	{
-		const float K = 1.f;   // jeu en pause : pas de fondu
-		Rect(0, 0, SX, SY, FLinearColor(FColor(7, 6, 15, (uint8)(200 * K))));
-		const FLinearColor Green(FColor(138, 240, 122));
-		Txt(FString::Printf(TEXT("NIVEAU %d - ADN ASSIMILE"), J->GetLevel()), SX * 0.5f, SY * 0.5f - 70 * U, Green, U / 2.f, true);
-		Txt(TEXT("Choisis une amélioration  [1] [2] [3]  ou greffe suivante puis tir"), SX * 0.5f, SY * 0.5f - 52 * U, Dim, U / 4.f, true);
-		const TArray<FName>& Opts = J->GetLevelOpts();
-		const float Cw = 132 * U, Chh = 74 * U, Gap = 10 * U, X0 = SX * 0.5f - (Cw * 3 + Gap * 2) * 0.5f, Cy = SY * 0.5f - Chh * 0.5f + 6 * U;
-		for (int32 I = 0; I < Opts.Num(); ++I)
-		{
-			const FEONItemDef* It = EONItems::Find(Opts[I]);
-			if (!It) { continue; }
-			const float Cx = X0 + I * (Cw + Gap);
-			const bool bSel = I == J->GetLevelSel();
-			const FLinearColor Rc = EONItems::Color(It->Rar);
-			Rect(Cx, Cy, Cw, Chh, bSel ? FLinearColor(FColor(34, 29, 68)) : FLinearColor(FColor(20, 17, 40)));
-			const FLinearColor Bc = bSel ? Rc : FLinearColor(FColor(58, 52, 96));
-			Rect(Cx, Cy, Cw, U, Bc); Rect(Cx, Cy + Chh - U, Cw, U, Bc); Rect(Cx, Cy, U, Chh, Bc); Rect(Cx + Cw - U, Cy, U, Chh, Bc);
-			Txt(FString::Printf(TEXT("[%d]"), I + 1), Cx + 4 * U, Cy + 4 * U, Dim, U / 4.f);
-			Txt(It->Cat.ToString(), Cx + Cw - 40 * U, Cy + 4 * U, It->Cat == TEXT("PERK") ? FLinearColor(FColor(229, 70, 196)) : Cyan, U / 4.5f);
-			Rect(Cx + Cw * 0.5f - 6 * U, Cy + 16 * U, 12 * U, 12 * U, Rc);
-			Txt(It->Name, Cx + Cw * 0.5f, Cy + 32 * U, Rc, U / 3.2f, true);
-			Txt(EONItems::RarName(It->Rar), Cx + Cw * 0.5f, Cy + 42 * U, Rc, U / 4.5f, true);
-			Txt(It->Desc, Cx + Cw * 0.5f, Cy + 54 * U, FLinearColor(FColor(207, 211, 255)), U / 4.5f, true);
-		}
-	}
-
-	// --- Mort : « Signal perdu » (drawDead)
-	if (J->IsDead())
-	{
-		Rect(0, 0, SX, SY, FLinearColor(0.01f, 0.f, 0.02f, 0.75f));
-		Txt(TEXT("SIGNAL PERDU"), SX * 0.5f, SY * 0.4f, Red, U / 1.6f, true);
-		Txt(TEXT("R : nouvelle run"), SX * 0.5f, SY * 0.4f + 22 * U, Dim, U / 3.f, true);
-		if (const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this); MS && MS->GetRunUnlocks().Num())
-		{
-			const FLinearColor Am(FColor(255, 194, 61));
-			Txt(TEXT("DÉBLOQUÉ PENDANT LA RUN"), SX * 0.5f, SY * 0.4f + 36 * U, Am, U / 3.5f, true);
-			int32 K = 0;
-			for (const FName& Id : MS->GetRunUnlocks())
-			{
-				for (const FEONUnlockDef& Ud : UEONMetaSubsystem::Unlocks())
-				{
-					if (Ud.Id == Id) { Txt(Ud.Kind + TEXT(" : ") + Ud.Name, SX * 0.5f, SY * 0.4f + (46 + 9 * K) * U, FLinearColor::White, U / 4.f, true); ++K; }
-				}
-			}
-		}
-	}
 	// Bannière, invites, fiche du socle, log, encart « DÉBLOQUÉ » : UEONHudWidget::PaintNotices (charte).
 	// Dialogue : UEONHudWidget::PaintDialog (maquette du 25/11).
-	DrawTitle();
 	DrawDevMenu();
 }
 
-// ---------------------------------------------------------------- jalon 8
-
-void AEONHUD::Box(float X, float Y, float W, float H, const FLinearColor& Border, const FLinearColor& Fill)
-{
-	if (Fill.A > 0.f) { Rect(X, Y, W, H, Fill); }
-	Rect(X, Y, W, U * 0.5f, Border); Rect(X, Y + H - U * 0.5f, W, U * 0.5f, Border);
-	Rect(X, Y, U * 0.5f, H, Border); Rect(X + W - U * 0.5f, Y, U * 0.5f, H, Border);
-}
-
-void AEONHUD::DrawTitle()
-{
-	// drawTitle : E.O.N, la progression gardée, Continuer / Nouvelle partie (le second appui efface).
-	const UEONUISubsystem* UI = UEONUISubsystem::Get(this);
-	if (!UI || !UI->IsTitleOpen()) { return; }
-	const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
-	const UEONSaveGame* M = MS ? MS->M() : nullptr;
-	const float SX = Canvas->ClipX, SY = Canvas->ClipY, Cx = SX * 0.5f, Cy = SY * 0.5f;
-	Rect(0, 0, SX, SY, FLinearColor(0.027f, 0.024f, 0.06f, 0.86f));
-	Txt(TEXT("E.O.N"), Cx, Cy - 64 * U, Cyan, U / 1.3f, true);
-	FString Info = TEXT("Partie en cours sur ce PC");
-	if (M)
-	{
-		if (M->bUlysse) { Info += TEXT(" - Ulysse au Kibo"); }
-		if (M->bCobUnlock) { Info += TEXT(" - Cobaye"); }
-		if (M->Crew.Num()) { Info += FString::Printf(TEXT(" - insignes %d/6"), M->Crew.Num()); }
-		if (M->Donnees) { Info += FString::Printf(TEXT(" - données %d"), M->Donnees); }
-		Info += FString::Printf(TEXT(" - %d run%s, %d déblocage%s"), M->Runs, M->Runs > 1 ? TEXT("s") : TEXT(""), M->Unl.Num(), M->Unl.Num() > 1 ? TEXT("s") : TEXT(""));
-	}
-	Txt(Info, Cx, Cy - 20 * U, FLinearColor(FColor(207, 211, 255)), U / 3.8f, true);
-	for (int32 I = 0; I < 2; ++I)
-	{
-		const bool bOn = UI->GetTitleSel() == I, bWarn = I == 1 && UI->IsTitleConfirm();
-		const float Bx = I == 0 ? Cx - 130 * U : Cx + 10 * U, By = Cy + 6 * U;
-		Box(Bx, By, 120 * U, 22 * U, bWarn ? Red : bOn ? Cyan : FLinearColor(FColor(58, 52, 96)), bOn ? FLinearColor(FColor(29, 42, 68)) : FLinearColor(FColor(20, 17, 40)));
-		Txt(I == 0 ? TEXT("Continuer") : bWarn ? TEXT("Confirmer : tout effacer") : TEXT("Nouvelle partie"), Bx + 60 * U, By + 8 * U, bWarn ? Red : bOn ? FLinearColor::White : Dim, U / 3.6f, true);
-	}
-	Txt(UI->IsTitleConfirm() ? TEXT("La progression sera effacée : Ulysse, Cobaye, insignes, logs, cassettes, données.") : TEXT("Flèches ou Q/D : choisir     Entrée / (A) : valider"),
-		Cx, Cy + 42 * U, UI->IsTitleConfirm() ? FLinearColor(FColor(255, 194, 61)) : Dim, U / 4.2f, true);
-}
+// ---------------------------------------------------------------- menu de réglages (F6)
 
 void AEONHUD::DrawDevMenu()
 {
