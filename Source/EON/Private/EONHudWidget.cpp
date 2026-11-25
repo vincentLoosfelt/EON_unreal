@@ -211,7 +211,9 @@ int32 UEONHudWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Allott
 		PaintTitle(Pt, *UI);
 		return LayerId + 12;
 	}
-	if (!bHud && !Dl && !bCom && !bNotice) { return LayerId; }
+	const AEONPlayerController* DevPC = Cast<AEONPlayerController>(OPC);
+	const bool bDev = J && DevPC && DevPC->GetDevMenu().IsOpen() && !(Hud && !Hud->bShowHUD);   // menu de réglages F6
+	if (!bHud && !Dl && !bCom && !bNotice && !bDev) { return LayerId; }
 	const FPaint P(AllottedGeometry, OutDrawElements, LayerId + 1);
 	if (bHud) { PaintHud(P, J, F, Dl != nullptr); }
 	if (bCom) { PaintCom(P, *UI, *J, F); }
@@ -228,9 +230,14 @@ int32 UEONHudWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Allott
 	{
 		const FPaint Po(AllottedGeometry, OutDrawElements, LayerId + 14);
 		if (J->IsDead()) { PaintDead(Po, *J, F); } else { PaintLevelUp(Po, *J); }
-		return LayerId + 20;
 	}
-	return LayerId + 12;
+	if (bDev)
+	{
+		const FPaint Pd(AllottedGeometry, OutDrawElements, LayerId + 22);
+		PaintDevMenu(Pd, *DevPC);
+		return LayerId + 28;
+	}
+	return LayerId + 20;
 }
 
 void UEONHudWidget::PaintHud(const EONHud::FPaint& P, const AEONCharacter* J, const AEONFloorManager* F, bool bDialog) const
@@ -1389,6 +1396,30 @@ void UEONHudWidget::PaintScene(const EONHud::FPaint& P, const AEONCharacter& J, 
 		}
 	}
 
+	// --- Cartographe : losange « ! » au-dessus de lui tant qu'il attend, sa barre de PV (6 segments) pendant la défense.
+	if (F)
+	{
+		FVector Kw; uint8 Ks = 0; int32 Kh = 0; FVector2f Kp;
+		if (F->GetKidHud(Kw, Ks, Kh) && Proj(Kw, Kp))
+		{
+			if (Ks == 0)
+			{
+				const float Y = Kp.Y - 40.f + FMath::Sin(Clock * 4.f) * 5.f, R = 20.f;
+				P.Poly({ { Kp.X, Y - R }, { Kp.X + R, Y }, { Kp.X, Y + R }, { Kp.X - R, Y } }, Green);
+				P.Line({ { Kp.X, Y - R - 5.f }, { Kp.X + R + 5.f, Y }, { Kp.X, Y + R + 5.f }, { Kp.X - R - 5.f, Y }, { Kp.X, Y - R - 5.f } }, A(Green, 0.5f), 1.5f);
+				P.Text(TEXT("!"), Kp.X, Y - 15.f, 0, 26.f, Bg, 1, 3);
+			}
+			if (Ks == 2)
+			{
+				const int32 Hp = FMath::Clamp(Kh, 0, 6);
+				const float Sw = 14.f, Sg = 3.f, Wd = 6.f * (Sw + Sg) + 8.f, X0 = Kp.X - Wd * 0.5f, Y = Kp.Y;
+				P.Rect(X0, Y, Wd, 18.f, A(Bg, 0.85f));
+				P.Line({ { X0, Y }, { X0 + Wd, Y }, { X0 + Wd, Y + 18.f }, { X0, Y + 18.f }, { X0, Y } }, A(Green, 0.7f), 1.f);
+				for (int32 I = 0; I < 6; ++I) { P.Slant(X0 + 4.f + I * (Sw + Sg), Y + 4.f, Sw + 5.f, 10.f, I < Hp ? Green : A(Grey, 0.9f)); }
+			}
+		}
+	}
+
 	// --- Kibo, salle de réveil : consigne et greffes en main avec leur touche.
 	if (F && F->IsDockedMode() && F->GetKiboRoom() == 1 && !F->IsCinematic())
 	{
@@ -1479,4 +1510,45 @@ void UEONHudWidget::PaintScene(const EONHud::FPaint& P, const AEONCharacter& J, 
 		P.Rect(Tx + 148.f, Cy + 164.f, 8.f, 4.f, A(Amber, Al));
 		P.Text(TEXT("Frappe de saturation : tous les ennemis de la salle"), Tx, Cy + 180.f, 1, 26.f, A(CyanC, Al));
 	}
+}
+
+// ---------------------------------------------------------------- menu de réglages F6 (charte)
+// Panneau à droite sous la mini-carte : rubriques, ligne choisie en ambre (cyan en mode réglage fin),
+// valeur modifiée en ambre, interrupteur allumé en vert, valeur de référence du studio en gris.
+void UEONHudWidget::PaintDevMenu(const EONHud::FPaint& P, const AEONPlayerController& PC) const
+{
+	FString Title, Footer;
+	TArray<FEONMenuLine> Lines;
+	PC.GetDevMenu().Build(&PC, Title, Lines, Footer);
+	const bool bTweak = PC.GetDevMenu().GetOpen() == EEONDevMenu::Tweak;
+	const FLinearColor Ac = bTweak ? CyanC : Amber;
+	const float SW = P.W(), Lh = 30.f, Wd = 560.f, X0 = SW - 60.f - Wd, Y0 = 236.f, Ch = 20.f;
+	const float H = (Lines.Num() + 3) * Lh + 30.f;
+	P.Poly({ { X0, Y0 }, { X0 + Wd, Y0 }, { X0 + Wd, Y0 + H - Ch }, { X0 + Wd - Ch, Y0 + H }, { X0, Y0 + H } }, A(Bg, 0.92f));
+	P.Line({ { X0, Y0 }, { X0 + Wd, Y0 }, { X0 + Wd, Y0 + H - Ch }, { X0 + Wd - Ch, Y0 + H }, { X0, Y0 + H }, { X0, Y0 } }, A(Ac, 0.7f), 1.5f);
+	P.Rect(X0, Y0, Wd, 40.f, Ac);
+	P.Text(Upper(Title), X0 + 16.f, Y0 + 8.f, 0, 20.f, Bg);
+	for (int32 I = 0; I < 3; ++I) { P.Slant(X0 + Wd - 90.f + I * 24.f, Y0 + 14.f, 18.f, 12.f, A(Bg, 0.7f), 1); }
+	float Y = Y0 + 52.f;
+	for (const FEONMenuLine& L : Lines)
+	{
+		if (L.bSection)
+		{
+			P.Text(Upper(L.Label), X0 + 16.f, Y + 9.f, 0, 13.f, A(White, 0.45f));
+			P.Line({ { X0 + 16.f, Y + Lh - 3.f }, { X0 + Wd - 16.f, Y + Lh - 3.f } }, A(White, 0.15f), 1.f);
+			Y += Lh;
+			continue;
+		}
+		if (L.bSelected)
+		{
+			P.Rect(X0 + 6.f, Y, Wd - 12.f, Lh, A(Ac, 0.16f));
+			P.Rect(X0 + 6.f, Y, 4.f, Lh, Ac);
+		}
+		P.Text(L.Label, X0 + 22.f, Y + 4.f, 1, 18.f, L.bSelected ? White : A(White, 0.8f));
+		const FLinearColor Vc = L.bChanged ? Amber : (L.Value == TEXT("OUI") ? Green : (L.bSelected ? White : A(White, 0.8f)));
+		P.Text(L.Value, X0 + Wd - (L.Hint.IsEmpty() ? 22.f : 130.f), Y + 6.f, 0, 16.f, Vc, 2);
+		if (!L.Hint.IsEmpty()) { P.Text(TEXT("studio ") + L.Hint, X0 + Wd - 22.f, Y + 8.f, 0, 13.f, A(White, 0.4f), 2); }
+		Y += Lh;
+	}
+	P.Text(Footer, X0 + 16.f, Y + 10.f, 2, 15.f, Footer.StartsWith(TEXT("Fl")) ? A(White, 0.55f) : Amber);
 }

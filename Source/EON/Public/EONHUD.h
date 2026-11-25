@@ -22,8 +22,7 @@ private:
 	/** Crée le widget du HUD de la charte (UEONHudWidget) à la première image. */
 	void EnsureHudWidget();
 	UPROPERTY(Transient) TObjectPtr<class UEONHudWidget> HudWidget;
-	void DrawDevMenu();
-	// Écran titre, terminal, mort, montée de niveau, bannières : UEONHudWidget (charte).
+	// Écran titre, terminal, mort, montée de niveau, bannières, scène, menu F6 : UEONHudWidget (charte).
 	/** Chiffres de dégâts manga (Vincent, 25/11) : police Bangers, contour noir épais, qui jaillissent en grossissant. */
 	void DrawNums();
 	/** Gros coup : traits de vitesse radiaux (procéduraux, 12 i/s) centrés sur le point du coup, puis onomatopée P7. */

@@ -47,6 +47,8 @@ private:
 	void PaintLevelUp(const EONHud::FPaint& P, const AEONCharacter& J) const;
 	/** Carton-titre du gardien, faille (oxygène, console, brèche), consigne du Kibo, QTE et cut-in de l'ultime. */
 	void PaintScene(const EONHud::FPaint& P, const AEONCharacter& J, const AEONFloorManager* F, bool bPad) const;
+	/** Menu de réglages F6 : panneau à droite, sous la mini-carte. */
+	void PaintDevMenu(const EONHud::FPaint& P, const class AEONPlayerController& PC) const;
 
 	struct FToast { FString Txt; FLinearColor Col; float T = 0.f; };
 	TArray<FToast> Toasts;

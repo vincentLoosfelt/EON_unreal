@@ -26,11 +26,8 @@
 
 namespace
 {
-	// Couleurs du proto (COL) : rouge PV, cyan énergie, fond sombre.
+	// Couleur du proto (COL) : rouge PV (flash de dégâts).
 	const FLinearColor Red = FLinearColor(FColor(255, 61, 85));
-	const FLinearColor Cyan = FLinearColor(FColor(62, 242, 224));
-	const FLinearColor Dim = FLinearColor(FColor(90, 86, 120));
-	const FLinearColor Ink = FLinearColor(0.004f, 0.004f, 0.012f, 0.75f);
 }
 
 void AEONHUD::Rect(float X, float Y, float W, float H, const FLinearColor& C)
@@ -248,73 +245,9 @@ void AEONHUD::DrawHUD()
 		}
 	}
 
-	// --- Cartographe : « ! » au-dessus de lui tant qu'il attend, sa barre de PV pendant la défense.
-	if (const AEONFloorManager* FK = AEONFloorManager::Get(this))
-	{
-		FVector Kw; uint8 Ks = 0; int32 Kh = 0; FVector2D Ks2;
-		if (FK->GetKidHud(Kw, Ks, Kh) && GetOwningPlayerController() && GetOwningPlayerController()->ProjectWorldLocationToScreen(Kw, Ks2))
-		{
-			const FLinearColor Kc(FColor(122, 255, 176));
-			if (Ks == 0) { Txt(TEXT("!"), Ks2.X, Ks2.Y - 4 * U + FMath::Sin(Time * 4.f) * U, Kc, U / 2.5f, true); }
-			if (Ks == 2)
-			{
-				Rect(Ks2.X - 9 * U, Ks2.Y, 18 * U, 4 * U, Ink);
-				Rect(Ks2.X - 8 * U, Ks2.Y + U, 16 * U, 2 * U, FLinearColor(FColor(31, 90, 58)));
-				Rect(Ks2.X - 8 * U, Ks2.Y + U, 16 * U * FMath::Clamp(Kh / 6.f, 0.f, 1.f), 2 * U, Kc);
-			}
-		}
-	}
-
 	// Bannière, invites, fiche du socle, log, encart « DÉBLOQUÉ » : UEONHudWidget::PaintNotices (charte).
-	// Gardien, faille, Kibo, QTE, cut-in : UEONHudWidget::PaintScene (charte).
+	// Gardien, faille, Cartographe, Kibo, QTE, cut-in : UEONHudWidget::PaintScene ; menu F6 : PaintDevMenu (charte).
 	// Dialogue : UEONHudWidget::PaintDialog (maquette du 25/11).
-	DrawDevMenu();
-}
-
-// ---------------------------------------------------------------- menu de réglages (F6)
-
-void AEONHUD::DrawDevMenu()
-{
-	const AEONPlayerController* PC = Cast<AEONPlayerController>(GetOwningPlayerController());
-	if (!PC || !PC->GetDevMenu().IsOpen()) { return; }
-	FString Title, Footer;
-	TArray<FEONMenuLine> Lines;
-	PC->GetDevMenu().Build(PC, Title, Lines, Footer);
-	const bool bTweak = PC->GetDevMenu().GetOpen() == EEONDevMenu::Tweak;
-	const FLinearColor Accent = bTweak ? Cyan : FLinearColor(FColor(255, 194, 61));
-	const FLinearColor Amber = FLinearColor(FColor(255, 194, 61));
-	const FLinearColor Text = FLinearColor(FColor(216, 212, 240));
-	const FLinearColor On = FLinearColor(FColor(120, 230, 120));
-
-	// Panneau à droite, sous la mini-carte : 150 px du proto de large.
-	const float Lh = 7.5f * U, W = 160.f * U;
-	const float X0 = Canvas->ClipX - W - 6 * U, Y0 = 40 * U;
-	const float H = (Lines.Num() + 5) * Lh;
-	Rect(X0, Y0, W, H, FLinearColor(0.012f, 0.01f, 0.03f, 0.88f));
-	Rect(X0, Y0, W, U * 0.6f, Accent);
-	Txt(Title, X0 + 4 * U, Y0 + 2 * U, Accent, U / 3.2f);
-	float Y = Y0 + 2 * Lh;
-	for (const FEONMenuLine& L : Lines)
-	{
-		if (L.bSection)
-		{
-			Txt(L.Label.ToUpper(), X0 + 4 * U, Y + U, Dim, U / 4.2f);
-			Rect(X0 + 4 * U, Y + Lh - 1.5f * U, W - 8 * U, U * 0.3f, FLinearColor(Dim.R, Dim.G, Dim.B, 0.5f));
-			Y += Lh;
-			continue;
-		}
-		if (L.bSelected)
-		{
-			Rect(X0 + 2 * U, Y, W - 4 * U, Lh, FLinearColor(Accent.R, Accent.G, Accent.B, 0.18f));
-			Rect(X0 + 2 * U, Y, U, Lh, Accent);
-		}
-		Txt(L.Label, X0 + 6 * U, Y + 1.2f * U, L.bSelected ? FLinearColor::White : Text, U / 4.f);
-		const FLinearColor Vc = L.bChanged ? Amber : (L.Value == TEXT("OUI") ? On : (L.bSelected ? FLinearColor::White : Text));
-		Txt(L.Value, X0 + W - 34 * U, Y + 1.2f * U, Vc, U / 4.f);
-		if (!L.Hint.IsEmpty()) { Txt(TEXT("studio ") + L.Hint, X0 + W - 20 * U, Y + 1.4f * U, FLinearColor(FColor(150, 146, 185)), U / 4.1f); }
-		Y += Lh;
-	}
-	Txt(Footer, X0 + 4 * U, Y + Lh * 0.6f, Footer.StartsWith(TEXT("Fl")) ? FLinearColor(FColor(170, 166, 205)) : Amber, U / 4.4f);
 }
 
 void AEONHUD::EnsureHudWidget()
