@@ -25,17 +25,12 @@ private:
 	void DrawDevMenu();
 	// Jalon 8 : méta et écrans figés (coordonnées du proto 480 × 270, origine O).
 	void Box(float X, float Y, float W, float H, const FLinearColor& Border, const FLinearColor& Fill);
-	static TArray<FString> Wrap(const FString& S, int32 N);
-	/** comLines : lignes coupées à N caractères, 8 px proto d'interligne. Renvoie le nombre de lignes. */
-	int32 Lines(const TArray<FString>& L, float X, float Y, const FLinearColor& C, int32 N);
 	void DrawToast();
-	void DrawCom();
 	void DrawTitle();
 	/** Chiffres de dégâts manga (Vincent, 25/11) : police Bangers, contour noir épais, qui jaillissent en grossissant. */
 	void DrawNums();
 	/** Gros coup : traits de vitesse radiaux (procéduraux, 12 i/s) centrés sur le point du coup, puis onomatopée P7. */
 	void DrawGrosCoup();
-	float Ox = 0.f, Oy = 0.f;
 	/** Échelle : 4 px écran par px du proto à 1920 × 1080. */
 	float U = 4.f;
 	float Time = 0.f;

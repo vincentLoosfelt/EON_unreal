@@ -34,6 +34,15 @@ namespace EONHud
 	const FLinearColor White = FLinearColor::White;
 
 	FLinearColor A(FLinearColor C, float Alpha) { C.A *= Alpha; return C; }
+	/** Majuscules, lettres accentuées comprises (FString::ToUpper laisse « é » en minuscule). */
+	FString Upper(const FString& S)
+	{
+		FString R = S.ToUpper();
+		static const TCHAR* Lo = TEXT("àâäçéèêëîïôöùûüÿœæ");
+		static const TCHAR* Up = TEXT("ÀÂÄÇÉÈÊËÎÏÔÖÙÛÜŸŒÆ");
+		for (TCHAR& C : R.GetCharArray()) { for (int32 I = 0; Lo[I]; ++I) { if (C == Lo[I]) { C = Up[I]; break; } } }
+		return R;
+	}
 
 	/** Polices de la charte, lues depuis leurs fichiers (Content/EON/UI/FontsTTF, OFL) : Kode Mono SemiBold pour le HUD
 	 *  et les chiffres, Oxanium pour les textes. */
@@ -189,9 +198,11 @@ int32 UEONHudWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Allott
 	const bool bTitle = UI && UI->IsTitleOpen();
 	const FEONDlgLine* Dl = UI && !bTitle ? UI->DlgLine() : nullptr;
 	const bool bHud = J && !(Hud && !Hud->bShowHUD) && !bTitle && !(UI && UI->IsComOpen()) && !(F && F->IsCinematic());   // terminal du C.O.M ouvert : pas de HUD (Vincent, 25/11)
-	if (!bHud && !Dl) { return LayerId; }
+	const bool bCom = J && UI && UI->IsComOpen() && !bTitle;
+	if (!bHud && !Dl && !bCom) { return LayerId; }
 	const FPaint P(AllottedGeometry, OutDrawElements, LayerId + 1);
 	if (bHud) { PaintHud(P, J, F, Dl != nullptr); }
+	if (bCom) { PaintCom(P, *UI, *J, F); }
 	if (Dl) { PaintDialog(P, *Dl, UI->DlgShown()); }
 	return LayerId + 12;
 }
@@ -415,7 +426,7 @@ void UEONHudWidget::PaintHud(const EONHud::FPaint& P, const AEONCharacter* J, co
 			}
 			if (const FEONGreffeRow* Row = Gt ? Gt->FindRow<FEONGreffeRow>(J->GetGreffeId(), TEXT("HUD"), false) : nullptr)
 			{
-				P.Text(TEXT("COBRA : ") + Row->DisplayName.ToUpper(), Gx + 6.f, Gy + 1.f, 0, 16.f, Row->Col);
+				P.Text(TEXT("COBRA : ") + Upper(Row->DisplayName), Gx + 6.f, Gy + 1.f, 0, 16.f, Row->Col);
 				const float Ch = J->GetCharge01();
 				if (Ch > 0.f)
 				{
@@ -507,7 +518,7 @@ void UEONHudWidget::PaintDialog(const EONHud::FPaint& P0, const FEONDlgLine& L, 
 	P.Rect(Bx - 18.f, By + 182.f, 3.f, 56.f, Bg, 1);
 
 	// Cartouche du nom : déborde au-dessus de la boîte, fond noir, contour et halo ambre, souligné en biseau.
-	const FString Title = Name.ToUpper();
+	const FString Title = Upper(Name);
 	const float Tp = 72.f, Tw = P.Measure(Title, 0, Tp).X;
 	const float Nx = Bx + 30.f, Ny = By - 48.f, Nw = Tw + 68.f, Nh = 133.f;
 	P.Glow(Nx, Ny, Nw, Nh, Amber);
@@ -544,4 +555,278 @@ void UEONHudWidget::PaintDialog(const EONHud::FPaint& P0, const FEONDlgLine& L, 
 	{
 		P.Text(TEXT("ESPACE / (A) : SUITE     ÉCHAP / (B) : PASSER"), Bx + Bw - Ch - 10.f, By + Bh - 34.f, 0, 15.f, A(Amber, 0.75f), 2, 3);
 	}
+}
+
+// ---------------------------------------------------------------- terminal du C.O.M (charte, page « 07 COMPOSANTS UI »)
+// Cadre noir à coin coupé et trait ambre, cartouche « C.O.M | TERMINAL », onglets segmentés (l'onglet actif plein ambre),
+// liste à gauche avec curseur de défilement, fiche à droite ; levier en curseur vertical, boutons plein ambre ou contour.
+void UEONHudWidget::PaintCom(const EONHud::FPaint& P, const UEONUISubsystem& UI, const AEONCharacter& J, const AEONFloorManager* F) const
+{
+	const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this);
+	const float SW = P.W();
+	const FLinearColor Body = A(White, 0.86f), Dim = A(White, 0.45f), Off = A(Amber, 0.28f);
+
+	// Coupe le texte à la largeur Wd (mesure réelle) ; renvoie le Y sous la dernière ligne.
+	auto Para = [&P](const TArray<FString>& Src, float X, float Y, float Wd, int32 Fo, float Px, float Lh, const FLinearColor& C)
+	{
+		for (const FString& S : Src)
+		{
+			TArray<FString> Words; S.ParseIntoArray(Words, TEXT(" "), true);
+			FString Cur;
+			for (const FString& Wo : Words)
+			{
+				const FString Try = Cur.IsEmpty() ? Wo : Cur + TEXT(" ") + Wo;
+				if (!Cur.IsEmpty() && P.Measure(Try, Fo, Px).X > Wd) { P.Text(Cur, X, Y, Fo, Px, C); Y += Lh; Cur = Wo; }
+				else { Cur = Try; }
+			}
+			P.Text(Cur, X, Y, Fo, Px, C); Y += Lh;
+		}
+		return Y;
+	};
+	// Bouton de la charte : plein ambre (actif) ou contour gris (inactif).
+	auto Button = [&P](const FString& S, float X, float Y, float Wd, float H, bool bOn)
+	{
+		if (bOn) { P.Rect(X, Y, Wd, H, Amber, 1); }
+		else { P.Line({ { X, Y }, { X + Wd, Y }, { X + Wd, Y + H }, { X, Y + H }, { X, Y } }, A(White, 0.4f), 2.f, 1); }
+		P.Text(S, X + Wd * 0.5f, Y + H * 0.5f - 13.f, 0, 22.f, bOn ? Bg : A(White, 0.55f), 1, 3);
+	};
+
+	// Voile et cadre.
+	P.Rect(0.f, 0.f, SW, 1080.f, A(Bg, 0.82f));
+	const float X0 = 150.f, Y0 = 80.f, Pw = SW - 300.f, Ph = 920.f, Ch = 40.f;
+	P.Poly({ { X0, Y0 }, { X0 + Pw, Y0 }, { X0 + Pw, Y0 + Ph - Ch }, { X0 + Pw - Ch, Y0 + Ph }, { X0, Y0 + Ph } }, A(Bg, 0.97f));
+	P.Line({ { X0, Y0 }, { X0 + Pw, Y0 }, { X0 + Pw, Y0 + Ph - Ch }, { X0 + Pw - Ch, Y0 + Ph }, { X0, Y0 + Ph }, { X0, Y0 } }, Amber, 2.f);
+
+	// Cartouche du titre : « C.O.M » plein ambre, « TERMINAL » au trait.
+	const float Hx = X0 + 30.f, Hy = Y0 + 28.f, Hh = 64.f;
+	const float Cw = P.Measure(TEXT("C.O.M"), 0, 34.f).X + 36.f, Tw = P.Measure(TEXT("TERMINAL"), 0, 40.f).X + 44.f;
+	P.Rect(Hx, Hy, Cw, Hh, Amber);
+	P.Text(TEXT("C.O.M"), Hx + Cw * 0.5f, Hy + 10.f, 0, 34.f, Bg, 1);
+	P.Line({ { Hx + Cw, Hy }, { Hx + Cw + Tw, Hy }, { Hx + Cw + Tw, Hy + Hh }, { Hx + Cw, Hy + Hh } }, Amber, 2.f);
+	P.Text(TEXT("TERMINAL"), Hx + Cw + 22.f, Hy + 7.f, 0, 40.f, Amber);
+	// Ligne de transmission rouge (charte) : lieu, pilote, solde de Données.
+	const FString Where = UI.IsDocked() ? FString(TEXT("KIBO - À QUAI")) : FString::Printf(TEXT("ÉTAGE %02d"), F ? F->GetFloorN() : 0);
+	const float Ly = Hy + 6.f, Rr = X0 + Pw - 30.f;
+	const FString Meta[3] = { Where, TEXT("PILOTE : JIRA"), FString::Printf(TEXT("DONNÉES %d"), MS ? MS->GetDonnees() : 0) };
+	float Mx = Rr;
+	for (int32 I = 2; I >= 0; --I)
+	{
+		const float Mw = P.Measure(Meta[I], 0, 15.f).X;
+		Mx -= Mw;
+		P.Text(Meta[I], Mx, Ly, 0, 15.f, I == 2 ? CyanC : RedC);
+		Mx -= 30.f; P.Rect(Mx + 8.f, Ly + 6.f, 14.f, 6.f, RedC); Mx -= 20.f;
+	}
+	P.Line({ { Hx + Cw + Tw + 30.f, Ly + 30.f }, { Rr, Ly + 30.f } }, A(RedC, 0.7f), 0.75f);
+	P.Line({ { Rr, Ly + 30.f }, { Rr, Ly + 52.f } }, A(RedC, 0.7f), 0.75f);
+
+	// Onglets segmentés : contour ambre, l'actif plein ambre, coin coupé sur le dernier.
+	static const TCHAR* Tabs[5] = { TEXT("1  AMÉLIORATIONS"), TEXT("2  LOGS"), TEXT("3  QUÊTES"), TEXT("4  DESCENTE"), TEXT("5  CASSETTES") };
+	const int32 Tab = UI.GetComTab();
+	const float Ty = Y0 + 124.f, Th = 50.f, Tx = X0 + 30.f, TwAll = Pw - 60.f, Cell = TwAll / 5.f, Cc = 16.f;
+	for (int32 I = 0; I < 5; ++I)
+	{
+		const float Cx = Tx + I * Cell;
+		const bool bLast = I == 4, bOn = I == Tab;
+		if (bOn)
+		{
+			if (bLast) { P.Poly({ { Cx, Ty }, { Cx + Cell - Cc, Ty }, { Cx + Cell, Ty + Cc }, { Cx + Cell, Ty + Th }, { Cx, Ty + Th } }, Amber); }
+			else { P.Rect(Cx, Ty, Cell, Th, Amber); }
+		}
+		P.Text(Tabs[I], Cx + Cell * 0.5f, Ty + 11.f, 0, 22.f, bOn ? Bg : Amber, 1);
+		if (I > 0) { P.Line({ { Cx, Ty }, { Cx, Ty + Th } }, Amber, 2.f); }
+	}
+	P.Line({ { Tx, Ty }, { Tx + TwAll - Cc, Ty }, { Tx + TwAll, Ty + Cc }, { Tx + TwAll, Ty + Th }, { Tx, Ty + Th }, { Tx, Ty } }, Amber, 2.f);
+
+	// Zone de contenu, aide en bas, filet rouge de la charte.
+	const float Cy = Ty + Th + 36.f, Cb = Y0 + Ph - 80.f;
+	const float Lx = X0 + 30.f, Lw = 560.f, Rx = Lx + Lw + 80.f, Rw = X0 + Pw - 40.f - Rx;
+	auto Help = [&](const TCHAR* S) { P.Text(S, X0 + 30.f, Y0 + Ph - 52.f, 0, 16.f, A(Amber, 0.7f)); };
+	P.Rect(X0 + 30.f, Y0 + Ph - 20.f, 320.f, 4.f, RedC);
+	P.Rect(X0 + 360.f, Y0 + Ph - 20.f, 6.f, 4.f, RedC);
+	const int32 Sel0 = UI.GetComSel(Tab);
+
+	// Liste à gauche (lignes de 44 px), curseur de défilement, séparateur.
+	auto List = [&](int32 N, int32 Sel, TFunctionRef<void(int32 I, float X, float Y, bool bOn)> Row)
+	{
+		const float Rh = 44.f;
+		const int32 Vis = FMath::Max(1, FMath::FloorToInt((Cb - Cy) / Rh));
+		const int32 Of = FMath::Clamp(Sel - Vis + 1, 0, FMath::Max(0, N - Vis));
+		for (int32 Jn = 0; Jn < FMath::Min(Vis, N); ++Jn)
+		{
+			const int32 I = Jn + Of;
+			const float Y = Cy + Jn * Rh;
+			const bool bOn = I == Sel;
+			if (bOn) { P.Rect(Lx, Y, Lw, Rh - 6.f, A(Amber, 0.16f)); P.Rect(Lx, Y, 4.f, Rh - 6.f, Amber); }
+			Row(I, Lx + 20.f, Y + 6.f, bOn);
+		}
+		const float Sx = Lx + Lw + 24.f;
+		P.Line({ { Sx, Cy }, { Sx, Cb } }, A(White, N > Vis ? 0.8f : 0.25f), 2.f);
+		if (N > Vis)
+		{
+			const float Hy2 = Cy + (Cb - Cy - 14.f) * (float)Of / (float)FMath::Max(1, N - Vis);
+			P.Rect(Sx - 16.f, Hy2, 32.f, 14.f, Amber, 2);
+			P.Rect(Sx - 8.f, Hy2 + 6.f, 16.f, 2.f, Bg, 3);
+		}
+		P.Line({ { Lx + Lw + 52.f, Cy }, { Lx + Lw + 52.f, Cb } }, Off, 0.75f);
+	};
+	// Titre de fiche (Kode Mono) et sous-titre à droite.
+	auto Head = [&](const FString& S, const FLinearColor& C, const FString& Sub, const FLinearColor& SubC)
+	{
+		P.Text(S, Rx, Cy - 4.f, 0, 34.f, C);
+		if (!Sub.IsEmpty()) { P.Text(Sub, Rx + Rw, Cy + 6.f, 0, 18.f, SubC, 2); }
+		P.Line({ { Rx, Cy + 46.f }, { Rx + Rw, Cy + 46.f } }, Off, 0.75f);
+		return Cy + 66.f;
+	};
+
+	if (Tab == 3)
+	{
+		// Le levier : curseur vertical de la charte ; poignée en haut quand le gardien est neutralisé.
+		const bool bReady = F && F->IsFloorDone();
+		const float Mxc = X0 + Pw * 0.5f, T0 = Cy + 10.f, T1 = Cb - 170.f;
+		P.Rect(Mxc - 3.f, T0, 6.f, T1 - T0, A(White, bReady ? 0.9f : 0.35f));
+		const float Hy3 = bReady ? T0 + 10.f : T1 - 34.f;
+		P.Rect(Mxc - 60.f, Hy3, 120.f, 26.f, bReady ? Amber : RedC, 2);
+		P.Rect(Mxc - 30.f, Hy3 + 11.f, 60.f, 4.f, Bg, 3);
+		if (bReady)
+		{
+			P.Glow(Mxc - 60.f, Hy3, 120.f, 26.f, Amber);
+			Button(TEXT("LEVIER PRÊT"), Mxc - 150.f, T1 + 30.f, 300.f, 52.f, true);
+		}
+		else
+		{
+			// « VERROUILLÉ » entre crochets rouges (charte, bouton refusé).
+			const float Bw = 300.f, Bx = Mxc - Bw * 0.5f, By = T1 + 30.f, Bh = 52.f, Br = 12.f;
+			P.Line({ { Bx + Br, By }, { Bx, By }, { Bx, By + Bh }, { Bx + Br, By + Bh } }, RedC, 2.f);
+			P.Line({ { Bx + Bw - Br, By }, { Bx + Bw, By }, { Bx + Bw, By + Bh }, { Bx + Bw - Br, By + Bh } }, RedC, 2.f);
+			P.Text(TEXT("VERROUILLÉ"), Mxc, By + 13.f, 0, 22.f, RedC, 1);
+			if (F)
+			{
+				P.Text(FString::Printf(TEXT("Gardien : %s du C.O.M  -  carte rouge %s"), *Upper(F->GuardDir()), F->HasRedCard() ? TEXT("en main") : TEXT("à trouver")),
+					Mxc, By + Bh + 26.f, 1, 22.f, Body, 1);
+			}
+		}
+		Help(TEXT("ENTRÉE / (A) : TIRER LE LEVIER     Q/D : ONGLET     C OU ÉCHAP / (B) : FERMER"));
+		return;
+	}
+
+	if (Tab == 4)
+	{
+		// Cassettes : niveaux à gauche, fiche et bouton Installer à droite.
+		const TArray<UEONUISubsystem::FCassRow>& Rows = UEONUISubsystem::CassRows();
+		if (!Rows.Num()) { return; }
+		const int32 Sel = FMath::Clamp(Sel0, 0, Rows.Num() - 1);
+		List(Rows.Num(), Sel, [&](int32 I, float X, float Y, bool bOn)
+		{
+			const UEONUISubsystem::FCassRow& Rw2 = Rows[I];
+			FString T2; int32 Cost2 = 0;
+			const int32 St2 = UI.CassState(Rw2, T2, Cost2);
+			const FString Lbl = Rw2.Lock.Len() ? Rw2.Lock : FString::Printf(TEXT("Shield NV%d%s"), Rw2.Lvl, Rw2.Br.Len() ? *(TEXT(" ") + Rw2.Br) : TEXT(""));
+			const FLinearColor Cc2 = St2 == 0 ? Green : St2 == 1 ? White : St2 == 2 ? Amber : Dim;
+			P.Text(St2 == 0 ? TEXT("[X]") : St2 == 1 ? TEXT("[+]") : TEXT("[ ]"), X, Y + 2.f, 0, 18.f, Cc2);
+			P.Text(Lbl, X + 50.f, Y, 1, 22.f, bOn ? White : Cc2);
+		});
+		const UEONUISubsystem::FCassRow& Row = Rows[Sel];
+		FString T; int32 Cost = 0;
+		const int32 St = UI.CassState(Row, T, Cost);
+		if (Row.Lock.Len())
+		{
+			const float Y = Head(Upper(Row.Lock), Dim, FString(), Dim);
+			Para({ TEXT("Catégorie prévue par le GDD Items (Survie, Mobilité, Cobra/Attaque)."), TEXT("À définir ensemble avant de la coder.") }, Rx, Y, Rw, 2, 22.f, 32.f, Dim);
+		}
+		else
+		{
+			const int32 L = MS ? MS->CasLvl(TEXT("shield")) : 0;
+			const FString Br = MS ? MS->CasBr(TEXT("shield")) : FString();
+			float Y = Head(TEXT("CASSETTE SHIELD"), Amber, L ? FString::Printf(TEXT("NV%d%s"), L, Br.Len() ? *(TEXT(" ") + Br) : TEXT("")) : FString(TEXT("PAS ENCORE TROUVÉE")), L ? White : Dim);
+			for (int32 Kk = 0; Kk < 3; ++Kk) { P.Slant(Rx + Kk * 64.f, Y, 56.f, 12.f, L > Kk ? Amber : Grey); }
+			Y += 34.f;
+			// Textes de dialogues.json (cassettes.shield).
+			Y = Para({ TEXT("NV1 - Absorbe 1 coup. Revient à l'étage suivant."), TEXT("NV2 - Se recharge après 10 s sans dégâts."),
+				TEXT("NV3 A - Shield nettoyant : à l'impact, explose et nettoie la salle autour de Jira."), TEXT("NV3 B - Shield miroir : à l'impact, renvoie les tirs ennemis à l'expéditeur.") },
+				Rx, Y, Rw, 2, 22.f, 34.f, Body);
+			if (Row.Lvl == 3) { P.Text(TEXT("Choix de branche définitif."), Rx, Y + 10.f, 1, 22.f, Orange); }
+		}
+		const bool bCan = St == 1 && UI.IsDocked();
+		const FString Bt = St == 0 ? FString(TEXT("INSTALLÉ")) : (!UI.IsDocked() && St == 1) ? FString(TEXT("AU KIBO (À QUAI)")) : St == 1 ? TEXT("INSTALLER  ") + T : Upper(T);
+		Button(Bt, Rx + Rw - 360.f, Cb - 56.f, 360.f, 52.f, bCan);
+		Help(TEXT("Z/S : CHOISIR     ENTRÉE / (A) : INSTALLER     Q/D : ONGLET     C OU ÉCHAP / (B) : FERMER"));
+		return;
+	}
+
+	// Onglets à liste : Améliorations (0), Logs (1), Quêtes (2).
+	const TArray<TPair<FName, int32>> Items = Tab == 0 ? UI.ComItems() : TArray<TPair<FName, int32>>();
+	const TArray<UEONUISubsystem::FQuest> Qs = Tab == 2 ? UI.Quests() : TArray<UEONUISubsystem::FQuest>();
+	const int32 N = Tab == 0 ? Items.Num() : Tab == 1 ? UEONUISubsystem::NumLogs() : Qs.Num();
+	const int32 Sel = FMath::Clamp(Sel0, 0, FMath::Max(0, N - 1));
+	const int32 LogN = MS && MS->M() ? FMath::Min(MS->M()->LogN, UEONUISubsystem::NumLogs()) : 0;
+	List(N, Sel, [&](int32 I, float X, float Y, bool bOn)
+	{
+		if (Tab == 0)
+		{
+			const FEONItemDef* It = EONItems::Find(Items[I].Key);
+			if (!It) { return; }
+			P.Slant(X, Y + 8.f, 22.f, 12.f, EONItems::Color(It->Rar));
+			P.Text(It->Name + (Items[I].Value > 1 ? FString::Printf(TEXT("  x%d"), Items[I].Value) : TEXT("")), X + 40.f, Y, 1, 22.f, bOn ? White : Body);
+		}
+		else if (Tab == 1)
+		{
+			const bool bGot = I < LogN;
+			FString Title; UEONUISubsystem::Log(I).Split(TEXT("."), &Title, nullptr);
+			P.Text(FString::Printf(TEXT("%02d"), I + 1), X, Y + 2.f, 0, 20.f, bGot ? Amber : Off);
+			P.Text(bGot ? Title.Left(40) : FString(TEXT("- - - - - - - -")), X + 50.f, Y, 1, 22.f, bGot ? (bOn ? White : Body) : Off);
+		}
+		else
+		{
+			const UEONUISubsystem::FQuest& Q = Qs[I];
+			P.Text(Q.bOk ? TEXT("[X]") : TEXT("[ ]"), X, Y + 2.f, 0, 18.f, Q.bOk ? Green : Dim);
+			P.Text(Q.T, X + 50.f, Y, 1, 22.f, bOn ? White : FLinearColor(Q.C));
+		}
+	});
+
+	if (Tab == 0)
+	{
+		// Fiche de Jira, puis l'amélioration choisie.
+		const FEONGreffeRow* Gd = nullptr;
+		if (const UEONTuningSubsystem* Tu = UEONTuningSubsystem::Get(this)) { if (UDataTable* G = Tu->GetGreffes()) { Gd = G->FindRow<FEONGreffeRow>(J.GetGreffeId(), TEXT("HUD"), false); } }
+		const int32 Hb = MS && MS->M() ? MS->M()->HpBonus : 0;
+		float Y = Head(TEXT("JIRA"), Amber, FString::Printf(TEXT("NIV %d"), J.GetLevel()), White);
+		Y = Para({ TEXT("Greffe active : ") + (Gd ? Gd->DisplayName : J.GetGreffeId().ToString()),
+			FString::Printf(TEXT("Niveau ADN : %d   (%d / %d)"), J.GetLevel(), FMath::FloorToInt(J.GetADN()), FMath::RoundToInt(J.GetADNNeed())),
+			FString::Printf(TEXT("PV : %d / %d"), J.GetHP(), J.GetMaxHP()) + (Hb ? FString::Printf(TEXT("   dont +%d permanents (insignes)"), Hb) : FString()),
+			FString::Printf(TEXT("Dash : %d charge%s     Scrap : %d"), J.GetDashMax(), J.GetDashMax() > 1 ? TEXT("s") : TEXT(""), J.GetScrap()),
+			FString::Printf(TEXT("Améliorations prises : %d"), J.GetItems().Num()) }, Rx, Y, Rw, 2, 22.f, 34.f, Body);
+		Y += 18.f;
+		P.Line({ { Rx, Y }, { Rx + Rw, Y } }, Off, 0.75f);
+		Y += 24.f;
+		if (!Items.IsValidIndex(Sel)) { Para({ TEXT("Aucune amélioration pour l'instant."), TEXT("Les salles Opportunité, le marchand et les niveaux d'ADN en proposent.") }, Rx, Y, Rw, 2, 22.f, 34.f, Dim); }
+		else if (const FEONItemDef* It = EONItems::Find(Items[Sel].Key))
+		{
+			const FLinearColor Rc = EONItems::Color(It->Rar);
+			P.Slant(Rx, Y + 10.f, 30.f, 16.f, Rc);
+			P.Text(It->Name + (Items[Sel].Value > 1 ? FString::Printf(TEXT("  x%d"), Items[Sel].Value) : TEXT("")), Rx + 46.f, Y, 0, 28.f, Rc);
+			P.Text(Upper((EONItems::RarName(It->Rar) + TEXT("  -  ") + It->Cat.ToString())), Rx + 46.f, Y + 40.f, 0, 16.f, Dim);
+			Para({ It->Desc }, Rx, Y + 78.f, Rw, 2, 22.f, 34.f, Body);
+		}
+	}
+	else if (Tab == 1)
+	{
+		const FString Cnt = FString::Printf(TEXT("%d / %d"), LogN, UEONUISubsystem::NumLogs());
+		if (Sel < LogN)
+		{
+			const float Y = Head(FString::Printf(TEXT("LOG %02d"), Sel + 1), Amber, Cnt, CyanC);
+			Para({ UEONUISubsystem::Log(Sel) }, Rx, Y, Rw, 2, 22.f, 34.f, Body);
+		}
+		else
+		{
+			const float Y = Head(TEXT("SIGNAL NON CAPTÉ"), RedC, Cnt, CyanC);
+			Para({ TEXT("Ce log est quelque part dans les étages. Les logs se trouvent dans les salles calmes et au sol, après les combats.") }, Rx, Y, Rw, 2, 22.f, 34.f, Dim);
+		}
+	}
+	else if (Qs.IsValidIndex(Sel))
+	{
+		const UEONUISubsystem::FQuest& Q = Qs[Sel];
+		const float Y = Head(Upper(Q.T), Amber, Q.bOk ? TEXT("TERMINÉE") : TEXT("EN COURS"), Q.bOk ? Green : Orange);
+		Para(Q.L, Rx, Y, Rw, 2, 22.f, 34.f, Body);
+	}
+	Help(TEXT("Q/D : ONGLET     Z/S : CHOISIR     C OU ÉCHAP / (B) : FERMER"));
 }

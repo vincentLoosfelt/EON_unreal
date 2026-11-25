@@ -33,6 +33,8 @@ private:
 	void PaintHud(const EONHud::FPaint& P, const AEONCharacter* J, const AEONFloorManager* F, bool bDialog) const;
 	/** Boîte de dialogue de la maquette (25/11) : cartouche du nom en Kode Mono, texte en Oxanium lettre par lettre. */
 	void PaintDialog(const EONHud::FPaint& P, const FEONDlgLine& L, int32 Shown) const;
+	/** Terminal du C.O.M selon la charte (page « 07 COMPOSANTS UI ») : onglets, liste, fiche, levier, cassettes. */
+	void PaintCom(const EONHud::FPaint& P, const class UEONUISubsystem& UI, const AEONCharacter& J, const AEONFloorManager* F) const;
 
 	struct FToast { FString Txt; FLinearColor Col; float T = 0.f; };
 	TArray<FToast> Toasts;
