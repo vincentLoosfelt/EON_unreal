@@ -794,6 +794,7 @@ void AEONCharacter::FireAuto(const FEONGreffeRow& G, const FEONGameFeelRow& Feel
 	const float Rate = G.Rate * RateM * Feel.RateMul * (Mut >= 1 ? 0.8f : 1.f);
 	if (Rate <= 0.f) { return; }
 	SpawnBullet(G, Feel, 0.f);
+	EONSfx::Event(this, TEXT("shoot"));
 	OnShot(G, Feel);
 	Spend(G.Cost * Feel.EnergyCost);
 	CooldownTimer = 1.f / Rate;
@@ -826,7 +827,7 @@ void AEONCharacter::SpawnBullet(const FEONGreffeRow& G, const FEONGameFeelRow& F
 		B->Setup(Dir * EON::PxToCm(SpeedPx), G.Life * RangeM * Feel.RangeMul3D, G.Dmg * DmgMult(), 1.f + Size, G.Col);
 		B->SetPierceBounce(Pierce, Bounce);
 		B->FinishSpawning(Xf);
-	}	EONSfx::Play(this, TEXT("SFX_Jira_Tir"), 0.45f, 3, 0.07f, 0.03f);
+	}
 }
 
 void AEONCharacter::OnShot(const FEONGreffeRow& G, const FEONGameFeelRow& Feel, float KickOverride, bool bShell)
@@ -1183,6 +1184,7 @@ void AEONCharacter::UpdateWeapon(float Dt, const FEONGreffeRow& G, const FEONGam
 		if (bFire && CooldownTimer <= 0.f)
 		{
 			for (int32 I = 0; I < G.Pellets; ++I) { SpawnBullet(G, Feel, G.Spd * (0.8f + FMath::FRand() * 0.4f)); }
+			EONSfx::Play(this, TEXT("SFX_Jira_Tir"), 0.6f, 3, 0.05f, 0.03f);   // Shotgun : un son par coup (aucun retenu le 25/11)
 			OnShot(G, Feel);
 			Spend(G.Cost * Feel.EnergyCost);
 			CooldownTimer = 1.f / Rate;
@@ -1224,6 +1226,7 @@ void AEONCharacter::UpdateWeapon(float Dt, const FEONGreffeRow& G, const FEONGam
 		if (BurstT <= 0.f)
 		{
 			SpawnBullet(G, Feel, 0.f);
+			EONSfx::Event(this, TEXT("burst"));
 			OnShot(G, Feel);
 			Spend(G.Cost * Feel.EnergyCost);
 			--BurstQ;
@@ -1654,7 +1657,7 @@ void AEONCharacter::TickLevelUp(float RealDt)
 		LvOpts = EONItems::Roll(3, this, true);
 		LvSel = 0;
 		LvOpenT = 0.f;
-		if (LvOpts.Num()) { UGameplayStatics::SetGamePaused(this, true); }
+		if (LvOpts.Num()) { UGameplayStatics::SetGamePaused(this, true); EONSfx::Event(this, TEXT("tele")); }
 		else { --LvPend; }
 	}
 }

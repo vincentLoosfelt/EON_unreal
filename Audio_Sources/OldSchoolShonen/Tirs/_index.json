@@ -1,0 +1,408 @@
+{
+ "shoot": [
+  {
+   "f": "shoot_01.wav",
+   "d": 0.28,
+   "src": "FGHTMisc_Anime Throw 1",
+   "note": "FGHTMisc_Anime Throw 1"
+  },
+  {
+   "f": "shoot_02.wav",
+   "d": 0.28,
+   "src": "FGHTMisc_Anime Throw 2",
+   "note": "FGHTMisc_Anime Throw 2"
+  },
+  {
+   "f": "shoot_03.wav",
+   "d": 0.28,
+   "src": "FGHTMisc_Anime Throw 3",
+   "note": "FGHTMisc_Anime Throw 3"
+  },
+  {
+   "f": "shoot_04.wav",
+   "d": 0.28,
+   "src": "FGHTMisc_Anime Throw 4",
+   "note": "FGHTMisc_Anime Throw 4"
+  },
+  {
+   "f": "shoot_05.wav",
+   "d": 0.28,
+   "src": "FGHTMisc_Anime Throw 5",
+   "note": "FGHTMisc_Anime Throw 5"
+  },
+  {
+   "f": "shoot_06.wav",
+   "d": 0.25,
+   "src": "ELECSprk_Anime Spark 1",
+   "note": "ELECSprk_Anime Spark 1"
+  },
+  {
+   "f": "shoot_07.wav",
+   "d": 0.25,
+   "src": "ELECSprk_Anime Spark 2",
+   "note": "ELECSprk_Anime Spark 2"
+  },
+  {
+   "f": "shoot_08.wav",
+   "d": 0.25,
+   "src": "ELECSprk_Anime Spark 3",
+   "note": "ELECSprk_Anime Spark 3"
+  },
+  {
+   "f": "shoot_09.wav",
+   "d": 0.25,
+   "src": "ELECSprk_Anime Spark 4",
+   "note": "ELECSprk_Anime Spark 4"
+  },
+  {
+   "f": "shoot_10.wav",
+   "d": 0.3,
+   "src": "MAGSpel_Anime Ability Release 1",
+   "note": "MAGSpel_Anime Ability Release 1"
+  },
+  {
+   "f": "shoot_11.wav",
+   "d": 0.3,
+   "src": "MAGSpel_Anime Ability Release 4",
+   "note": "MAGSpel_Anime Ability Release 4"
+  },
+  {
+   "f": "shoot_12.wav",
+   "d": 0.3,
+   "src": "MAGSpel_Anime Ability Release 7",
+   "note": "MAGSpel_Anime Ability Release 7"
+  },
+  {
+   "f": "shoot_13.wav",
+   "d": 0.3,
+   "src": "MAGSpel_Anime Ability Release 10",
+   "note": "MAGSpel_Anime Ability Release 10"
+  },
+  {
+   "f": "shoot_14.wav",
+   "d": 0.3,
+   "src": "MAGSpel_Anime Ability Release 13",
+   "note": "MAGSpel_Anime Ability Release 13"
+  }
+ ],
+ "burst": [
+  {
+   "f": "burst_01.wav",
+   "d": 0.15,
+   "src": "ELECSprk_Anime Spark 1",
+   "note": "ELECSprk_Anime Spark 1"
+  },
+  {
+   "f": "burst_02.wav",
+   "d": 0.15,
+   "src": "ELECSprk_Anime Spark 2",
+   "note": "ELECSprk_Anime Spark 2"
+  },
+  {
+   "f": "burst_03.wav",
+   "d": 0.15,
+   "src": "ELECSprk_Anime Spark 3",
+   "note": "ELECSprk_Anime Spark 3"
+  },
+  {
+   "f": "burst_04.wav",
+   "d": 0.15,
+   "src": "ELECSprk_Anime Spark 4",
+   "note": "ELECSprk_Anime Spark 4"
+  },
+  {
+   "f": "burst_05.wav",
+   "d": 0.15,
+   "src": "FGHTMisc_Anime Throw 1",
+   "note": "FGHTMisc_Anime Throw 1"
+  },
+  {
+   "f": "burst_06.wav",
+   "d": 0.15,
+   "src": "FGHTMisc_Anime Throw 2",
+   "note": "FGHTMisc_Anime Throw 2"
+  },
+  {
+   "f": "burst_07.wav",
+   "d": 0.15,
+   "src": "FGHTMisc_Anime Throw 3",
+   "note": "FGHTMisc_Anime Throw 3"
+  },
+  {
+   "f": "burst_08.wav",
+   "d": 0.15,
+   "src": "FGHTMisc_Anime Throw 4",
+   "note": "FGHTMisc_Anime Throw 4"
+  },
+  {
+   "f": "burst_09.wav",
+   "d": 0.15,
+   "src": "FGHTMisc_Anime Throw 5",
+   "note": "FGHTMisc_Anime Throw 5"
+  },
+  {
+   "f": "burst_10.wav",
+   "d": 0.15,
+   "src": "FGHTMisc_Anime Dodge 1",
+   "note": "FGHTMisc_Anime Dodge 1"
+  },
+  {
+   "f": "burst_11.wav",
+   "d": 0.15,
+   "src": "FGHTMisc_Anime Dodge 3",
+   "note": "FGHTMisc_Anime Dodge 3"
+  },
+  {
+   "f": "burst_12.wav",
+   "d": 0.15,
+   "src": "FGHTMisc_Anime Dodge 5",
+   "note": "FGHTMisc_Anime Dodge 5"
+  },
+  {
+   "f": "burst_13.wav",
+   "d": 0.15,
+   "src": "FGHTMisc_Anime Dodge 7",
+   "note": "FGHTMisc_Anime Dodge 7"
+  },
+  {
+   "f": "burst_14.wav",
+   "d": 0.15,
+   "src": "FGHTMisc_Anime Dodge 9",
+   "note": "FGHTMisc_Anime Dodge 9"
+  }
+ ],
+ "shotgun": [
+  {
+   "f": "shotgun_01.wav",
+   "d": 0.7,
+   "src": "EXPLDsgn_Anime Explosion 1",
+   "note": "EXPLDsgn_Anime Explosion 1"
+  },
+  {
+   "f": "shotgun_02.wav",
+   "d": 0.7,
+   "src": "EXPLDsgn_Anime Explosion 3",
+   "note": "EXPLDsgn_Anime Explosion 3"
+  },
+  {
+   "f": "shotgun_03.wav",
+   "d": 0.7,
+   "src": "EXPLDsgn_Anime Explosion 5",
+   "note": "EXPLDsgn_Anime Explosion 5"
+  },
+  {
+   "f": "shotgun_04.wav",
+   "d": 0.7,
+   "src": "EXPLDsgn_Anime Explosion 7",
+   "note": "EXPLDsgn_Anime Explosion 7"
+  },
+  {
+   "f": "shotgun_05.wav",
+   "d": 0.7,
+   "src": "EXPLDsgn_Anime Explosion 9",
+   "note": "EXPLDsgn_Anime Explosion 9"
+  },
+  {
+   "f": "shotgun_06.wav",
+   "d": 0.7,
+   "src": "EXPLDsgn_Anime Explosion 11",
+   "note": "EXPLDsgn_Anime Explosion 11"
+  },
+  {
+   "f": "shotgun_07.wav",
+   "d": 0.6,
+   "src": "MAGSpel_Anime Ability Release 2",
+   "note": "MAGSpel_Anime Ability Release 2"
+  },
+  {
+   "f": "shotgun_08.wav",
+   "d": 0.6,
+   "src": "MAGSpel_Anime Ability Release 5",
+   "note": "MAGSpel_Anime Ability Release 5"
+  },
+  {
+   "f": "shotgun_09.wav",
+   "d": 0.6,
+   "src": "MAGSpel_Anime Ability Release 8",
+   "note": "MAGSpel_Anime Ability Release 8"
+  },
+  {
+   "f": "shotgun_10.wav",
+   "d": 0.6,
+   "src": "MAGSpel_Anime Ability Release 11",
+   "note": "MAGSpel_Anime Ability Release 11"
+  },
+  {
+   "f": "shotgun_11.wav",
+   "d": 0.6,
+   "src": "MAGSpel_Anime Ability Release 14",
+   "note": "MAGSpel_Anime Ability Release 14"
+  }
+ ],
+ "eshot": [
+  {
+   "f": "eshot_01.wav",
+   "d": 0.4,
+   "src": "FGHTImpt_Anime Melee Gore 1",
+   "note": "FGHTImpt_Anime Melee Gore 1"
+  },
+  {
+   "f": "eshot_02.wav",
+   "d": 0.4,
+   "src": "FGHTImpt_Anime Melee Gore 2",
+   "note": "FGHTImpt_Anime Melee Gore 2"
+  },
+  {
+   "f": "eshot_03.wav",
+   "d": 0.4,
+   "src": "FGHTImpt_Anime Melee Gore 3",
+   "note": "FGHTImpt_Anime Melee Gore 3"
+  },
+  {
+   "f": "eshot_04.wav",
+   "d": 0.4,
+   "src": "FGHTImpt_Anime Melee Gore 4",
+   "note": "FGHTImpt_Anime Melee Gore 4"
+  },
+  {
+   "f": "eshot_05.wav",
+   "d": 0.4,
+   "src": "FGHTImpt_Anime Melee Gore 5",
+   "note": "FGHTImpt_Anime Melee Gore 5"
+  },
+  {
+   "f": "eshot_06.wav",
+   "d": 0.4,
+   "src": "FGHTImpt_Anime Melee Gore 6",
+   "note": "FGHTImpt_Anime Melee Gore 6"
+  },
+  {
+   "f": "eshot_07.wav",
+   "d": 0.35,
+   "src": "FGHTBf_Anime Land 1",
+   "note": "FGHTBf_Anime Land 1"
+  },
+  {
+   "f": "eshot_08.wav",
+   "d": 0.35,
+   "src": "FGHTBf_Anime Land 4",
+   "note": "FGHTBf_Anime Land 4"
+  },
+  {
+   "f": "eshot_09.wav",
+   "d": 0.35,
+   "src": "FGHTBf_Anime Land 7",
+   "note": "FGHTBf_Anime Land 7"
+  },
+  {
+   "f": "eshot_10.wav",
+   "d": 0.35,
+   "src": "FGHTBf_Anime Land 11",
+   "note": "FGHTBf_Anime Land 11"
+  },
+  {
+   "f": "eshot_11.wav",
+   "d": 0.35,
+   "src": "FGHTMisc_Anime Throw 1",
+   "note": "FGHTMisc_Anime Throw 1"
+  },
+  {
+   "f": "eshot_12.wav",
+   "d": 0.35,
+   "src": "FGHTMisc_Anime Throw 2",
+   "note": "FGHTMisc_Anime Throw 2"
+  },
+  {
+   "f": "eshot_13.wav",
+   "d": 0.35,
+   "src": "FGHTMisc_Anime Throw 3",
+   "note": "FGHTMisc_Anime Throw 3"
+  },
+  {
+   "f": "eshot_14.wav",
+   "d": 0.35,
+   "src": "FGHTMisc_Anime Throw 4",
+   "note": "FGHTMisc_Anime Throw 4"
+  },
+  {
+   "f": "eshot_15.wav",
+   "d": 0.35,
+   "src": "FGHTMisc_Anime Throw 5",
+   "note": "FGHTMisc_Anime Throw 5"
+  }
+ ],
+ "tele": [
+  {
+   "f": "tele_01.wav",
+   "d": 0.6,
+   "src": "MAGSpel_Anime Ability Ready 1",
+   "note": "MAGSpel_Anime Ability Ready 1"
+  },
+  {
+   "f": "tele_02.wav",
+   "d": 0.6,
+   "src": "MAGSpel_Anime Ability Ready 2",
+   "note": "MAGSpel_Anime Ability Ready 2"
+  },
+  {
+   "f": "tele_03.wav",
+   "d": 0.6,
+   "src": "MAGSpel_Anime Ability Ready 3",
+   "note": "MAGSpel_Anime Ability Ready 3"
+  },
+  {
+   "f": "tele_04.wav",
+   "d": 0.6,
+   "src": "MAGSpel_Anime Ability Ready 4",
+   "note": "MAGSpel_Anime Ability Ready 4"
+  },
+  {
+   "f": "tele_05.wav",
+   "d": 0.6,
+   "src": "MAGSpel_Anime Ability Ready 5",
+   "note": "MAGSpel_Anime Ability Ready 5"
+  },
+  {
+   "f": "tele_06.wav",
+   "d": 0.6,
+   "src": "MAGSpel_Anime Ability Ready 6",
+   "note": "MAGSpel_Anime Ability Ready 6"
+  },
+  {
+   "f": "tele_07.wav",
+   "d": 0.6,
+   "src": "MAGSpel_Anime Ability Ready 7",
+   "note": "MAGSpel_Anime Ability Ready 7"
+  },
+  {
+   "f": "tele_08.wav",
+   "d": 0.6,
+   "src": "MAGSpel_Anime Ability Ready 8",
+   "note": "MAGSpel_Anime Ability Ready 8"
+  },
+  {
+   "f": "tele_09.wav",
+   "d": 0.5,
+   "src": "ELECSprk_Anime Spark 1",
+   "note": "ELECSprk_Anime Spark 1"
+  },
+  {
+   "f": "tele_10.wav",
+   "d": 0.5,
+   "src": "ELECSprk_Anime Spark 2",
+   "note": "ELECSprk_Anime Spark 2"
+  },
+  {
+   "f": "tele_11.wav",
+   "d": 0.5,
+   "src": "ELECSprk_Anime Spark 3",
+   "note": "ELECSprk_Anime Spark 3"
+  },
+  {
+   "f": "tele_12.wav",
+   "d": 0.5,
+   "src": "ELECSprk_Anime Spark 4",
+   "note": "ELECSprk_Anime Spark 4"
+  }
+ ]
+}

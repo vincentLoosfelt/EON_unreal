@@ -410,6 +410,7 @@ void AEONCombatDirector::SpawnWave(float Mul)
 		Spawns.Add(S);
 	}
 	++Cur.Wave;
+	EONSfx::Event(this, TEXT("tele"));
 	UE_LOG(LogEON, Display, TEXT("EON vague %d/%d (%s, mul %.2f, combatN %d) : %d ennemis"), Cur.Wave, Cur.Waves, *Cur.Role.ToString(), Mul, CN, List.Num());
 }
 
@@ -527,7 +528,7 @@ void AEONCombatDirector::FireEnemyBullet(const FVector2D& ScreenPx, const FVecto
 		B->Init(Rm, ScreenPx, VelPx, Life, bBig, HeightPx);
 		Bullets.Add(B);
 		// Une volée = un son (écart minimal 80 ms) ; le gros tir orange plus fort.
-		EONSfx::Play(this, TEXT("SFX_Ennemi_Tir"), bBig ? 0.5f : 0.32f, 2, bBig ? 0.03f : 0.08f, 0.08f);
+		EONSfx::Event(this, TEXT("eshot"), bBig ? 1.3f : 0.85f);
 	}
 }
 

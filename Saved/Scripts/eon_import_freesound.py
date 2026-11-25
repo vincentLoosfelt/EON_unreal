@@ -7,7 +7,8 @@ DST = "/Game/EON/Audio/Freesound"
 LOG = "D:/_PROJETS/briscard/EON_UE/Saved/Logs/import_freesound.txt"
 
 tasks = []
-for f in sorted(glob.glob(SRC + "/*.wav")):
+FILTRE = os.environ.get("EON_FS_FILTRE", "*")  # ex. SFX_FS_Menu* pour ne réimporter que ceux-là
+for f in sorted(glob.glob(SRC + "/" + FILTRE + ".wav")):
     t = unreal.AssetImportTask()
     t.filename = f
     t.destination_path = DST

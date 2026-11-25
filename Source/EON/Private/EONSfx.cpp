@@ -183,6 +183,14 @@ namespace
 		{ TEXT("card"),    TEXT("SFX_FS_Card"),                1, 0.70f, 0.00f, 0.20f, EGrp::Monde },     // carte de niveau (barres de carillon)
 		{ TEXT("deny"),    TEXT("SFX_FS_Deny"),                1, 0.55f, 0.00f, 0.40f, EGrp::Monde },     // refusé : infestation, porte rouge, QTE raté
 		{ TEXT("mortar"),  TEXT("SFX_FS_Mortar"),              1, 0.55f, 0.08f, 0.06f, EGrp::Ennemis },   // départ d'un obus de mortier (pop + M203)
+		// --- Tirs taillés dans Old-School Shonen (choix de Vincent le 25/11)
+		{ TEXT("shoot"),   TEXT("SFX_Shonen_Shot"),            3, 0.45f, 0.07f, 0.03f, EGrp::Jira },      // tir standard (Throw 1-3, attaque)
+		{ TEXT("burst"),   TEXT("SFX_Shonen_Burst"),           4, 0.40f, 0.08f, 0.02f, EGrp::Jira },      // coup de Rafale (Throw 1-4, 0,15 s)
+		{ TEXT("eshot"),   TEXT("SFX_Shonen_EShot"),           4, 0.40f, 0.08f, 0.08f, EGrp::Ennemis },   // tir organique ennemi (Melee Gore 2-5)
+		{ TEXT("tele"),    TEXT("SFX_Shonen_Tele"),            4, 0.50f, 0.00f, 0.15f, EGrp::Ennemis },   // annonce d'attaque, vague, montée de niveau (Ability Ready 2-5)
+		// --- Terminal du C.O.M (joués en 2D, donc aussi pendant la pause)
+		{ TEXT("menu_move"), TEXT("SFX_FS_MenuMove"),          1, 0.50f, 0.06f, 0.04f, EGrp::Monde },     // onglet ou ligne (touche mécanique)
+		{ TEXT("menu_open"), TEXT("SFX_FS_MenuOpen"),          3, 0.55f, 0.00f, 0.30f, EGrp::Monde },     // ouverture (télé et moniteur cathodiques)
 	};
 
 	/** Distance parcourue depuis le dernier pas, par acteur. */

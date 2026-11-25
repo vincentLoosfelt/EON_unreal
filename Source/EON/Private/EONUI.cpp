@@ -6,6 +6,7 @@
 #include "EONFloorManager.h"
 #include "EONItems.h"
 #include "EONMeta.h"
+#include "EONSfx.h"
 #include "EONTuningSubsystem.h"
 #include "EONTypes.h"
 #include "Engine/DataTable.h"
@@ -139,6 +140,7 @@ void UEONUISubsystem::OpenCom()
 	for (int32& S : ComSel) { S = 0; }
 	ComAutoT = 0.f;
 	SyncPause();
+	EONSfx::Event(this, TEXT("menu_open"));
 	UE_LOG(LogEON, Display, TEXT("EON UI terminal ouvert, onglet %d"), ComTab);
 }
 
@@ -388,12 +390,14 @@ void UEONUISubsystem::TickUI(APlayerController* PC, float RealDt)
 		if (Pressed(PC, { EKeys::Right, EKeys::D, EKeys::Gamepad_DPad_Right, EKeys::Gamepad_RightShoulder })) { Tab = (Tab + 1) % 5; }
 		static const FKey Nums[5] = { EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five };
 		for (int32 I = 0; I < 5; ++I) { if (PC->WasInputKeyJustPressed(Nums[I])) { Tab = I; } }
-		if (Tab != ComTab) { ComTab = Tab; UE_LOG(LogEON, Display, TEXT("EON UI terminal onglet %d"), ComTab); }
+		if (Tab != ComTab) { ComTab = Tab; EONSfx::Event(this, TEXT("menu_move")); UE_LOG(LogEON, Display, TEXT("EON UI terminal onglet %d"), ComTab); }
 		const int32 N = ComCount(ComTab);
 		if (N > 0)
 		{
+			const int32 Sel0 = ComSel[ComTab];
 			if (Pressed(PC, { EKeys::Up, EKeys::Z, EKeys::W, EKeys::Gamepad_DPad_Up })) { ComSel[ComTab] = (ComSel[ComTab] + N - 1) % N; }
 			if (Pressed(PC, { EKeys::Down, EKeys::S, EKeys::Gamepad_DPad_Down })) { ComSel[ComTab] = (ComSel[ComTab] + 1) % N; }
+			if (ComSel[ComTab] != Sel0) { EONSfx::Event(this, TEXT("menu_move")); }
 		}
 		if (Pressed(PC, { EKeys::Enter, EKeys::SpaceBar, EKeys::Gamepad_FaceButton_Bottom })) { ComAct(); }
 		return;

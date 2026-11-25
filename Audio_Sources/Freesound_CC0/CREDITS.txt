@@ -33,3 +33,15 @@ deny   324248 PerMagnusLindborg, Card Reject Alarm | 630500 jimbo555, Microwave 
 mortar 432781 jackyyang09, Bottle Pop | 162402 qubodup, M203 Grenade Launcher 1 | 187542 qubodup, M-327 Mortar Shots
 Toutes les pages affichent CC0 (vérifié le 25/11/2026). Adresse des pages : https://freesound.org/s/<id>/
 Retenus 2e série : SFX_FS_Door_01 <- door_01 (434162) | SFX_FS_Card_01 <- card_05 (517662) | SFX_FS_Deny_01 <- deny_05 (668982) | SFX_FS_Mortar_01 <- mortar_05 (432781 + 162402). Roar : aucun retenu.
+
+3e série (accord de Vincent le 25/11/2026), Apercus3/ et Decoupes3/ (montage : coupes, fondus, mono, superposition crachat + boue) :
+shoot    362329 tec_studio, Nail_Gun | 131304 reg7783, air_nailer_single_shot_1 | 144887 WillFitch1, Energy Weapon
+burst    264779 AnthonyChan0, Civilian Stun Gun 1/10s zap | 842989 Sadiquecat, Airsoft MP5 Empty fire | 516613 jameswrowles, Staple gun 2
+shotgun  773873 MrGungus, shotgun shoot | 218889 qubodup, Door Smash 2 | 486060 craigsmith, R11-58-Loud Shotgun Blasts
+eshot    676316 rubberduck9999, gross monster spitting | 445109 Breviceps, Mud Splat | 444791 ross_sinc, Suction Cups Popping
+tele     516164 astriferal, Glass Bottle 6 - struck | 170237 LuttoAudio, Glass Ting | 189318 qubodup, Glass Ding
+menumove 690300 Ralph0o7, Flashlight Switch Click | 378085 bigmonmulgrew, mechanical key hard | 622060 rydra_wong, button click
+menuopen 693860 Fission9, CRT TV Switches On | 838727 Sanderboah, Computer CRT monitor turn on/off | 822560 TheTechTinkerer, Stereo Amp Powering On
+Toutes les pages affichent CC0 (vérifié le 25/11/2026).
+Retenus 3e série : SFX_FS_MenuMove_01 <- menumove_04 (622060) | SFX_FS_MenuOpen_01 <- menuopen_02 (693860) | SFX_FS_MenuOpen_02/03 <- menuopen_03/05 (838727).
+Refusés : shoot, burst, shotgun, eshot, tele.

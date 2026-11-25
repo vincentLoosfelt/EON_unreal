@@ -759,7 +759,7 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 			Tvx = C.X * Sp * W; Tvy = C.Y * Sp * W;
 			if (D < 18.f)
 			{
-				St = EEONEnemySt::Arm; StT = 0.45f;
+				St = EEONEnemySt::Arm; StT = 0.45f; EONSfx::Event(this, TEXT("tele"));
 				// Boule de charge de l'explosion (Vincent, 24/11) pendant l'armement ; l'éclat part avec l'Aoe.
 				if (const AEONCombatDirector* Dr = AEONCombatDirector::Get(GetWorld()))
 				{
@@ -805,7 +805,7 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 		{
 			const FVector2D C = ChaseDir(Tg);
 			Tvx = C.X * Sp; Tvy = C.Y * Sp;
-			if (D < 85.f && Cd <= 0.f) { St = EEONEnemySt::Wind; StT = 0.55f; L = FVector2D(Nx, Ny); bDashHit = false; }
+			if (D < 85.f && Cd <= 0.f) { St = EEONEnemySt::Wind; StT = 0.55f; EONSfx::Event(this, TEXT("tele")); L = FVector2D(Nx, Ny); bDashHit = false; }
 		}
 		else if (St == EEONEnemySt::Wind)
 		{
@@ -837,7 +837,7 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 			Tvx = Nx * Sp * Flee + (-Ny) * Sp * 0.45f * Side;
 			Tvy = Ny * Sp * Flee + Nx * Sp * 0.45f * Side;
 			if (FRand01() < Dt * 0.5f) { Side *= -1.f; }
-			if (Cd <= 0.f && D > 110.f) { St = EEONEnemySt::Aim; StT = 1.1f; }
+			if (Cd <= 0.f && D > 110.f) { St = EEONEnemySt::Aim; StT = 1.1f; EONSfx::Event(this, TEXT("tele")); }
 		}
 		else if (St == EEONEnemySt::Aim)
 		{
@@ -879,7 +879,7 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 		{
 			const FVector2D C = ChaseDir(Tg);
 			Tvx = C.X * Sp; Tvy = C.Y * Sp;
-			if (D < 150.f && Cd <= 0.f) { St = EEONEnemySt::Lock; StT = 0.65f; }
+			if (D < 150.f && Cd <= 0.f) { St = EEONEnemySt::Lock; StT = 0.65f; EONSfx::Event(this, TEXT("tele")); }
 		}
 		else if (St == EEONEnemySt::Lock)
 		{
@@ -918,7 +918,7 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 			Tvx = Nx * Sp * Flee + (-Ny) * Sp * 0.5f * Side;
 			Tvy = Ny * Sp * Flee + Nx * Sp * 0.5f * Side;
 			if (FRand01() < Dt * 0.5f) { Side *= -1.f; }
-			if (Cd <= 0.f && Dir->NumEggs() < 3) { St = EEONEnemySt::Lay; StT = 0.75f; }
+			if (Cd <= 0.f && Dir->NumEggs() < 3) { St = EEONEnemySt::Lay; StT = 0.75f; EONSfx::Event(this, TEXT("tele")); }
 		}
 		else
 		{

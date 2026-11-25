@@ -1,0 +1,244 @@
+{
+ "shoot": [
+  {
+   "f": "shoot_01.wav",
+   "d": 0.21,
+   "src": 362329,
+   "note": "vrai cloueur, tec_studio"
+  },
+  {
+   "f": "shoot_02.wav",
+   "d": 0.12,
+   "src": 131304,
+   "note": "cloueur pneumatique, reg7783"
+  },
+  {
+   "f": "shoot_03.wav",
+   "d": 0.35,
+   "src": 144887,
+   "note": "ukulélé + agrafeuse (énergie), WillFitch1"
+  }
+ ],
+ "burst": [
+  {
+   "f": "burst_01.wav",
+   "d": 0.2,
+   "src": 264779,
+   "note": "vrai Taser, AnthonyChan0"
+  },
+  {
+   "f": "burst_02.wav",
+   "d": 0.27,
+   "src": 264779,
+   "note": "vrai Taser, version longue"
+  },
+  {
+   "f": "burst_03.wav",
+   "d": 0.2,
+   "src": 842989,
+   "note": "MP5 airsoft à vide, Sadiquecat"
+  },
+  {
+   "f": "burst_04.wav",
+   "d": 0.2,
+   "src": 842989,
+   "note": "MP5 airsoft à vide, Sadiquecat"
+  },
+  {
+   "f": "burst_05.wav",
+   "d": 0.2,
+   "src": 842989,
+   "note": "MP5 airsoft à vide, Sadiquecat"
+  },
+  {
+   "f": "burst_06.wav",
+   "d": 0.15,
+   "src": 516613,
+   "note": "agrafeuse, jameswrowles"
+  },
+  {
+   "f": "burst_07.wav",
+   "d": 0.15,
+   "src": 516613,
+   "note": "agrafeuse, jameswrowles"
+  }
+ ],
+ "shotgun": [
+  {
+   "f": "shotgun_01.wav",
+   "d": 0.7,
+   "src": 773873,
+   "note": "vrai fusil, MrGungus"
+  },
+  {
+   "f": "shotgun_02.wav",
+   "d": 0.7,
+   "src": 218889,
+   "note": "lourde porte qui claque, qubodup"
+  },
+  {
+   "f": "shotgun_03.wav",
+   "d": 0.8,
+   "src": 486060,
+   "note": "fusil d'archives de film, craigsmith"
+  },
+  {
+   "f": "shotgun_04.wav",
+   "d": 0.8,
+   "src": 486060,
+   "note": "fusil d'archives de film, craigsmith"
+  },
+  {
+   "f": "shotgun_05.wav",
+   "d": 0.8,
+   "src": 486060,
+   "note": "fusil d'archives de film, craigsmith"
+  }
+ ],
+ "eshot": [
+  {
+   "f": "eshot_01.wav",
+   "d": 0.4,
+   "src": 676316,
+   "note": "vrai crachat, rubberduck9999"
+  },
+  {
+   "f": "eshot_02.wav",
+   "d": 0.32,
+   "src": 445109,
+   "note": "boue, Breviceps"
+  },
+  {
+   "f": "eshot_03.wav",
+   "d": 0.11,
+   "src": 444791,
+   "note": "ventouse arrachée, ross_sinc"
+  },
+  {
+   "f": "eshot_04.wav",
+   "d": 0.09,
+   "src": 444791,
+   "note": "ventouse arrachée, ross_sinc"
+  },
+  {
+   "f": "eshot_05.wav",
+   "d": 0.11,
+   "src": 444791,
+   "note": "ventouse arrachée, ross_sinc"
+  },
+  {
+   "f": "eshot_06.wav",
+   "d": 0.4,
+   "src": "676316+445109",
+   "note": "crachat + boue superposés"
+  }
+ ],
+ "tele": [
+  {
+   "f": "tele_01.wav",
+   "d": 0.6,
+   "src": 516164,
+   "note": "bouteille frappée, astriferal"
+  },
+  {
+   "f": "tele_02.wav",
+   "d": 0.57,
+   "src": 516164,
+   "note": "bouteille frappée, astriferal"
+  },
+  {
+   "f": "tele_03.wav",
+   "d": 0.6,
+   "src": 516164,
+   "note": "bouteille frappée, astriferal"
+  },
+  {
+   "f": "tele_04.wav",
+   "d": 0.6,
+   "src": 170237,
+   "note": "verre tinté, LuttoAudio"
+  },
+  {
+   "f": "tele_05.wav",
+   "d": 0.6,
+   "src": 189318,
+   "note": "verres tintés, qubodup"
+  },
+  {
+   "f": "tele_06.wav",
+   "d": 0.6,
+   "src": 189318,
+   "note": "verres tintés, qubodup"
+  },
+  {
+   "f": "tele_07.wav",
+   "d": 0.6,
+   "src": 189318,
+   "note": "verres tintés, qubodup"
+  }
+ ],
+ "menumove": [
+  {
+   "f": "menumove_01.wav",
+   "d": 0.12,
+   "src": 690300,
+   "note": "vrai bouton de lampe, Ralph0o7"
+  },
+  {
+   "f": "menumove_02.wav",
+   "d": 0.12,
+   "src": 378085,
+   "note": "touche mécanique, bigmonmulgrew"
+  },
+  {
+   "f": "menumove_03.wav",
+   "d": 0.09,
+   "src": 622060,
+   "note": "touche mécanique, rydra_wong"
+  },
+  {
+   "f": "menumove_04.wav",
+   "d": 0.12,
+   "src": 622060,
+   "note": "touche mécanique, rydra_wong"
+  }
+ ],
+ "menuopen": [
+  {
+   "f": "menuopen_01.wav",
+   "d": 0.7,
+   "src": 693860,
+   "note": "vraie télé cathodique, Fission9"
+  },
+  {
+   "f": "menuopen_02.wav",
+   "d": 0.7,
+   "src": 693860,
+   "note": "vraie télé cathodique, Fission9"
+  },
+  {
+   "f": "menuopen_03.wav",
+   "d": 0.7,
+   "src": 838727,
+   "note": "moniteur cathodique 1996, Sanderboah"
+  },
+  {
+   "f": "menuopen_04.wav",
+   "d": 0.7,
+   "src": 838727,
+   "note": "moniteur cathodique 1996, Sanderboah"
+  },
+  {
+   "f": "menuopen_05.wav",
+   "d": 0.7,
+   "src": 838727,
+   "note": "moniteur cathodique 1996, Sanderboah"
+  },
+  {
+   "f": "menuopen_06.wav",
+   "d": 0.7,
+   "src": 822560,
+   "note": "ampli qui s'allume, TheTechTinkerer"
+  }
+ ]
+}
