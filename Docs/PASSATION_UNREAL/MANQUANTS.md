@@ -35,6 +35,11 @@ Légende : ❌ rien · 🟡 existe mais pas prêt pour Unreal · 🔲 placeholde
 > - Lacet -90 vérifié à l'image : tous regardent devant.
 > - Non utilisés : Onibi `Attack`, `Run_Anticipation`, `Run_Variation` ; Kama `Taunt`. Aucun état du proto ne leur correspond.
 > - L'Ikiryo n'a toujours aucune anim.
+> - 25/11, vu par Vincent : les pattes arrière de l'Onibi restaient figées et s'étiraient en courant. Cause : dans le rig du studio, `foot.L` et `foot.R` n'ont pas de parent (ils copient la position du tibia). Unreal ne garde qu'une hiérarchie, donc `SKEL_Onibi` n'avait que 65 os sur 69, sans pieds ni orteils. Les ~940 sommets des pieds restaient en place.
+>   - Correction dans `blender_ennemis_export.py` (`une_racine`) : les racines en trop sont rattachées à la racine principale, et la pose évaluée (contraintes comprises) est recopiée image par image. Les 9 FBX de l'Onibi sont réexportés, puis réimportés (`EON_SEUL=Onibi`).
+>   - Vérifié de trois façons : FBX contre Blender, écart nul sur tous les sommets ; `SKEL_Onibi` a 69 os et `foot_L` parcourt ~1 m pendant la course (`eon_onibi_os_diag.py`) ; capture de profil sur 6 instants (`eon_onibi_course_shots.py`).
+>   - Les autres ennemis n'ont qu'une racine.
+>   - Il reste 20 sommets du corps sans aucun poids dans le .blend du studio (NaN dans Blender). Ils ne se voient pas sur la capture.
 >
 > **Matériau et UV (23/11)**
 > - Les ennemis utilisent `M_EON_ToonEnnemi` : Substrate Toon opaque, sans normal map (demande de Vincent).

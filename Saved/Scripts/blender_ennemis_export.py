@@ -42,6 +42,55 @@ for o in sel:
     o.select_set(True)
 bpy.context.view_layer.objects.active = sel[0]
 
+# Une seule racine (Unreal ne garde que la première hiérarchie : 25/11, les pieds de l'Onibi — foot.L/R, os sans parent
+# copiant la position du tibia — disparaissaient de SKEL_Onibi, et leurs sommets restaient figés et étirés).
+# Les autres racines sont rattachées à la principale ; avec une anim, la pose évaluée (contraintes comprises) est
+# relevée image par image dans le repère de l'armature, puis recopiée en clés sur la nouvelle hiérarchie.
+def une_racine(arm, anim):
+    roots = [b for b in arm.data.bones if b.parent is None]
+    if len(roots) <= 1:
+        return
+    main = max(roots, key=lambda b: len(b.children_recursive)).name
+    orphans = [b.name for b in roots if b.name != main]
+    sc = bpy.context.scene
+    frames = []
+    if anim:
+        s, e = arm.animation_data.action.frame_range
+        frames = list(range(int(s), int(e) + 1))
+    rec = {}
+    for f in frames:
+        sc.frame_set(f)
+        rec[f] = {pb.name: pb.matrix.copy() for pb in arm.pose.bones}
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="EDIT")
+    eb = arm.data.edit_bones
+    for n in orphans:
+        eb[n].use_connect = False
+        eb[n].parent = eb[main]
+    bpy.ops.object.mode_set(mode="OBJECT")
+    for pb in arm.pose.bones:
+        for c in list(pb.constraints):
+            pb.constraints.remove(c)
+    if anim:
+        old = arm.animation_data.action
+        arm.animation_data.action = None
+        order = sorted(arm.pose.bones, key=lambda pb: len(pb.parent_recursive))
+        for f in frames:
+            sc.frame_set(f)
+            for pb in order:
+                pb.matrix = rec[f][pb.name]
+                bpy.context.view_layer.update()
+            for pb in order:
+                pb.keyframe_insert("location", frame=f)
+                pb.keyframe_insert("rotation_quaternion" if pb.rotation_mode == "QUATERNION" else
+                                   ("rotation_axis_angle" if pb.rotation_mode == "AXIS_ANGLE" else "rotation_euler"), frame=f)
+                pb.keyframe_insert("scale", frame=f)
+        arm.animation_data.action.name = old.name + "_EON"
+    print("@@RACINES", main, "<-", orphans, "images", len(frames))
+
+if arm_name != "-":
+    une_racine(arm, anim)
+
 kw = dict(filepath=out, use_selection=True, object_types=types, add_leaf_bones=False, apply_unit_scale=True,
           apply_scale_options="FBX_SCALE_NONE", global_scale=1.0, mesh_smooth_type="FACE", use_mesh_modifiers=True)
 if arm_name != "-":
