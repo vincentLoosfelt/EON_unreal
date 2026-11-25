@@ -57,7 +57,9 @@ public:
 	FVector GetAimPoint() const;
 	/** Visable : ni mort, ni en chute. */
 	/** Vitrine des effets (eon.vitrine) : un trou sans dégâts ni éclat blanc. */
-	void DevPunch(float Dmg, float Dx, float Dy) { PunchHole(Dmg, Dx, Dy); }
+	void DevPunch(float Dmg, float Dx, float Dy, int32 Niveau = 1) { PunchHole(Dmg, Dx, Dy, Niveau); }
+	/** Vitrine : la prochaine balle qui touche un ennemi est un critique (tournages réglés à l'image près). */
+	static bool bCritSuivant;
 	bool IsTargetable() const { return !bDead && Falling <= 0.f; }
 	bool IsDead() const { return bDead; }
 	bool IsFalling() const { return Falling > 0.f; }
@@ -122,17 +124,32 @@ protected:
 	/** Matériaux d'origine, slot par slot, pour revenir du flash blanc. */
 	UPROPERTY() TArray<TObjectPtr<UMaterialInterface>> OrigMats;
 	/** COM-V9 : trous dans le corps (punchHole du proto). Instances dynamiques de M_EON_ToonEnnemi, paramètres Trou0..7
-	 *  (position avant skinning en cm du maillage, rayon en w). Les 8 derniers coups restent. */
+	 *  (position avant skinning en cm du maillage, rayon en w). */
 	UPROPERTY(Transient) TArray<TObjectPtr<UMaterialInstanceDynamic>> HoleMids;
-	int32 HoleNext = 0;
-	void PunchHole(float Dmg, float Dx, float Dy);
+	/** Trous posés (xyz position avant skinning en cm du maillage, w rayon), 16 au plus (Vincent, 25/11 : fusion et
+	 *  16 emplacements). Une balle qui tombe sur un trou l'agrandit ; une fois les 16 pris, elle agrandit le plus proche :
+	 *  aucun trou ne se referme. */
+	TArray<FVector4f> Holes;
+	/** Niveau du coup = couleur de son chiffre (Vincent, 25/11) : 0 blanc, giclée seule ; 1 orange, giclée et trou ;
+	 *  2 critique rouge, giclée, trou et un membre qui part. */
+	void PunchHole(float Dmg, float Dx, float Dy, int32 Niveau = 1);
+	/** Membres coupés (bit k = membre k de la table du maillage). Vincent, 25/11 : seul un coup critique démembre, dans
+	 *  l'ordre tête (elle explose), bras, puis jambes ; une jambe coupée, il tombe et meurt (un tronc ne vit pas). Le corps
+	 *  cache le membre (Coupe{k}A/B/C), une copie figée tombe en rigid body (AEONMembre). */
+	uint8 Coupes = 0;
+	void CutLimb(int32 K, const FVector& Dw);
 	UPROPERTY() TObjectPtr<UMaterialInstanceDynamic> FlashMat;
 	bool bFlashOn = false;
+	FLinearColor FlashCol = FLinearColor::White;
+	/** Sursaut à l'impact (Vincent, 25/11) : le modèle recule dans le sens du tir, 10 cm au plus en 50 ms, puis revient. */
+	float RecoilT = -1.f;
+	FVector RecoilDir = FVector::ZeroVector;
 	float ModelScale = 1.f;
 	float FaceYaw = 0.f;
 	float YawOff = 0.f;
 	void BuildModel();
-	void SetFlash(bool bOn);
+	/** Flash de coup : teinte Col sur le matériau à trous (FlashCouleur), sans changer de matériau (les trous restent). */
+	void SetFlash(bool bOn, const FLinearColor& Col = FLinearColor::White);
 
 	// Anims du modèle (table Looks) : boucle de déplacement, attente, coup, explosion (Onibi), morts (une au hasard).
 	UPROPERTY() TObjectPtr<UAnimSequence> AnimMove;

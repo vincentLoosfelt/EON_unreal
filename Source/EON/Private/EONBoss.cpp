@@ -229,7 +229,7 @@ void AEONBoss::StartDeath()
 	ClearAttacks();
 	DeathT = 1.9f; DeathNext = 0.f;
 	if (AEONCombatDirector* D = Director.Get()) { D->Hitstop(160.f); D->Shake(0.6f); }
-	if (AEONFloorManager* F = AEONFloorManager::Get(this)) { F->ShowBanner(TEXT("Specimen neutralise"), ColAmL); }
+	if (AEONFloorManager* F = AEONFloorManager::Get(this)) { F->ShowBanner(TEXT("Spécimen neutralisé"), ColAmL); }
 	Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	UE_LOG(LogEON, Display, TEXT("EON gardien : neutralisé"));
 }

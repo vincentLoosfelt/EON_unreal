@@ -157,8 +157,9 @@ void AEONProjectile::OnBounce(const FHitResult& Hit, const FVector& ImpactVeloci
 
 void AEONProjectile::WallSparks()
 {
-	// Mort au mur : 4 éclats couleur du tir, renvoyés vers l'arrière (-v × 0,2 ± 35 px/s), 0,2 s.
-	EONFx::GerbeDir(this, GetActorLocation(), -ShotDir, 4, Color, EON::CmToPx(SpeedCm) * 0.2f + 35.f, 0.2f);
+	// Mort au mur : éclats dessinés (planche P1, Vincent 25/11 : « que sur des impacts sur le décor ») à la place des
+	// 4 carrés, couleur du tir, renvoyés vers le tireur, 8 images en 0,25 s.
+	EONFx::Eclats(this, GetActorLocation(), -ShotDir, 40.f, Color, 0.25f, 15.f);
 }
 
 void AEONProjectile::OnStop(const FHitResult& Hit)

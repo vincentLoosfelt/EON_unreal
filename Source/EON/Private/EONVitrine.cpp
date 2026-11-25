@@ -21,6 +21,10 @@
 #include "Kismet/GameplayStatics.h"
 #include "Misc/Paths.h"
 #include "UnrealClient.h"
+#include "GameFramework/WorldSettings.h"
+
+// Ennemi de la vitrine COM-V9_Video (25/11 : membres coupés pour tous les ennemis) : goule, sniper, slasher, kamikaze, invocateur.
+static TAutoConsoleVariable<FString> CVarVitrineEnnemi(TEXT("eon.vitrine.ennemi"), TEXT("slasher"), TEXT("Type d'ennemi de la vitrine COM-V9_Video."));
 
 namespace EONVitrine
 {
@@ -52,6 +56,7 @@ namespace EONVitrine
 	static TWeakObjectPtr<AEONEnemy> GEnemy;
 	static int32 GBullets0 = 0;
 	static FVector2D GAt = FVector2D::ZeroVector;
+	static FVector2D GJiraAt = FVector2D::ZeroVector;   // place de Jira dans la vitrine COM-V9_Video
 	static bool GFlag = false;
 	static int32 GFrame = 0;
 
@@ -79,6 +84,42 @@ namespace EONVitrine
 		}
 		return J + FVector2D(0.f, RPx);
 	}
+	/** Centre de la case la plus dégagée de la salle : la plus loin (en cases) d'un mur, d'un décor, d'un vide ou du
+	 *  bord (Vincent, 25/11 : tourner « en plein milieu d'une pièce où il y a de la place », pas au bord du vide). */
+	static FVector2D CentreDegage(int32* OutDegagement = nullptr)
+	{
+		AEONCombatDirector* D = Dir();
+		AEONTileRoom* R = D ? D->GetRoom() : nullptr;
+		if (!R) { return JPx(); }
+		const FEONTileGrid& G = R->GetGrid();
+		TArray<FIntPoint> Walk;
+		R->GetWalkableTiles(Walk);
+		int32 BestD = -1;
+		FIntPoint Best(0, 0);
+		for (const FIntPoint& T : Walk)
+		{
+			int32 Dg = 0;
+			for (int32 Rr = 1; Rr <= 16; ++Rr)
+			{
+				bool bLibre = true;
+				for (int32 Dy = -Rr; Dy <= Rr && bLibre; ++Dy)
+				{
+					for (int32 Dx = -Rr; Dx <= Rr; ++Dx)
+					{
+						if (FMath::Max(FMath::Abs(Dx), FMath::Abs(Dy)) != Rr) { continue; }
+						const int32 X = T.X + Dx, Y = T.Y + Dy;
+						if (!G.IsValidTile(X, Y) || R->IsTileSolid(Y * G.W + X, true)) { bLibre = false; break; }
+					}
+				}
+				if (!bLibre) { break; }
+				Dg = Rr;
+			}
+			if (Dg > BestD) { BestD = Dg; Best = T; }
+		}
+		if (OutDegagement) { *OutDegagement = BestD; }
+		return AEONTileRoom::TileCenterPx(Best.X, Best.Y);
+	}
+
 	static int32 CountBullets() { int32 N = 0; for (TActorIterator<AEONEnemyProjectile> It(GVWorld.Get()); It; ++It) { ++N; } return N; }
 
 	static void SetFrozen(bool bOn)
@@ -265,30 +306,129 @@ namespace EONVitrine
 		  S.Target = []() { return RoomW(GAt, 6.f); }; S.WidthPx = 100.f; GSteps.Add(S); }
 		// Vidéo COM-V9 (Vincent, 24/11) : Jira tire sur un Kama (1e6 PV) : trous et sang. 2,5 s à vitesse réelle,
 		// puis 5 s au ralenti × 0,3. Lancer le jeu en -UseFixedTimeStep -FPS=30 : une image enregistrée = 1/30 s.
+		// Fumée toon (Vincent, 24/11) : une grosse bouffée devant Jira à 3 âges, puis le dash et la course.
+		for (const double Age : { 0.2, 0.6, 1.1, 1.4 })
+		{
+			FStep S; S.Name = FString::Printf(TEXT("FUM-1_Bouffee_%03d"), (int32)(Age * 100.0));
+			S.Start = []() { GAt = JPx() + FVector2D(45.f, 0.f); EONFx::Fumee(GVWorld.Get(), RoomW(GAt, 0.f), 48, EONFx::Hex(TEXT("9a7c88")), 1.8f, 1.6f); };
+			S.Ready = [Age](double T) { return T > Age; }; S.Target = []() { return RoomW(GAt, 14.f); }; S.WidthPx = 110.f; GSteps.Add(S);
+		}
+		{ FStep S; S.Name = TEXT("FUM-2_Dash");
+		  S.Start = []() { GFlag = false; if (AEONCharacter* J = Jira()) { J->SetMoveInput(FVector2D(1.f, 0.f)); } };
+		  S.Ready = [](double T)
+		  {
+			  AEONCharacter* J = Jira();
+			  if (!J) { return true; }
+			  if (!GFlag && T > 0.25) { J->PressDash(); GFlag = true; GT0 = FPlatformTime::Seconds() - 0.25; return false; }
+			  return GFlag && T > 0.6;
+		  };
+		  S.Target = JiraAt(-45.f, 10.f); S.WidthPx = 160.f; S.After = []() { if (AEONCharacter* J = Jira()) { J->SetMoveInput(FVector2D::ZeroVector); } }; GSteps.Add(S); }
+		{ FStep S; S.Name = TEXT("FUM-3_Course");
+		  S.Start = []() { if (AEONCharacter* J = Jira()) { J->SetSprintHeld(true); J->SetMoveInput(FVector2D(-1.f, 0.f)); } };
+		  S.Ready = [](double T) { return T > 1.1; };
+		  S.Target = JiraAt(0.f, 8.f); S.WidthPx = 360.f;
+		  S.After = []() { if (AEONCharacter* J = Jira()) { J->SetSprintHeld(false); J->SetMoveInput(FVector2D::ZeroVector); } }; GSteps.Add(S); }
+		// Vidéo de la fumée (Vincent, 24/11) : bouffée, dash puis course, plan fixe, 6 s à 30 i/s (jeu en -FPS=30).
+		{ FStep S; S.Name = TEXT("FUM-V_Video"); S.VideoFrames = 180;
+		  S.Start = []() { GFrame = 0; GAt = JPx(); };
+		  S.Ready = [](double)
+		  {
+			  AEONCharacter* J = Jira();
+			  if (!J) { return false; }
+			  if (GFrame == 0) { EONFx::Fumee(GVWorld.Get(), RoomW(GAt + FVector2D(45.f, 0.f), 0.f), 48, EONFx::Hex(TEXT("9a7c88")), 1.8f, 1.6f); }
+			  if (GFrame == 55) { J->SetMoveInput(FVector2D(-1.f, 0.f)); }
+			  if (GFrame == 62) { J->PressDash(); }
+			  if (GFrame == 95) { J->SetMoveInput(FVector2D(1.f, 0.f)); J->SetSprintHeld(true); }
+			  if (GFrame == 150) { J->SetSprintHeld(false); J->SetMoveInput(FVector2D::ZeroVector); }
+			  return false;
+		  };
+		  // Plan fixe sur la bouffée, puis la caméra suit Jira pendant le dash et la course.
+		  S.Target = []() { return GFrame < 58 ? RoomW(GAt + FVector2D(25.f, 0.f), 10.f) : RoomW(JPx(), 10.f); }; S.WidthPx = 150.f;
+		  S.After = []() { if (AEONCharacter* J = Jira()) { J->SetSprintHeld(false); J->SetMoveInput(FVector2D::ZeroVector); } };
+		  GSteps.Add(S); }
+		// Explosion façon Akira (Vincent, 24/11) : petite boule de 1 à 50 cm en 0,5 s, éclat brutal avec flash à ombres noires, nuage de
+		// fumée qui se dissipe en 4 s. Charge (EONFx::Charge) puis le vrai chemin du jeu (Aoe, sans dégâts). Plan fixe, 6 s à 30 i/s.
+		{ FStep S; S.Name = TEXT("EXP-V_Video"); S.VideoFrames = 180;
+		  S.Start = []() { GFrame = 0; GAt = JPx() + FVector2D(70.f, 0.f); };
+		  S.Ready = [](double)
+		  {
+			  AEONCombatDirector* D = Dir();
+			  if (!D) { return false; }
+			  if (GFrame == 30) { EONFx::Charge(GVWorld.Get(), RoomW(GAt, 0.f), EON::PxToCm(28.f) * 0.8f, EONFx::Hex(TEXT("ff7a1a")), 0.5f); }
+			  if (GFrame == 45) { D->Aoe(GAt, 28.f, 0.f, false, EONFx::Hex(TEXT("ff7a1a"))); }
+			  return false;
+		  };
+		  S.Target = []() { return RoomW(GAt + FVector2D(-15.f, 8.f), 14.f); }; S.WidthPx = 170.f;
+		  GSteps.Add(S); }
+		// Pouvoir E (25/11) : onde de choc sur 3 ennemis, deux appuis courts puis l'onde maintenue.
+		{ FStep S; S.Name = TEXT("ONDE-V_Video"); S.VideoFrames = 170;
+		  S.Start = []()
+		  {
+			  GFrame = 0;
+			  if (AEONCombatDirector* D = Dir())
+			  {
+				  const FVector2D J = JPx();
+				  for (const FVector2D& O : { FVector2D(38.f, 0.f), FVector2D(-34.f, 14.f), FVector2D(4.f, -36.f) })
+				  {
+					  if (AEONEnemy* E = D->SpawnEnemyAt(TEXT("slasher"), J + O, false)) { E->Hp = 1.0e6f; }
+				  }
+			  }
+		  };
+		  S.Ready = [](double)
+		  {
+			  AEONCharacter* J = Jira();
+			  if (!J) { return false; }
+			  if (GFrame == 20 || GFrame == 60) { J->PressSpell(); }
+			  if (GFrame == 100) { J->SetSpellHeld(true); J->PressSpell(); }
+			  if (GFrame == 150) { J->SetSpellHeld(false); }
+			  return false;
+		  };
+		  S.Target = []() { return Feet() + FVector(0.f, 0.f, EON::PxToCm(10.f)); }; S.WidthPx = 200.f;
+		  S.After = []() { KillTout(); }; GSteps.Add(S); }
 		{ FStep S; S.Name = TEXT("COM-V9_Video"); S.VideoFrames = 225;
 		  S.Start = []()
 		  {
-			  GAt = SolLibre(130.f);
-			  AEONEnemy* E = Dir() ? Dir()->SpawnEnemyAt(TEXT("slasher"), GAt, false) : nullptr;
+			  // Dans une grande salle (eon.forme large), au milieu de sa partie la plus dégagée : Jira d'un côté, l'ennemi de
+			  // l'autre, tous deux dans le cadre (Vincent, 25/11).
+			  if (GEngine) { GEngine->Exec(GVWorld.Get(), TEXT("eon.forme large")); }
+			  int32 Dg = 0;
+			  const FVector2D C = CentreDegage(&Dg);
+			  if (AEONCharacter* J = Jira())
+			  {
+				  J->SetActorLocation(RoomW(C - FVector2D(45.f, 0.f), 0.f) + FVector(0.f, 0.f, J->GetSimpleCollisionHalfHeight()), false, nullptr, ETeleportType::TeleportPhysics);
+			  }
+			  GAt = C + FVector2D(45.f, 0.f);
+			  GJiraAt = C - FVector2D(45.f, 0.f);
+			  UE_LOG(LogTemp, Display, TEXT("EON vitrine : centre dégagé %s, %d cases libres autour"), *C.ToString(), Dg);
+			  AEONEnemy* E = Dir() ? Dir()->SpawnEnemyAt(FName(*CVarVitrineEnnemi.GetValueOnGameThread()), GAt, false) : nullptr;
 			  if (E) { E->Hp = 1.0e6f; }
 			  GEnemy = E; GFrame = 0;
 		  };
 		  S.Ready = [](double)
 		  {
 			  AEONCharacter* J = Jira(); AEONEnemy* E = GEnemy.Get();
+			  // Critiques réglés (25/11) : un aux images 30, 75, 120 et 165, pour une séquence tête, bras, bras, jambe
+			  // étalée sur le plan (au hasard, 20 % faisait tout partir en 1 s, 6 % parfois rien).
+			  // Un dialogue du jeu (rupture de paroi…) met la partie en pause : la vidéo se figeait (cause de l'arrêt sur le Kama, 25/11).
+			  Passer();
+			  if (GFrame == 30 || GFrame == 75 || GFrame == 120 || GFrame == 165) { AEONEnemy::bCritSuivant = true; }
 			  if (J && E)
 			  {
 				  const FVector D = E->GetActorLocation() - J->GetActorLocation();
 				  J->SetAimAngle(FMath::Atan2(D.Y, D.X));
 				  J->SetFireHeld(true);
 			  }
-			  UGameplayStatics::SetGlobalTimeDilation(GVWorld.Get(), GFrame < 75 ? 1.f : 0.3f);
-			  if (E && E->Hp < 1.0e5f) { E->Hp = 1.0e6f; }
+			  if (E && E->Hp < 1.0e5f && E->Hp > 0.f) { E->Hp = 1.0e6f; }
+			  // Ennemi gardé sur place, dans la zone éclairée (25/11 : le Nuke et l'Ubume en sortaient).
+			  if (E) { E->Pos = GAt; E->Vel = FVector2D::ZeroVector; E->Knock = FVector2D::ZeroVector; }
+			  // Jira aussi tenu en place (il glissait hors du cadre en tirant).
+			  if (J) { J->SetActorLocation(RoomW(GJiraAt, 0.f) + FVector(0.f, 0.f, J->GetSimpleCollisionHalfHeight()), false, nullptr, ETeleportType::TeleportPhysics); }
 			  return false;
 		  };
-		  S.Target = []() { AEONEnemy* E = GEnemy.Get(); return E ? E->GetActorLocation() + FVector(0.f, 0.f, EON::PxToCm(E->Ehh() * 0.5f)) : RoomW(GAt, 10.f); };
-		  S.WidthPx = 80.f;
-		  S.After = []() { if (AEONCharacter* J = Jira()) { J->SetFireHeld(false); } UGameplayStatics::SetGlobalTimeDilation(GVWorld.Get(), 1.f); KillTout(); };
+		  // Plan entre Jira et l'ennemi, assez large pour voir le tireur et la cible.
+		  S.Target = []() { return RoomW((GJiraAt + GAt) * 0.5f, 8.f); };
+		  S.WidthPx = 160.f;
+		  S.After = []() { if (AEONCharacter* J = Jira()) { J->SetFireHeld(false); } KillTout(); };
 		  GSteps.Add(S); }
 		for (int32 I = 0; I < GSteps.Num(); ++I) { GSteps[I].Num = I + 1; }
 	}

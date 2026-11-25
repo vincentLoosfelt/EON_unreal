@@ -6,7 +6,7 @@ import re, os, subprocess, html
 SRC = os.path.dirname(os.path.abspath(__file__))
 DOC = os.path.dirname(SRC)
 MD = os.path.join(SRC, "effets_inventaire.md")
-OUT = os.path.join(DOC, "EON_Effets_Speciaux.pdf")
+OUT = os.path.join(os.path.dirname(DOC), "Etude_VFX", "EON_Effets_Speciaux.pdf")   # dans Etude_VFX (Docs et EON_Docs sur le Drive), Vincent 25/11
 VERSION, DATE = 6, "24/11/2026"
 PREF = {"1": "JIR", "2": "COM", "3": "NUK", "4": "ONI", "5": "KAM", "6": "UBU", "7": "IKI", "8": "GAR", "9": "DEC", "10": "INT"}
 

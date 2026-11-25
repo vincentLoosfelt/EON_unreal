@@ -45,4 +45,12 @@ private:
 	float ZoomCur = 1.f;
 	/** MPC_EON_Rendu : TraitZoom = épaisseur du trait relative au zoom (M_PP_EON_Trait la borne). */
 	UPROPERTY(Transient) TObjectPtr<UMaterialParameterCollection> RenduMPC;
+	/** Gros coups : écran bichrome (M_PP_EON_Bichrome), posé 2 images à 12 i/s. */
+	UPROPERTY() TObjectPtr<class UMaterialInterface> BichromeMat;
+	UPROPERTY(Transient) TObjectPtr<class UMaterialInstanceDynamic> BichromeMid;
+	/** Ondes de choc (EONFx::OndeChoc) : sphère de distorsion à taux fresnel (M_PP_EON_OndeChoc), une instance par onde. */
+	UPROPERTY() TObjectPtr<class UMaterialInterface> OndeMat;
+	UPROPERTY(Transient) TArray<TObjectPtr<class UMaterialInstanceDynamic>> OndeMids;
+public:
+	AEONPlayerCameraManager();
 };

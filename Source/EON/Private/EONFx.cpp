@@ -10,6 +10,13 @@ namespace
 {
 	/** Dilatation propre aux effets : 1, ou 0,15 / 0,0001 pendant un arrêt sur image (le gel global vaut 0,0001). */
 	float GFxDilation = 1.f;
+	/** Arrêt sur image en cours (SetHitstop). La dilatation des effets est recalculée à chaque image d'après le gel
+	 *  RÉELLEMENT appliqué au monde (FxPreTick) : le gel global ne prend effet qu'à l'image suivante ; poser tout de
+	 *  suite 0,15 / 0,0001 faisait vieillir les effets de plusieurs secondes d'un coup (fumée morte à 2,6 s au lieu de 4). */
+	bool GHitstop = false;
+	void FxPreTick(UWorld* W, ELevelTick, float Dt);
+	FDelegateHandle GFxHook;
+	void EnsureHook() { if (!GFxHook.IsValid()) { GFxHook = FWorldDelegates::OnWorldPreActorTick.AddStatic(&FxPreTick); } }
 	TArray<TWeakObjectPtr<UNiagaraComponent>> GLive;
 
 	UNiagaraSystem* Sys(int32 Which)
@@ -17,8 +24,14 @@ namespace
 		static const TCHAR* Paths[] = {
 			TEXT("/Game/EON/VFX/NS_EON_Gerbe.NS_EON_Gerbe"),
 			TEXT("/Game/EON/VFX/NS_EON_GerbeDir.NS_EON_GerbeDir"),
-			TEXT("/Game/EON/VFX/NS_EON_Anneau.NS_EON_Anneau") };
-		static TStrongObjectPtr<UNiagaraSystem> Cache[3];
+			TEXT("/Game/EON/VFX/NS_EON_Anneau.NS_EON_Anneau"),
+			TEXT("/Game/EON/VFX/NS_EON_Fumee.NS_EON_Fumee"),
+			TEXT("/Game/EON/VFX/NS_EON_FumeeLobes.NS_EON_FumeeLobes"),
+			TEXT("/Game/EON/VFX/NS_EON_Feu.NS_EON_Feu"),
+			TEXT("/Game/EON/VFX/NS_EON_FeuLobes.NS_EON_FeuLobes"),
+			TEXT("/Game/EON/VFX/NS_EON_FumeeExplo.NS_EON_FumeeExplo"),
+			TEXT("/Game/EON/VFX/NS_EON_FumeeExploLobes.NS_EON_FumeeExploLobes") };
+		static TStrongObjectPtr<UNiagaraSystem> Cache[9];
 		if (!Cache[Which].IsValid()) { Cache[Which].Reset(LoadObject<UNiagaraSystem>(nullptr, Paths[Which])); }
 		return Cache[Which].Get();
 	}
@@ -34,6 +47,7 @@ namespace
 			// Solo : la dilatation propre ne marche qu'ainsi ; elle suit l'arrêt sur image (SetHitstop).
 			C->SetForceSolo(true);
 			C->SetCustomTimeDilation(GFxDilation);
+			EnsureHook();
 			GLive.RemoveAllSwap([](const TWeakObjectPtr<UNiagaraComponent>& P) { return !P.IsValid(); });
 			GLive.Add(C);
 		}
@@ -97,6 +111,75 @@ void EONFx::GerbeDir2(const UObject* Ctx, const FVector& At, const FVector& Dir,
 	GerbeDir(Ctx, At, Dir, Nb, B, SpeedPx, Life, SizePx, Drag);
 }
 
+// ---------------------------------------------------------------- Fumée toon à 12 i/s
+namespace
+{
+	/** Fumées vivantes et temps accumulé depuis leur dernier bond. */
+	struct FPas { TWeakObjectPtr<UNiagaraComponent> C; float Acc = 0.f; float Reste = 10.f; };
+	TArray<FPas> GPas;
+	TAutoConsoleVariable<int32> CVarFumee12(TEXT("eon.fx.fumee12"), 1, TEXT("Fumée toon animée à 12 i/s (1) ou fluide (0)."));
+
+	/** Avant le tick des acteurs : une fumée ne bouge que lorsqu'elle a accumulé 1/12 s ; ce tick-là, sa dilatation
+	 *  rattrape tout le temps accumulé, sinon elle est quasi nulle (image tenue). */
+	void PasFumee(UWorld* W, float Dt)
+	{
+		if (Dt <= 0.f) { return; }
+		for (int32 i = GPas.Num() - 1; i >= 0; --i)
+		{
+			UNiagaraComponent* C = GPas[i].C.Get();
+			if (!C) { GPas.RemoveAtSwap(i); continue; }
+			if (C->GetWorld() != W) { continue; }
+			// Sécurité : une fumée qui dure bien plus que sa vie (système endormi) est supprimée, jamais laissée figée.
+			GPas[i].Reste -= Dt;
+			if (GPas[i].Reste <= 0.f) { UE_LOG(LogTemp, Display, TEXT("EON fumée figée supprimée")); C->DestroyComponent(); GPas.RemoveAtSwap(i); continue; }
+			if (CVarFumee12.GetValueOnGameThread() == 0) { C->SetCustomTimeDilation(GFxDilation); continue; }
+			GPas[i].Acc += Dt * GFxDilation;
+			if (GPas[i].Acc >= 1.f / 12.f) { C->SetCustomTimeDilation(GPas[i].Acc / Dt); GPas[i].Acc = 0.f; }
+			// Jamais 0 : à dilatation nulle, Niagara endort le système et ses sphères restent figées pour toujours.
+			else { C->SetCustomTimeDilation(1e-4f); }
+		}
+	}
+}
+
+namespace
+{
+	/** Amas de sphères à 12 i/s : noyau (système Core, 1 sphère sur 6, au moins 2) + lobes soudés à sa surface (Lobes).
+	 *  Fumée : NS_EON_Fumee/FumeeLobes ; feu des explosions : NS_EON_Feu/FeuLobes (même principe, Vincent, 24/11). */
+	void Amas(const UObject* Ctx, const FVector& At, int32 N, const FLinearColor& Col, float Life, float Scale, int32 Core, int32 Lobes)
+	{
+	const int32 NNoyau = FMath::Max(2, N / 6);
+	for (int32 Which : { Core, Lobes })
+	{
+		UNiagaraComponent* C = Start(Ctx, Which, At);
+		if (!C) { continue; }
+		C->SetWorldScale3D(FVector(FMath::Max(0.05f, Scale)));
+		C->SetVariableInt(TEXT("User.Count"), Which == Core ? NNoyau : N);
+		C->SetVariableLinearColor(TEXT("User.Color"), Col);
+		// Centre de la masse (monde), pour courber les normales vers celles du volume d'ensemble (M_EON_FumeeToon).
+		const FVector Centre = At + FVector(0.f, 0.f, 35.f * Scale);
+		C->SetVariableFloat(TEXT("User.CX"), Centre.X);
+		C->SetVariableFloat(TEXT("User.CY"), Centre.Y);
+		C->SetVariableFloat(TEXT("User.CZ"), Centre.Z);
+		// Le noyau vit un peu moins longtemps : il rétrécit le premier, la masse s'ouvre au centre.
+		C->SetVariableFloat(TEXT("User.Life"), Which == Core ? Life * 0.85f : Life);
+		// Stencil 3 : celluloïd détouré seulement au bord de la masse (lobes fusionnés, M_PP_EON_Trait).
+		C->SetRenderCustomDepth(true);
+		C->SetCustomDepthStencilValue(3);
+		C->Activate(true);
+		// Première image tout de suite, puis bonds de 1/12 s.
+		FPas Pas; Pas.C = C; Pas.Acc = 1.f / 12.f; Pas.Reste = Life * 3.f + 1.f;
+		GPas.Add(Pas);
+	}
+	}
+}
+
+void EONFx::Fumee(const UObject* Ctx, const FVector& At, int32 N, const FLinearColor& Col, float Life, float Scale)
+{
+	if (N <= 0) { return; }
+	UE_LOG(LogTemp, Display, TEXT("EON fumée %s n=%d s=%.2f"), *At.ToString(), N, Scale);
+	Amas(Ctx, At, N, Col, Life, Scale, 3, 4);
+}
+
 void EONFx::Anneau(const UObject* Ctx, const FVector& At, float RadiusPx, float Life, const FLinearColor& Col)
 {
 	if (UNiagaraComponent* C = Start(Ctx, 2, At + FVector(0.f, 0.f, 3.f)))
@@ -116,6 +199,7 @@ void EONFx::Anneau(const UObject* Ctx, const FVector& At, float RadiusPx, float 
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Engine/Texture.h"
 #include "Kismet/GameplayStatics.h"
 #include "Camera/PlayerCameraManager.h"
 
@@ -128,18 +212,41 @@ namespace
 		FActorSpawnParameters P;
 		P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		AEONFxPiece* F = W->SpawnActor<AEONFxPiece>(AEONFxPiece::StaticClass(), At, FRotator::ZeroRotator, P);
-		if (F) { F->Life = FMath::Max(0.01f, Life); F->CustomTimeDilation = GFxDilation; }
+		if (F) { F->Life = FMath::Max(0.01f, Life); F->CustomTimeDilation = GFxDilation; EnsureHook(); }
 		return F;
 	}
 }
 
 #include "EngineUtils.h"
+#include "GameFramework/WorldSettings.h"
+namespace
+{
+	void AppliqueDilatation(UWorld* W, float D)
+	{
+		GFxDilation = D;
+		for (const TWeakObjectPtr<UNiagaraComponent>& P : GLive) { if (UNiagaraComponent* C = P.Get()) { C->SetCustomTimeDilation(D); } }
+		GLive.RemoveAllSwap([](const TWeakObjectPtr<UNiagaraComponent>& P) { return !P.IsValid(); });
+		if (W) { for (TActorIterator<AEONFxPiece> It(W); It; ++It) { It->CustomTimeDilation = D; } }
+	}
+
+	void FxPreTick(UWorld* W, ELevelTick, float Dt)
+	{
+		if (!W || !W->IsGameWorld()) { return; }
+		// Effets à 15 % pendant le gel : 0,15 ÷ dilatation du monde de CETTE image.
+		const AWorldSettings* Ws = W->GetWorldSettings();
+		const float Eff = Ws ? FMath::Max(1e-6f, Ws->GetEffectiveTimeDilation()) : 1.f;
+		const float D = GHitstop ? 0.15f / Eff : 1.f;
+		if (!FMath::IsNearlyEqual(D, GFxDilation, D * 0.01f)) { AppliqueDilatation(W, D); }
+		PasFumee(W, Dt);
+	}
+}
+
 void EONFx::SetHitstop(UWorld* W, bool bOn)
 {
-	GFxDilation = bOn ? 0.15f / 0.0001f : 1.f;
-	for (const TWeakObjectPtr<UNiagaraComponent>& P : GLive) { if (UNiagaraComponent* C = P.Get()) { C->SetCustomTimeDilation(GFxDilation); } }
-	GLive.RemoveAllSwap([](const TWeakObjectPtr<UNiagaraComponent>& P) { return !P.IsValid(); });
-	if (W) { for (TActorIterator<AEONFxPiece> It(W); It; ++It) { It->CustomTimeDilation = GFxDilation; } }
+	GHitstop = bOn;
+	// Le gel global (ou sa fin) ne s'applique qu'à l'image suivante : pour le reste de celle-ci, le monde tourne encore
+	// à la vitesse d'avant. FxPreTick recalcule dès l'image suivante.
+	AppliqueDilatation(W, bOn ? 0.15f : 1.f);
 }
 
 UMaterialInstanceDynamic* EONFx::Glow(UObject* Outer, EForme Forme, const FLinearColor& Col, float Intensite)
@@ -157,6 +264,92 @@ UMaterialInstanceDynamic* EONFx::Glow(UObject* Outer, EForme Forme, const FLinea
 void EONFx::Lumiere(const UObject* Ctx, const FVector& At, const FLinearColor& Col, float Intensity, float RadiusPx, float Life)
 {
 	if (AEONFxPiece* F = SpawnPiece(Ctx, At, Life)) { F->AddLight(Col, Intensity, EON::PxToCm(RadiusPx)); }
+}
+
+AEONFxPiece* EONFx::Charge(const UObject* Ctx, const FVector& At, float RadiusCm, const FLinearColor& Col, float Duree)
+{
+	static TStrongObjectPtr<UStaticMesh> Sphere;
+	static TStrongObjectPtr<UMaterialInterface> DomeMat;
+	if (!Sphere.IsValid()) { Sphere.Reset(LoadObject<UStaticMesh>(nullptr, TEXT("/Game/EON/VFX/SM_EON_FumeeSphere.SM_EON_FumeeSphere"))); }
+	if (!DomeMat.IsValid()) { DomeMat.Reset(LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/EON/VFX/M_EON_Dome.M_EON_Dome"))); }
+	// Vincent, 24/11 : la boule part d'une sphère de 1 cm et grossit jusqu'à 50 cm (diamètres), puis explose.
+	const float R0 = 0.5f, R1 = 25.f;
+	AEONFxPiece* F = SpawnPiece(Ctx, At + FVector(0.f, 0.f, R1 * 0.7f), FMath::Max(0.05f, Duree));
+	if (!F || !Sphere.IsValid() || !DomeMat.IsValid()) { return F; }
+	F->bPas12 = true;
+	// Opacite reste à 1 (âge 0 pour le matériau) : cœur blanc, fin bord coloré, pas d'érosion.
+	F->bNoFade = true;
+	UMaterialInstanceDynamic* M = UMaterialInstanceDynamic::Create(DomeMat.Get(), F);
+	M->SetVectorParameterValue(TEXT("Bord"), Col);
+	// Bulles proportionnées à la boule (≈ 4 sur le rayon), relief ≈ 8 % du rayon.
+	M->SetScalarParameterValue(TEXT("BulleFreq"), 2.f / R1);
+	M->SetScalarParameterValue(TEXT("BulleAmp"), R1 * 0.08f);
+	// Icosphère de rayon 50 cm.
+	UStaticMeshComponent* C = F->AddMesh(Sphere.Get(), M, FVector(R0 / 50.f));
+	F->Grow0 = FVector(R0 / 50.f); F->Grow1 = FVector(R1 / 50.f); F->GrowT = Duree;
+	// Trait celluloïd au bord seulement (même stencil que la fumée, M_PP_EON_Trait).
+	C->SetRenderCustomDepth(true);
+	C->SetCustomDepthStencilValue(3);
+	// Lueur faible pendant la charge (seule la détonation éclaire vraiment).
+	F->AddLight(FMath::Lerp(FLinearColor::White, Col, 0.5f), 4000.f, R1 * 4.f)->SetIntensity(0.f);   // croît avec la boule (AEONFxPiece::Tick)
+	F->bNoFade = true;
+	return F;
+}
+
+TAutoConsoleVariable<float> CVarFlash(TEXT("eon.fx.flash"), 4.0e6f, TEXT("Intensité du flash des explosions (lumière à ombres nettes)."));
+
+void EONFx::Flash(const UObject* Ctx, const FVector& At, const FLinearColor& Col, float RadiusCm)
+{
+	// 2 images à 12 i/s : la lumière décroît au carré de la vie restante par bonds (1 puis 1/4).
+	if (AEONFxPiece* F = SpawnPiece(Ctx, At, 2.f / 12.f))
+	{
+		F->bPas12 = true;
+		F->AddLight(Col, CVarFlash.GetValueOnGameThread(), RadiusCm, true);
+	}
+}
+
+namespace
+{
+	/** Détonation : flash à ombres noires, boule de feu en amas, lumière, fumée de 4 s. */
+	void Eclat(const UObject* Ctx, const FVector& At, float R, const FLinearColor& Col, bool bFumee)
+	{
+		UE_LOG(LogTemp, Display, TEXT("EON explosion %s r=%.0f"), *At.ToString(), R);
+		EONFx::GrosCoup(Ctx, At, FMath::Lerp(Col, FLinearColor(1.f, 0.55f, 0.15f), 0.5f), 2);   // BOOM
+		// Flash : lumière énorme à hauteur de la boule, ombres noires nettes sur tout ce qui l'entoure.
+		EONFx::Flash(Ctx, At + FVector(0.f, 0.f, 40.f), FMath::Lerp(FLinearColor::White, Col, 0.2f), FMath::Max(1500.f, R * 12.f));
+		// Boule de feu = le principe de la fumée (Vincent, 24/11) : amas de sphères NS_EON_Feu, cœur blanc aveuglant, bord
+		// couleur Col qui envahit l'amas, bulles, érosion à bords nets, 12 i/s. Vie : 0,6 s (petite) à 0,95 s (grosse).
+		const float Life = FMath::Clamp(0.5f + R / 300.f, 0.6f, 0.95f);
+		Amas(Ctx, At, FMath::Clamp(FMath::RoundToInt(R / 4.f), 18, 60), Col, Life, FMath::Clamp(R / 80.f, 0.3f, 3.5f), 5, 6);
+		// Seuls les gros effets éclairent la scène (Vincent, 24/11) : éclair blanc-orange, rayon 3 × celui de la boule.
+		EONFx::Lumiere(Ctx, At + FVector(0.f, 0.f, R * 0.5f), FMath::Lerp(FLinearColor::White, Col, 0.5f), 45000.f, EON::CmToPx(R * 3.f), Life * 0.7f);
+		// Fumée façon Akira, cachée par le feu au début, révélée quand il s'érode.
+		if (bFumee) { EONFx::FumeeAkira(Ctx, At, R, EONFx::Hex(TEXT("2e2630"))); }
+	}
+}
+
+void EONFx::FumeeAkira(const UObject* Ctx, const FVector& At, float RadiusCm, const FLinearColor& Col, float Life)
+{
+	// 2 fois plus de sphères que la poussière (NS_EON_Fumee), qui s'excentrent depuis le centre et dérivent vers le haut.
+	const float R = FMath::Max(10.f, RadiusCm);
+	const int32 N = FMath::Clamp(FMath::RoundToInt(R / 2.f), 36, 120);
+	UE_LOG(LogTemp, Display, TEXT("EON fumée Akira %s n=%d"), *At.ToCompactString(), N);
+	Amas(Ctx, At, N, Col, Life, FMath::Clamp(R / 75.f, 0.6f, 3.5f), 7, 8);
+}
+
+void EONFx::Explosion(const UObject* Ctx, const FVector& At, float RadiusCm, const FLinearColor& Col, bool bFumee, float ChargeS)
+{
+	const float R = FMath::Max(10.f, RadiusCm);
+	if (ChargeS > 0.f)
+	{
+		if (AEONFxPiece* F = Charge(Ctx, At, R, Col, ChargeS))
+		{
+			// La boule de charge lance l'éclat à la fin de sa vie (elle sert de contexte : l'appelant peut avoir disparu).
+			F->OnEnd = [At, R, Col, bFumee](AEONFxPiece* P) { Eclat(P, At, R, Col, bFumee); };
+			return;
+		}
+	}
+	Eclat(Ctx, At, R, Col, bFumee);
 }
 
 void EONFx::Eclair(const UObject* Ctx, const FVector& At, const FVector& Dir, const FLinearColor& Col, float Life, float Scale, float LightRadiusPx)
@@ -207,6 +400,8 @@ void EONFx::Douille(const UObject* Ctx, const FVector& At, const FVector& Vel, f
 	if (!F) { return; }
 	F->bShell = true;
 	F->ShellVel = Vel;
+	F->ShellPos = At;
+	F->ShellYaw = F->GetActorRotation().Yaw;
 	F->FloorZ = FloorZ;
 	static TStrongObjectPtr<UStaticMesh> Cyl;
 	static TStrongObjectPtr<UMaterialInterface> Flat;
@@ -252,6 +447,177 @@ AEONFxPiece* EONFx::Sol(const UObject* Ctx, EForme Forme, const FVector& At, flo
 	return F;
 }
 
+namespace
+{
+	TAutoConsoleVariable<float> CVarSangIntensite(TEXT("eon.fx.sang.intensite"), 1.f, TEXT("Émissif des planches de sang (giclée, taches)."));
+
+	UMaterialInstanceDynamic* PlancheMid(UObject* Outer, const TCHAR* Tex, float Cols, float Rows, const FLinearColor& Col)
+	{
+		static TStrongObjectPtr<UMaterialInterface> Base;
+		if (!Base.IsValid()) { Base.Reset(LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/EON/VFX/M_EON_Planche.M_EON_Planche"))); }
+		UTexture* T = LoadObject<UTexture>(nullptr, Tex);
+		if (!Base.IsValid() || !T) { return nullptr; }
+		UMaterialInstanceDynamic* M = UMaterialInstanceDynamic::Create(Base.Get(), Outer);
+		M->SetTextureParameterValue(TEXT("Planche"), T);
+		M->SetScalarParameterValue(TEXT("Cols"), Cols);
+		M->SetScalarParameterValue(TEXT("Rows"), Rows);
+		M->SetVectorParameterValue(TEXT("Color"), Col);
+		M->SetScalarParameterValue(TEXT("Intensite"), CVarSangIntensite.GetValueOnGameThread());
+		return M;
+	}
+	TArray<TWeakObjectPtr<AEONFxPiece>> GTaches;
+}
+
+namespace
+{
+	/** Planche 4 × 2 jouée face caméra : Anchor = décalage du centre de l'image le long de son +X (fraction du côté). */
+	void PlancheFace(const UObject* Ctx, const TCHAR* Tex, const FVector& At, const FVector& Dir, float SizeCm, const FLinearColor& Col, float Life, float LiftCm, float Anchor)
+	{
+		AEONFxPiece* F = SpawnPiece(Ctx, At, Life);
+		if (!F) { return; }
+		UMaterialInstanceDynamic* M = PlancheMid(F, Tex, 4.f, 2.f, Col);
+		if (!M) { F->Destroy(); return; }
+		F->bNoFade = true;
+		F->bFlip = true; F->FlipN = 8;
+		F->FaceDir = Dir.GetSafeNormal();
+		F->FaceSize = SizeCm;
+		F->FaceAnchor = Anchor;
+		F->FaceLift = LiftCm;
+		F->FacePlane = F->AddPlane(M, FVector::ZeroVector, 0.f, SizeCm, SizeCm);
+		F->UpdateFace();
+	}
+}
+
+void EONFx::Giclee(const UObject* Ctx, const FVector& At, const FVector& Dir, float SizeCm, const FLinearColor& Col, float Life, float LiftCm)
+{
+	// Le point d'impact est à 20 % du bord gauche de l'image : centre décalé de 0,3 côté vers +X.
+	PlancheFace(Ctx, TEXT("/Game/EON/VFX/Planches/T_EON_VFX_P2_Giclee.T_EON_VFX_P2_Giclee"), At, Dir, SizeCm, Col, Life, LiftCm, 0.3f);
+}
+
+void EONFx::Eclats(const UObject* Ctx, const FVector& At, const FVector& Dir, float SizeCm, const FLinearColor& Col, float Life, float LiftCm)
+{
+	PlancheFace(Ctx, TEXT("/Game/EON/VFX/Planches/T_EON_VFX_P1_Eclats.T_EON_VFX_P1_Eclats"), At, Dir, SizeCm, Col, Life, LiftCm, 0.f);
+}
+
+namespace
+{
+	double GHorlogeGC = 0.0;
+	EONFx::FGrosCoup GGrosCoup;
+	struct FOnde
+	{
+		FVector At = FVector::ZeroVector;
+		double T0 = 0.0;
+		float Duree = 0.f, Rayon = 0.f, Force = 0.f;
+		/** > 0 : rayon final dans le monde (cm) ; sinon Rayon en hauteurs d'écran. */
+		float RayonCm = 0.f;
+		float Emission = 0.f;
+		FLinearColor Teinte = FLinearColor::White;
+	};
+	TArray<FOnde> GOndes;
+}
+
+void EONFx::AvancerHorlogeEcran(float Dt)
+{
+	GHorlogeGC += FMath::Clamp(Dt, 0.f, 0.1f);
+	GOndes.RemoveAll([](const FOnde& O) { return GHorlogeGC - O.T0 >= O.Duree; });
+}
+
+void EONFx::OndeChoc(const UObject* Ctx, const FVector& At, float Delai, float Duree, float Rayon, float Force)
+{
+	if (GOndes.Num() >= OndesChocMax) { GOndes.RemoveAt(0); }
+	FOnde& O = GOndes.AddDefaulted_GetRef();
+	O.At = At;
+	O.T0 = GHorlogeGC + FMath::Max(0.f, Delai);
+	O.Duree = FMath::Max(0.05f, Duree);
+	O.Rayon = Rayon;
+	O.Force = Force;
+}
+
+void EONFx::OndeChocMonde(const UObject* Ctx, const FVector& At, float RayonCm, float Delai, float Duree, float Force, float Emission, const FLinearColor& Teinte)
+{
+	OndeChoc(Ctx, At, Delai, Duree, 0.f, Force);
+	GOndes.Last().RayonCm = FMath::Max(1.f, RayonCm);
+	GOndes.Last().Emission = Emission;
+	GOndes.Last().Teinte = Teinte;
+}
+
+void EONFx::OndesChocActives(TArray<FOndeChocVue>& Out)
+{
+	Out.Reset();
+	for (const FOnde& O : GOndes)
+	{
+		const float K = (float)((GHorlogeGC - O.T0) / O.Duree);
+		if (K < 0.f || K >= 1.f) { continue; }
+		const float Ease = 1.f - FMath::Square(1.f - K);
+		FOndeChocVue& V = Out.AddDefaulted_GetRef();
+		V.At = O.At;
+		V.Rayon = 0.04f + (O.Rayon - 0.04f) * Ease;
+		V.RayonCm = O.RayonCm > 0.f ? O.RayonCm * (0.08f + 0.92f * Ease) : 0.f;
+		V.Force = O.Force * (1.f - K * K);
+		V.Emission = O.Emission * (1.f - K * K);
+		V.Teinte = O.Teinte;
+	}
+}
+
+void EONFx::GrosCoup(const UObject* Ctx, const FVector& At, const FLinearColor& Col, int32 Mot)
+{
+	if (GHorlogeGC - GGrosCoup.T0 < 0.35) { return; }
+	GGrosCoup.At = At;
+	GGrosCoup.Col = Col;
+	GGrosCoup.Mot = FMath::Clamp(Mot, 0, 5);
+	GGrosCoup.T0 = GHorlogeGC;
+	GGrosCoup.Rot = FMath::FRandRange(-14.f, 14.f);
+	GGrosCoup.Graine = FMath::Rand();
+	// Onde de choc à la fin de l'écran bichrome (sinon cachée dessous), jusqu'au bout du gros coup.
+	OndeChoc(Ctx, At, GrosCoupBichrome, GrosCoupDuree - GrosCoupBichrome);
+	UE_LOG(LogTemp, Display, TEXT("EON gros coup %d en %s"), GGrosCoup.Mot, *At.ToCompactString());
+}
+
+const EONFx::FGrosCoup* EONFx::GrosCoupActif(float* OutAge)
+{
+	const float Age = (float)(GHorlogeGC - GGrosCoup.T0);
+	if (Age < 0.f || Age >= GrosCoupDuree) { return nullptr; }
+	if (OutAge) { *OutAge = Age; }
+	return &GGrosCoup;
+}
+
+void EONFx::TacheSol(const UObject* Ctx, const FVector& At, float Yaw, float SizeCm, const FLinearColor& Col, float Delay, float Life)
+{
+	// Traînée de giclée au sol (Vincent, 25/11 : « des giclées qui restent par terre », au moins 1,50 m, dans le sens du
+	// tir). Image 2:1 : l'impact est à 6 % du bord gauche, la gerbe file vers +X. At = point d'impact au sol, Yaw = sens
+	// du tir, SizeCm = longueur (largeur = la moitié). Pas de sol sous l'impact : rien ; pas de sol au bout (mur, vide) :
+	// la traînée est raccourcie de moitié, puis abandonnée.
+	UWorld* W = Ctx ? Ctx->GetWorld() : nullptr;
+	if (!W) { return; }
+	FCollisionQueryParams Q(SCENE_QUERY_STAT(EONTache), false);
+	auto Sol = [W, &Q](const FVector& P, FHitResult& H)
+	{
+		return W->LineTraceSingleByChannel(H, P + FVector(0.f, 0.f, 40.f), P - FVector(0.f, 0.f, 60.f), ECC_Visibility, Q) && H.ImpactNormal.Z >= 0.7f;
+	};
+	FHitResult H, He;
+	if (!Sol(At, H)) { return; }
+	const FVector Fw = FRotator(0.f, Yaw, 0.f).Vector();
+	if (!Sol(H.ImpactPoint + Fw * SizeCm * 0.9f, He) || FMath::Abs(He.ImpactPoint.Z - H.ImpactPoint.Z) > 10.f)
+	{
+		SizeCm *= 0.5f;
+		if (!Sol(H.ImpactPoint + Fw * SizeCm * 0.9f, He) || FMath::Abs(He.ImpactPoint.Z - H.ImpactPoint.Z) > 10.f) { return; }
+	}
+	AEONFxPiece* F = SpawnPiece(Ctx, H.ImpactPoint + Fw * SizeCm * 0.44f + FVector(0.f, 0.f, 1.5f), Life);
+	if (!F) { return; }
+	UMaterialInstanceDynamic* M = PlancheMid(F, TEXT("/Game/EON/VFX/Planches/T_EON_VFX_P3_TachesSol.T_EON_VFX_P3_TachesSol"), 2.f, 4.f, Col);
+	if (!M) { F->Destroy(); return; }
+	M->SetScalarParameterValue(TEXT("Image"), (float)FMath::RandRange(0, 7));
+	// Opacité pleine jusqu'à la dernière seconde, puis érosion (masque × opacité < 0,5).
+	F->bNoFade = true;
+	F->AddPlane(M, FVector::ZeroVector, Yaw, SizeCm, SizeCm * 0.5f);
+	F->Delay = Delay;
+	if (Delay > 0.f) { F->SetActorHiddenInGame(true); }
+	F->bTacheSol = true;
+	GTaches.RemoveAll([](const TWeakObjectPtr<AEONFxPiece>& P) { return !P.IsValid(); });
+	GTaches.Add(F);
+	while (GTaches.Num() > 100) { if (AEONFxPiece* Old = GTaches[0].Get()) { Old->Destroy(); } GTaches.RemoveAt(0); }
+}
+
 // eon.fx [anneau|gerbe|dir] : effet de test sur Jira (vérifier le rendu des systèmes Niagara).
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Pawn.h"
@@ -266,6 +632,7 @@ static FAutoConsoleCommandWithWorldAndArgs GEONCmdFx(TEXT("eon.fx"), TEXT("eon.f
 		if (K == TEXT("gerbe")) { EONFx::Gerbe2(P, Feet + FVector(0.f, 0.f, 30.f), 34, 3, EONFx::Hex(TEXT("ff9a3d")), FLinearColor::White, 180.f, 0.5f, 1.25f, 5.f); }
 		else if (K == TEXT("dir")) { EONFx::GerbeDir2(P, Feet + FVector(0.f, 0.f, 30.f), P->GetActorForwardVector(), 18, 3, EONFx::Hex(TEXT("e0405a")), FLinearColor::White, 170.f, 0.6f, 1.3f, 5.f); }
 		else if (K == TEXT("eclair")) { EONFx::Eclair(P, Feet + FVector(0.f, 0.f, 90.f), P->GetActorForwardVector(), EONFx::Hex(TEXT("3ef2e0")), 1.5f); }
+		else if (K == TEXT("explosion")) { EONFx::Explosion(P, Feet + P->GetActorForwardVector() * 200.f, Args.Num() > 1 ? FCString::Atof(*Args[1]) : 160.f, EONFx::Hex(TEXT("ff7a1a")), true, 0.5f); }
 		else if (K == TEXT("lumiere")) { EONFx::Lumiere(P, Feet + FVector(0.f, 0.f, 60.f), EONFx::Hex(TEXT("ff7a1a")), 60000.f, 60.f, 1.f); }
 		// Gardiens 2 et 3 (GAR-V18, GAR-V19) : effets prêts, branchés quand la Mechakuve et le Chercheur seront portés.
 		else if (K == TEXT("flaque")) { EONFx::Sol(P, EONFx::EForme::Flaque, Feet, 0.f, 30.f, 30.f, EONFx::Hex(TEXT("7aff3a")), 4.5f, 0.f, false, 0.6f, FMath::FRand() * 10.f, 1.2f); }

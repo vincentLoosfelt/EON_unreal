@@ -13,6 +13,7 @@
 #include "EONTuningSubsystem.h"
 #include "EONSfx.h"
 #include "EONFx.h"
+#include "EONMembre.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/CapsuleComponent.h"
 #include "DrawDebugHelpers.h"
@@ -25,6 +26,12 @@ namespace
 	constexpr float TS = 16.f;
 	constexpr float PlayerR = 4.f;   // P.r du proto
 	const FColor ColRed(255, 61, 85), ColAm(255, 194, 61), ColMg(255, 61, 139);
+
+	/** Niveau d'un coup sur un ennemi (Vincent, 25/11) ; le même calcul donne la couleur du chiffre de dégâts et l'effet,
+	 *  pour qu'ils restent d'accord : 0 blanc (moins de 3 dégâts) = giclée seule ; 1 orange (3 et plus) = trou ;
+	 *  2 critique rouge = un membre part (tête, puis bras, puis jambes). */
+	int32 NiveauCoup(float Dmg, bool bCrit) { return bCrit ? 2 : Dmg >= 3.f ? 1 : 0; }
+	FColor CouleurCoup(int32 Niveau) { return Niveau >= 2 ? ColRed : Niveau == 1 ? ColAm : FColor::White; }
 
 	FORCEINLINE float FRand01() { return FMath::FRand(); }
 	FORCEINLINE float RandSign() { return FMath::FRand() < 0.5f ? -1.f : 1.f; }
@@ -235,8 +242,34 @@ void AEONEnemy::BuildModel()
 	}
 }
 
-void AEONEnemy::SetFlash(bool bOn)
+namespace
 {
+	// Membres coupables de chaque ennemi (25/11 : « pour TOUS les ennemis »), table générée par eon_membres_table.py.
+#include "EONMembresTable.inl"
+	TArrayView<const FEONMembreDef> MembresDe(const TArray<TObjectPtr<UMeshComponent>>& Meshes)
+	{
+		const USkeletalMeshComponent* K = Meshes.Num() > 0 ? Cast<USkeletalMeshComponent>(Meshes[0]) : nullptr;
+		return K && K->GetSkeletalMeshAsset() ? MembresDuMaillage(K->GetSkeletalMeshAsset()->GetFName()) : TArrayView<const FEONMembreDef>();
+	}
+}
+// Provisoire (25/11) : le jeu n'a pas encore de coups critiques ; une balle sur 7 en est un, en attendant la règle de Vincent.
+static TAutoConsoleVariable<float> CVarEnnemiCrit(TEXT("eon.ennemi.crit"), 0.15f, TEXT("Chance de coup critique par balle (0..1) : seul un critique démembre."));
+
+static TAutoConsoleVariable<float> CVarEnnemiRecul(TEXT("eon.ennemi.recul"), 10.f, TEXT("Sursaut des ennemis à chaque balle reçue (cm, aller en 50 ms)."));
+static TAutoConsoleVariable<float> CVarEnnemiFlash(TEXT("eon.ennemi.flash"), 0.5f, TEXT("Force du flash de coup des ennemis (0..1, teinte couleur du sang)."));
+
+void AEONEnemy::SetFlash(bool bOn, const FLinearColor& Col)
+{
+	// Vincent, 25/11 : flash moins fort, à la couleur du sang. Les ennemis à trous le font par paramètre (le corps garde
+	// ses trous) ; les autres gardent l'ancien matériau blanc.
+	if (HoleMids.Num() > 0)
+	{
+		if (bOn == bFlashOn && (!bOn || Col.Equals(FlashCol))) { return; }
+		bFlashOn = bOn; FlashCol = Col;
+		const FLinearColor P = bOn ? FLinearColor(Col.R, Col.G, Col.B, CVarEnnemiFlash.GetValueOnGameThread()) : FLinearColor(1.f, 1.f, 1.f, 0.f);
+		for (UMaterialInstanceDynamic* M : HoleMids) { if (M) { M->SetVectorParameterValue(TEXT("FlashCouleur"), P); } }
+		return;
+	}
 	if (bOn == bFlashOn || !FlashMat) { return; }
 	bFlashOn = bOn;
 	int32 K = 0;
@@ -356,7 +389,19 @@ void AEONEnemy::ApplyHit(float Damage, FVector Dir, float KnockMul)
 	HitPx(Damage, D.X, D.Y, KnockMul);
 }
 
-void AEONEnemy::PunchHole(float Dmg, float Dx, float Dy)
+namespace
+{
+	/** Couleur des éclats de chair du proto, par type ; le sang prend la même (Vincent, 24/11), sauf le Kama : rouge Akira. */
+	template<typename T> const TCHAR* EclatHx(const T& Type)
+	{
+		return Type == TEXT("goule") ? TEXT("e8a24a") : Type == TEXT("gouleP") ? TEXT("6fbf4a") : Type == TEXT("kamikaze") ? TEXT("ff7a1a")
+			: Type == TEXT("meduse") ? TEXT("8f7be0") : Type == TEXT("sniper") ? TEXT("e8923a") : Type == TEXT("slasher") ? TEXT("e0405a")
+			: Type == TEXT("brainless") ? TEXT("c86a6a") : Type == TEXT("invocateur") ? TEXT("8a6aaa") : TEXT("c84a7a");
+	}
+	template<typename T> FLinearColor SangCol(const T& Type) { return EONFx::Hex(Type == TEXT("slasher") ? TEXT("c0142e") : EclatHx(Type)); }
+}
+
+void AEONEnemy::PunchHole(float Dmg, float Dx, float Dy, int32 Niveau)
 {
 	// punchHole du proto (l. 3290) : impact dispersé sur le corps, biaisé du côté d'où vient le tir ; surface retirée
 	// = max(0,02, dégâts / PV max) × chair × 1,3 (chair = moitié du rectangle du corps), 62 % dans le trou principal.
@@ -370,7 +415,7 @@ void AEONEnemy::PunchHole(float Dmg, float Dx, float Dy)
 	const FVector SideV(-Dw.Y, Dw.X, 0.f);
 	// 24/11 : le trou est un tube dans l'axe de la caméra (TrouAxe), qui traverse le corps et se voit toujours ;
 	// impact autour du centre du corps (± 35 % du rayon), un peu du côté du tireur.
-	const FVector P = Base - Dw * Rcm * 0.15f + SideV * (FMath::FRand() - 0.5f) * Rcm * 0.7f
+	FVector P = Base - Dw * Rcm * 0.15f + SideV * (FMath::FRand() - 0.5f) * Rcm * 0.7f
 		+ FVector(0.f, 0.f, Hcm * (0.5f + (FMath::FRand() - 0.5f) * 0.7f));
 	const float Chair = (2.f * Rcm) * Hcm * 0.5f;
 	const float Hk = UEONStatics::GetGameFeel(this).Holes;   // réglage « Trous » (proto : × holes²)
@@ -378,23 +423,144 @@ void AEONEnemy::PunchHole(float Dmg, float Dx, float Dy)
 	// Vincent, 24/11 : trous trop gros sur le modèle 3D ; rayon × 0,45 (le corps 3D est plus large que le sprite).
 	const float RHole = FMath::Clamp(FMath::Sqrt(A * 0.62f / PI) * 0.45f, EON::PxToCm(0.8f), Rcm * 0.45f);
 	const FTransform& Xf = Meshes[0]->GetComponentTransform();
-	const FVector Lp = Xf.InverseTransformPosition(P);
-	const float Lr = RHole / FMath::Max(0.001f, Xf.GetScale3D().X);
-	const FName Slot(*FString::Printf(TEXT("Trou%d"), HoleNext));
-	HoleNext = (HoleNext + 1) % 8;
-	FVector Cam = FVector(0.f, 0.f, -1.f);
-	if (const APlayerCameraManager* Pcm = UGameplayStatics::GetPlayerCameraManager(this, 0)) { Cam = Pcm->GetCameraRotation().Vector(); }
-	const FVector La = Xf.InverseTransformVectorNoScale(Cam).GetSafeNormal();
-	for (UMaterialInstanceDynamic* M : HoleMids)
+	FVector Lp = Xf.InverseTransformPosition(P);
+	float Lr = RHole / FMath::Max(0.001f, Xf.GetScale3D().X);
+	// Coup critique (Vincent, 25/11) : la balle tranche le membre suivant dans l'ordre tête, bras, jambes (au hasard
+	// parmi ceux du même rang) ; le trou est posé sur sa section.
+	const TArrayView<const FEONMembreDef> Mb = MembresDe(Meshes);
+	USkeletalMeshComponent* Sk = Cast<USkeletalMeshComponent>(Meshes[0]);
+	int32 Kc = INDEX_NONE;
+	if (Niveau >= 2 && Sk && Mb.Num() > 0)
 	{
-		if (!M) { continue; }
-		M->SetVectorParameterValue(Slot, FLinearColor(Lp.X, Lp.Y, Lp.Z, Lr));
-		M->SetVectorParameterValue(TEXT("TrouAxe"), FLinearColor(La.X, La.Y, La.Z, 0.f));
+		TArray<int32, TInlineAllocator<8>> Libres;
+		uint8 RangMin = 255;
+		for (int32 K = 0; K < Mb.Num() && K < 6; ++K)
+		{
+			if (Coupes & (1 << K)) { continue; }
+			if (Mb[K].Rang < RangMin) { RangMin = Mb[K].Rang; Libres.Reset(); }
+			if (Mb[K].Rang == RangMin) { Libres.Add(K); }
+		}
+		if (Libres.Num() > 0)
+		{
+			Kc = Libres[FMath::RandRange(0, Libres.Num() - 1)];
+			const FEONMembreDef& M = Mb[Kc];
+			Lp = M.J + M.Axe * M.Ts;
+			Lr = FMath::Max(Lr, M.Rs * 1.3f);
+			P = AEONMembre::RefToWorld(Sk, FName(M.Bone), Lp);
+		}
 	}
-	// Sang qui gicle à la formation du trou (Vincent, 24/11) : sort par le trou dans le sens du tir (cône ±63°),
-	// rouge vif et rouge sombre (1 sur 3), 40 à 170 px/s, 0,5 s ; un peu plus pour un gros trou.
-	const int32 Nb = FMath::Clamp(FMath::RoundToInt(6.f + RHole / EON::PxToCm(1.f) * 2.f), 6, 16);
-	EONFx::GerbeDir2(this, P, Dw, Nb, 3, EONFx::Hex(TEXT("c0142e")), EONFx::Hex(TEXT("5e0816")), 170.f, 0.5f, 1.3f, 3.f);
+	// Coup blanc : pas de trou, seulement la giclée (Vincent, 25/11 : « les coups simples baissent la vie »).
+	if (Niveau >= 1)
+	{
+		FVector Cam = FVector(0.f, 0.f, -1.f);
+		if (const APlayerCameraManager* Pcm = UGameplayStatics::GetPlayerCameraManager(this, 0)) { Cam = Pcm->GetCameraRotation().Vector(); }
+		const FVector La = Xf.InverseTransformVectorNoScale(Cam).GetSafeNormal();
+		// Fusion : distance mesurée dans le plan de l'écran (les trous sont des tubes dans l'axe de la caméra). Un trou qui
+		// touche le nouveau (bords à moins de 30 % du petit rayon) l'absorbe : centre au barycentre des aires, aire cumulée.
+		// Plafond : 60 % du rayon du corps.
+		const float LrMax = Rcm * 0.6f / FMath::Max(0.001f, Xf.GetScale3D().X);
+		auto Plan = [&La](const FVector& V) { return V - La * FVector::DotProduct(V, La); };
+		int32 Slot = INDEX_NONE;
+		float Best = TNumericLimits<float>::Max();
+		for (int32 I = 0; I < Holes.Num(); ++I)
+		{
+			const FVector4f& H = Holes[I];
+			const float D = Plan(FVector(H.X, H.Y, H.Z) - Lp).Size();
+			const float Marge = D - (H.W + Lr) + FMath::Min(H.W, Lr) * 0.3f;
+			if ((Marge < 0.f || Holes.Num() >= 16) && D < Best) { Best = D; Slot = I; }
+		}
+		if (Slot == INDEX_NONE)
+		{
+			Slot = Holes.Add(FVector4f((float)Lp.X, (float)Lp.Y, (float)Lp.Z, Lr));
+		}
+		else
+		{
+			FVector4f& H = Holes[Slot];
+			const float A0 = H.W * H.W, A1 = Lr * Lr;
+			const FVector C = (FVector(H.X, H.Y, H.Z) * A0 + Lp * A1) / (A0 + A1);
+			H = FVector4f((float)C.X, (float)C.Y, (float)C.Z, FMath::Min(LrMax, FMath::Sqrt(A0 + A1)));
+		}
+		const FVector4f& Hs = Holes[Slot];
+		const FName Nom(*FString::Printf(TEXT("Trou%d"), Slot));
+		for (UMaterialInstanceDynamic* M : HoleMids)
+		{
+			if (!M) { continue; }
+			M->SetVectorParameterValue(Nom, FLinearColor(Hs.X, Hs.Y, Hs.Z, Hs.W));
+			M->SetVectorParameterValue(TEXT("TrouAxe"), FLinearColor(La.X, La.Y, La.Z, 0.f));
+		}
+		if (Kc != INDEX_NONE) { CutLimb(Kc, Dw); }
+	}
+	// Giclée dessinée façon Akira (Vincent, 25/11 : « remplacer les carrés rouges, rapide et bien orientée ») : elle sort
+	// du côté opposé au tireur, dans le sens du tir vu à l'écran, devant le corps ; 8 images en 0,3 s. Plus grande pour
+	// un gros trou. Puis une tache au sol derrière l'ennemi, à l'arrivée des gouttes (6 fois sur 10). À chaque coup,
+	// chiffre blanc compris (Vincent, 25/11).
+	const FLinearColor Sang = SangCol(Type);
+	const float Gros = Niveau >= 1 ? FMath::Clamp(RHole / FMath::Max(1.f, Rcm * 0.45f), 0.f, 1.f) : 0.f;
+	EONFx::Giclee(this, P + Dw * Rcm * 0.35f, Dw, Hcm * (0.55f + 0.4f * Gros), Sang, 0.3f, Rcm * 1.3f);
+	if (FMath::FRand() < 0.6f)
+	{
+		// Traînée de 1,50 à 2 m (plus pour un gros trou) dans le sens du tir ; projetée, elle commence 40 à 70 cm derrière
+		// l'ennemi, pas à ses pieds (Vincent, 25/11).
+		const FVector Sol = Base + Dw * (Rcm + FMath::FRandRange(40.f, 70.f)) + SideV * FMath::FRandRange(-0.4f, 0.4f) * Rcm;
+		EONFx::TacheSol(this, Sol, Dw.Rotation().Yaw + FMath::FRandRange(-12.f, 12.f), FMath::FRandRange(150.f, 200.f) * (1.f + 0.25f * Gros), Sang, 0.18f);
+	}
+}
+
+bool AEONEnemy::bCritSuivant = false;
+
+void AEONEnemy::CutLimb(int32 K, const FVector& Dw)
+{
+	const TArrayView<const FEONMembreDef> Mb = MembresDe(Meshes);
+	USkeletalMeshComponent* Sk = Meshes.Num() > 0 ? Cast<USkeletalMeshComponent>(Meshes[0]) : nullptr;
+	if (!Sk || !Mb.IsValidIndex(K) || K >= 6 || (Coupes & (1 << K))) { return; }
+	const FEONMembreDef& M = Mb[K];
+	// Le corps cache le membre.
+	Coupes |= (1 << K);
+	const FName Na(*FString::Printf(TEXT("Coupe%dA"), K)), Nb(*FString::Printf(TEXT("Coupe%dB"), K)), Nc(*FString::Printf(TEXT("Coupe%dC"), K));
+	for (UMaterialInstanceDynamic* Mi : HoleMids)
+	{
+		if (!Mi) { continue; }
+		Mi->SetVectorParameterValue(Na, FLinearColor(M.J.X, M.J.Y, M.J.Z, M.R));
+		Mi->SetVectorParameterValue(Nb, FLinearColor(M.Axe.X, M.Axe.Y, M.Axe.Z, M.L));
+		Mi->SetVectorParameterValue(Nc, FLinearColor(M.N.X, M.N.Y, M.N.Z, 0.f));
+	}
+	const FLinearColor Sang = SangCol(Type);
+	const float S = Sk->GetComponentScale().X;
+	const FVector Jw = AEONMembre::RefToWorld(Sk, FName(M.Bone), M.J);
+	if (M.Rang == 0)
+	{
+		// Tête : elle explose (Vincent, 25/11). Couronne de giclées autour du cou, la plus grosse dans le sens du tir, et
+		// de grandes taches au sol ; pas de morceau qui tombe.
+		const FVector Tete = AEONMembre::RefToWorld(Sk, FName(M.Bone), M.J + M.Axe * M.L * 0.45f);
+		for (int32 I = 0; I < 6; ++I)
+		{
+			const FVector D = Dw.RotateAngleAxis(I * 60.f + FMath::FRandRange(-15.f, 15.f), FVector::UpVector);
+			EONFx::Giclee(this, Tete, D, EON::PxToCm(Ehh()) * (I == 0 ? 1.2f : 0.7f), Sang, 0.35f, M.R * S * 1.5f);
+		}
+		const FVector Base = GetActorLocation();
+		for (int32 I = 0; I < 2; ++I)
+		{
+			const FVector Off(FMath::FRandRange(-1.f, 1.f), FMath::FRandRange(-1.f, 1.f), 0.f);
+			EONFx::TacheSol(this, Base + Dw * FMath::FRandRange(40.f, 70.f) + Off * M.R * S, Dw.Rotation().Yaw + FMath::FRandRange(-30.f, 30.f), FMath::FRandRange(190.f, 250.f), Sang, 0.2f);
+		}
+	}
+	else
+	{
+		// Bras, jambe : la copie figée tombe en rigid body.
+		FActorSpawnParameters Sp;
+		Sp.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		if (AEONMembre* Mo = GetWorld()->SpawnActor<AEONMembre>(AEONMembre::StaticClass(), FTransform(Jw), Sp))
+		{
+			TArray<UMaterialInstanceDynamic*> Src;
+			for (UMaterialInstanceDynamic* Mi : HoleMids) { Src.Add(Mi); }
+			Mo->Init(Sk, Src, K, M, Dw, Sang);
+		}
+		// Giclée du moignon, côté corps, dans le sens du tir.
+		EONFx::Giclee(this, Jw, Dw, EON::PxToCm(Ehh()) * 0.9f, Sang, 0.35f, M.R * S * 1.5f);
+	}
+	// Jambe coupée : il tombe et meurt sur le coup (« un tronc ne peut pas vivre ») ; HitPx le tue juste après.
+	if (M.Rang == 2 && Hp > 0.f) { Hp = 0.f; }
+	UE_LOG(LogEON, Display, TEXT("EON_COUPE %s membre %d (%s) rang %d%s"), *GetName(), K, M.Bone, (int32)M.Rang, M.Rang == 2 ? TEXT(" : il tombe et meurt") : TEXT(""));
 }
 
 void AEONEnemy::HitPx(float Dmg, float Dx, float Dy, float KMul)
@@ -408,20 +574,18 @@ void AEONEnemy::HitPx(float Dmg, float Dx, float Dy, float KMul)
 	const float M = Mass * MassM;
 	Knock.X += Dx * 95.f * F.Knock * KMul / M;
 	Knock.Y += Dy * 95.f * F.Knock * KMul / M;
-	// punchHole (COM-V9) : un trou dans le corps, du côté du tireur. Puis l'éclaboussure de chair du proto :
-	// 4 éclats vers le tireur (-d × 70 px/s ± 35), 0,3 s, couleur du mob (le premier blanc), frein 5.
-	PunchHole(Dmg, Dx, Dy);
-	AEONCombatDirector* Dir = Director.Get();
-	if (const AEONTileRoom* Rf = Room.Get())
+	// punchHole (COM-V9) : la giclée qui sort de l'autre côté à chaque coup ; un trou si le chiffre est orange, un membre
+	// qui part s'il est rouge (critique). L'éclaboussure vers le tireur du proto est retirée (Vincent, 25/11).
+	const int32 Niv = NiveauCoup(Dmg, bCritSuivant || FMath::FRand() < CVarEnnemiCrit.GetValueOnGameThread());
+	bCritSuivant = false;
+	PunchHole(Dmg, Dx, Dy, Niv);
+	if (const AEONTileRoom* Rr = Room.Get())
 	{
-		const TCHAR* Hx = Type == TEXT("goule") ? TEXT("e8a24a") : Type == TEXT("gouleP") ? TEXT("6fbf4a") : Type == TEXT("kamikaze") ? TEXT("ff7a1a")
-			: Type == TEXT("meduse") ? TEXT("8f7be0") : Type == TEXT("sniper") ? TEXT("e8923a") : Type == TEXT("slasher") ? TEXT("e0405a")
-			: Type == TEXT("brainless") ? TEXT("c86a6a") : Type == TEXT("invocateur") ? TEXT("8a6aaa") : TEXT("c84a7a");
-		const FVector Body = Rf->RoomPxToWorld(Pos, EON::PxToCm(Ehh() * 0.5f));
-		EONFx::GerbeDir2(this, Body, FVector(-Dx, -Dy, 0.f), 4, 4, EONFx::Hex(Hx), FLinearColor::White, 105.f, 0.3f, 1.f, 5.f);
-		// hitEnemy : 4 éclats blancs dans le sens du coup (d × 60 px/s ± 40), 0,25 s.
-		EONFx::GerbeDir(this, Rf->RoomPxToWorld(Pos, EON::PxToCm(4.f)), FVector(Dx, Dy, 0.f), 4, FLinearColor::White, 100.f, 0.25f);
+		RecoilDir = (Rr->RoomPxToWorld(Pos + FVector2D(Dx, Dy)) - Rr->RoomPxToWorld(Pos)).GetSafeNormal2D();
+		RecoilT = 0.f;
 	}
+	// Pas d'éclats P1 sur les ennemis (Vincent, 25/11 : seulement sur les impacts au décor) : le trou et la giclée suffisent.
+	AEONCombatDirector* Dir = Director.Get();
 	if (AEONCharacter* J = Dir ? Dir->GetJira() : nullptr) { J->AddUlt(Dmg); }   // P.ult += dmg × 0,8
 	AEONTileRoom* Rm = Room.Get();
 	if (Dir && Rm && F.DmgNums)
@@ -431,9 +595,9 @@ void AEONEnemy::HitPx(float Dmg, float Dx, float Dy, float KMul)
 		// round(dmg × 10) / 10, affiché comme en JS (« 1 », « 1.5 »)
 		const int32 D10 = FMath::RoundToInt(Dmg * 10.f);
 		const FString Txt = D10 % 10 == 0 ? FString::FromInt(D10 / 10) : FString::Printf(TEXT("%.1f"), D10 / 10.f);
-		Dir->AddNum(At, Txt, Dmg >= 3.f ? ColAm : FColor::White);
+		Dir->AddNum(At, Txt, CouleurCoup(Niv), Niv >= 2 ? 0.85f : 0.6f, -38.f, Niv >= 2 ? 1.8f : Niv == 1 ? 1.3f : 1.f);
 	}
-	if (Dir && Dmg >= 3.f) { Dir->Hitstop(F.Hitstop * 0.3f); }
+	if (Dir && Niv >= 1) { Dir->Hitstop(F.Hitstop * 0.3f); }
 	if (Dir && Hp <= 0.f) { Dir->KillEnemy(this, Dx, Dy); }
 }
 
@@ -567,7 +731,15 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 			const float W = 1.f + 0.3f * FMath::Sin(T * 8.f);
 			const FVector2D C = ChaseDir(Tg);
 			Tvx = C.X * Sp * W; Tvy = C.Y * Sp * W;
-			if (D < 18.f) { St = EEONEnemySt::Arm; StT = 0.45f; }
+			if (D < 18.f)
+			{
+				St = EEONEnemySt::Arm; StT = 0.45f;
+				// Boule de charge de l'explosion (Vincent, 24/11) pendant l'armement ; l'éclat part avec l'Aoe.
+				if (const AEONCombatDirector* Dr = AEONCombatDirector::Get(GetWorld()))
+				{
+					if (const AEONTileRoom* Rc = Dr->GetRoom()) { EONFx::Charge(this, Rc->RoomPxToWorld(Pos, 0.f), EON::PxToCm(28.f) * 0.8f, EONFx::Hex(TEXT("ff7a1a")), StT); }
+				}
+			}
 		}
 		else
 		{
@@ -738,6 +910,25 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 	Vel.X += (Tvx - Vel.X) * K; Vel.Y += (Tvy - Vel.Y) * K;
 	if (St == EEONEnemySt::Dash || St == EEONEnemySt::Chg) { Vel = FVector2D(Tvx, Tvy); }
 	Pos += (Vel + Knock) * Dt;
+	// Personne ne se traverse (Vincent, 25/11 : « c'est interdit ») : un ennemi est repoussé hors des autres ennemis
+	// (somme des rayons de corps) et hors de Jira, comme contre un mur. Le contact avec Jira (PlayerR + 1) reste possible.
+	{
+		const float Rb = FMath::Max(R, Ehr());
+		for (const AEONEnemy* O : All)
+		{
+			if (!O || O == this || O->bDead || O->Falling > 0.f || O->bFly != bFly) { continue; }
+			const float Mn = Rb + FMath::Max(O->R, O->Ehr());
+			FVector2D Od = Pos - O->Pos;
+			float Ol = Od.Size();
+			if (Ol >= Mn) { continue; }
+			if (Ol < 0.01f) { Od = FVector2D(FMath::Cos(T * 7.f), FMath::Sin(T * 7.f)); Ol = 1.f; }
+			Pos = O->Pos + Od / Ol * Mn;
+		}
+		const FVector2D Jp = Dir->GetJiraPx();
+		const FVector2D Jd = Pos - Jp;
+		const float Jl = Jd.Size(), Jm = Rb + PlayerR;
+		if (Jl < Jm) { Pos = Jp + (Jl > 0.01f ? Jd / Jl : FVector2D(1.f, 0.f)) * Jm; }
+	}
 	const float Kd = FMath::Min(1.f, Dt * 9.f);
 	const bool bPushed = Knock.Size() > 45.f || St == EEONEnemySt::Dash || St == EEONEnemySt::Chg;
 	Knock -= Knock * Kd;
@@ -778,6 +969,16 @@ void AEONEnemy::UpdateVisual(float Dt, const FVector2D& Tg)
 	}
 	SetActorLocation(Rm->RoomPxToWorld(P, EON::PxToCm(Lift) - SinkCm));
 	SetActorScale3D(FVector(Scale));
+	// Sursaut à l'impact : aller en 50 ms (sinus), retour en 100 ms ; le modèle seul bouge, pas la position de jeu.
+	FVector Recul = FVector::ZeroVector;
+	if (RecoilT >= 0.f)
+	{
+		RecoilT += Dt;
+		const float A = RecoilT < 0.05f ? FMath::Sin(RecoilT / 0.05f * HALF_PI) : FMath::Square(FMath::Max(0.f, 1.f - (RecoilT - 0.05f) / 0.1f));
+		Recul = RecoilDir * CVarEnnemiRecul.GetValueOnGameThread() * A;
+		if (RecoilT >= 0.15f) { RecoilT = -1.f; }
+	}
+	ModelRoot->SetRelativeLocation(GetActorTransform().InverseTransformVector(Recul));
 
 	// Modèle : regarde où il marche, ou vers Jira à l'arrêt et pendant ses attaques (visée, charge) ; anim au rythme de la marche.
 	const bool bMoving = Vel.Size() > 8.f;
@@ -799,7 +1000,7 @@ void AEONEnemy::UpdateVisual(float Dt, const FVector2D& Tg)
 	}
 	// Clignotement blanc : coup reçu, et l'Onibi qui s'arme.
 	const bool bWhite = Flash > 0.f || (St == EEONEnemySt::Arm && FMath::FloorToInt(T * 20.f) % 2 == 0);
-	SetFlash(bWhite);
+	SetFlash(bWhite, Flash > 0.f ? SangCol(Type) : FLinearColor::White);
 
 #if ENABLE_DRAW_DEBUG
 	// Télégraphes du proto (drawEnemy) : provisoires en lignes de debug, absents des builds Shipping.

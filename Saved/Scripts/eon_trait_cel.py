@@ -77,7 +77,9 @@ if (DebugView > 0.5 && DebugView < 1.5) return LK(uv, 5).rgb + keep;
 // Celluloïd VISIBLE seulement : le stencil s'écrit aussi derrière le décor ; on exige profondeur de scène ≈ profondeur
 // custom (sinon un élément de décor est devant : ni trait ni traitement cel sur lui).
 // Stencil 1 seulement : le stencil 2 (projectiles, Vincent 24/11) reçoit l'étalonnage cel du décor mais pas de trait.
-#define VIS(u) (LK(u, 25).r > 0.5 && LK(u, 25).r < 1.5 && LK(u, 1).r > LK(u, 13).r * 0.997 - 1.0)
+#define VIS(u) ((abs(LK(u, 25).r - 1.0) < 0.5 || abs(LK(u, 25).r - 3.0) < 0.5) && LK(u, 1).r > LK(u, 13).r * 0.997 - 1.0 && (abs(LK(u, 25).r - 3.0) > 0.5 || (LK(u, 1).r < LK(u, 13).r * 1.0002 + 0.3 && LK(u, 1).r > LK(u, 13).r * 0.9998 - 0.3)))
+// Fumée toon (stencil 3) : ses lobes forment une seule masse, détourée seulement à l'extérieur.
+#define FUM(u) (abs(LK(u, 25).r - 3.0) < 0.5)
 if (!VIS(uv)) {
     // Ombre du cel sur le décor (prise de vue des années 90 : le cel posé sur la peinture, son épaisseur et
     // l'éclairage de face portent une légère ombre). Toujours décalée en bas à droite À L'ÉCRAN, quelle que soit
@@ -118,6 +120,8 @@ float2 nuv = WP.xy * 0.01 * HandScale;
 float hand = Texture2DSample(NoiseTex, NoiseTexSampler, nuv).r;
 float wMul = 1.0 + Jitter * (hand * 2.0 - 1.0);
 float Ws = max(SW * wMul, 0.3), Wi = max(SW * InnerRatio * wMul, 0.0);
+bool fum = FUM(uv);
+if (fum) Wi = 0.0;
 float Wmax = max(Ws, Wi) + 0.5 + Soft;
 float d0 = LK(uv, 1).r;
 float3 n0 = normalize(LK(uv, 8).rgb);
@@ -138,8 +142,8 @@ float dS = 99, dI = 99, hits = 0;
         // v6e (Vincent : pieds / doigts non détourés) : tout voisin hors celluloïd qui n'est pas DEVANT (sol, mur, fond)
         // est un bord de silhouette, même à profondeur presque égale (pied posé sur le sol).
         if (dq < d0 * (1.0 - DepthTol) && !VIS(q)) break;
-        if (dq > d0 * (1.0 + DepthTol) || !VIS(q)) { dS = min(dS, r - 0.25); hits += 1; break; }
-        if (r <= Wi + Soft) {
+        if ((dq > d0 * (1.0 + DepthTol) && !(fum && FUM(q))) || !VIS(q)) { dS = min(dS, r - 0.25); hits += 1; break; }
+        if (!fum && r <= Wi + Soft) {
             float3 nq = normalize(LK(q, 8).rgb);
             // Trait intérieur = pli (normales du GBuffer, normal maps comprises) ou changement de teinte ; jamais de ton.
             float3 cq = LK(q, 5).rgb;

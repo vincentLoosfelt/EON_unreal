@@ -4,6 +4,9 @@
 #include "NiagaraTypes.h"
 #include "NiagaraParameterStore.h"
 #include "UObject/UnrealType.h"
+#include "Stateless/NiagaraStatelessEmitter.h"
+#include "NiagaraMeshRendererProperties.h"
+#include "Engine/StaticMesh.h"
 
 namespace
 {
@@ -131,6 +134,31 @@ bool UEONVfxLib::BindUser(UNiagaraSystem* System, UObject* Object, const FString
 	FNiagaraParameterStore& Store = System->GetExposedParameters();
 	const FNiagaraVariable Var(Def, Full);
 	if (Store.IndexOf(Var) == INDEX_NONE) { System->Modify(); Store.AddParameter(Var, true, true); }
+	return true;
+#else
+	return false;
+#endif
+}
+
+bool UEONVfxLib::UseMeshRenderer(UObject* Emitter, UStaticMesh* Mesh, UMaterialInterface* Material)
+{
+#if WITH_EDITOR
+	UNiagaraStatelessEmitter* E = Cast<UNiagaraStatelessEmitter>(Emitter);
+	if (!E || !Mesh) { return false; }
+	E->Modify();
+	const TArray<UNiagaraRendererProperties*> Old = E->GetRenderers();
+	for (UNiagaraRendererProperties* R : Old) { E->RemoveRenderer(R, FGuid()); }
+	UNiagaraMeshRendererProperties* M = NewObject<UNiagaraMeshRendererProperties>(E, NAME_None, RF_Transactional);
+	if (M->Meshes.Num() == 0) { M->Meshes.AddDefaulted(); }
+	M->Meshes[0].Mesh = Mesh;
+	if (Material)
+	{
+		M->bOverrideMaterials = true;
+		FNiagaraMeshMaterialOverride O;
+		O.ExplicitMat = Material;
+		M->OverrideMaterials.Add(O);
+	}
+	E->AddRenderer(M, FGuid());
 	return true;
 #else
 	return false;

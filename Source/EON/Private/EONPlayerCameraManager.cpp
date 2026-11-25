@@ -8,6 +8,9 @@
 #include "EONPlayerController.h"
 #include "Kismet/KismetMaterialLibrary.h"
 #include "Materials/MaterialParameterCollection.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "UObject/ConstructorHelpers.h"
+#include "EONFx.h"
 
 namespace
 {
@@ -35,8 +38,61 @@ void AEONPlayerCameraManager::AddTrauma(float Amount)
 	Trauma = FMath::Min(1.f, Trauma + Amount * ShakeSetting);
 }
 
+AEONPlayerCameraManager::AEONPlayerCameraManager()
+{
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> Bi(TEXT("/Game/EON/Materials/M_PP_EON_Bichrome.M_PP_EON_Bichrome"));
+	BichromeMat = Bi.Object;
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> On(TEXT("/Game/EON/Materials/M_PP_EON_OndeChoc.M_PP_EON_OndeChoc"));
+	OndeMat = On.Object;
+}
+
 void AEONPlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime)
 {
+	// Gros coup : écran bichrome pendant 2 images à 12 i/s. Les modificateurs de caméra ne tournent pas (vue faite
+	// main) : on vide nous-mêmes les post-process posés à l'image précédente.
+	ClearCachedPPBlends();
+	float GcAge = 0.f;
+	const EONFx::FGrosCoup* Gc = EONFx::GrosCoupActif(&GcAge);
+	// Ondes de choc (EONFx::OndeChoc) : une sphère de distorsion par onde en cours.
+	if (OndeMat && PCOwner)
+	{
+		TArray<EONFx::FOndeChocVue> Ondes;
+		EONFx::OndesChocActives(Ondes);
+		int32 Vx = 0, Vy = 0;
+		PCOwner->GetViewportSize(Vx, Vy);
+		for (int32 I = 0; I < Ondes.Num() && Vx > 0 && Vy > 0; ++I)
+		{
+			FVector2D Px;
+			if (!PCOwner->ProjectWorldLocationToScreen(Ondes[I].At, Px, false)) { continue; }
+			// Rayon dans le monde : projeté à l'écran (vue de dessus : un point au bord, sur le côté).
+			float Rayon = Ondes[I].Rayon;
+			FVector2D Bord;
+			if (Ondes[I].RayonCm > 0.f)
+			{
+				if (!PCOwner->ProjectWorldLocationToScreen(Ondes[I].At + GetCameraRotation().Quaternion().GetRightVector() * Ondes[I].RayonCm, Bord, false)) { continue; }
+				Rayon = FVector2D::Distance(Px, Bord) / Vy;
+			}
+			while (OndeMids.Num() <= I) { OndeMids.Add(UMaterialInstanceDynamic::Create(OndeMat, this)); }
+			UMaterialInstanceDynamic* M = OndeMids[I];
+			M->SetVectorParameterValue(TEXT("Centre"), FLinearColor(Px.X / Vx, Px.Y / Vy, 0.f, 0.f));
+			M->SetScalarParameterValue(TEXT("Rayon"), Rayon);
+			M->SetScalarParameterValue(TEXT("Force"), Ondes[I].Force);
+			M->SetScalarParameterValue(TEXT("Emission"), Ondes[I].Emission);
+			M->SetVectorParameterValue(TEXT("Teinte"), Ondes[I].Teinte);
+			FPostProcessSettings Po;
+			Po.WeightedBlendables.Array.Add(FWeightedBlendable(1.f, M));
+			AddCachedPPBlend(Po, 1.f);
+		}
+	}
+	if (const EONFx::FGrosCoup* G = Gc; G && GcAge < EONFx::GrosCoupBichrome && BichromeMat)
+	{
+		if (!BichromeMid) { BichromeMid = UMaterialInstanceDynamic::Create(BichromeMat, this); }
+		BichromeMid->SetVectorParameterValue(TEXT("Couleur"), G->Col);
+		FPostProcessSettings Pp;
+		Pp.WeightedBlendables.Array.Add(FWeightedBlendable(1.f, BichromeMid));
+		AddCachedPPBlend(Pp, 1.f);
+	}
+
 	const UEONTuningSubsystem* T = UEONTuningSubsystem::Get(this);
 	const FEONGameFeelRow Feel = T ? T->GetGameFeel() : FEONGameFeelRow();
 

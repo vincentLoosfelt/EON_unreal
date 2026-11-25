@@ -172,7 +172,7 @@ float2 uv = GetViewportUV(Parameters);
 float keep = (ST0.r + ST1.r + ST2.r + ST3.r + ST4.r + ST5.r) * 0.0;
 float2 px = View.ViewSizeAndInvSize.zw;
 #define LK(u, id) SceneTextureLookup(ClampSceneTextureUV(ViewportUVToSceneTextureUV(u, id), id), id, false)
-#define CEL(u) (LK(u, 25).r > 0.5 && LK(u, 1).r > LK(u, 13).r * 0.997 - 1.0)
+#define CEL(u) (LK(u, 25).r > 0.5 && LK(u, 1).r > LK(u, 13).r * 0.997 - 1.0 && (abs(LK(u, 25).r - 3.0) > 0.5 || (LK(u, 1).r < LK(u, 13).r * 1.0002 + 0.3 && LK(u, 1).r > LK(u, 13).r * 0.9998 - 0.3)))
 float3 sc = LK(uv, 14).rgb;
 float d0 = LK(uv, 1).r;
 // Étalonnage séparé (Vincent, 23/11, étude Orbitals) : celluloïds plus clairs que le décor, décor moins saturé et plus sombre.

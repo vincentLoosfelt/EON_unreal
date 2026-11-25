@@ -16,6 +16,10 @@ public class EON : ModuleRules
 		if (Target.bBuildEditor)
 		{
 			PrivateDependencyModuleNames.AddRange(new string[] { "UnrealEd", "BlueprintGraph", "AnimGraph", "Kismet" });
+			// Émetteurs Lightweight de Niagara (EONVfxLib::UseMeshRenderer) : en-têtes « Internal » du plugin.
+			PrivateIncludePaths.Add(System.IO.Path.Combine(EngineDirectory, "Plugins/FX/Niagara/Source/Niagara/Internal"));
+			PrivateIncludePaths.Add(System.IO.Path.Combine(EngineDirectory, "Plugins/FX/Niagara/Source/NiagaraShader/Internal"));
+			PrivateDependencyModuleNames.AddRange(new string[] { "NiagaraShader", "NiagaraCore", "RenderCore", "RHI" });
 			// Éditeur de salles dans un onglet d'Unreal (EONSallesPanel.cpp) : navigateur intégré + serveur HTTP local.
 			PrivateDependencyModuleNames.AddRange(new string[] { "WebBrowser", "HTTPServer", "Json", "WorkspaceMenuStructure" });
 		}

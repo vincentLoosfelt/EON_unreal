@@ -338,7 +338,8 @@ void AEONPlayerController::PlayerTick(float DeltaTime)
 	AEONCharacter* Jira = Cast<AEONCharacter>(GetPawn());
 	if (!Jira) { return; }
 	// Maj = accélération (course), plus une touche de dash : lue ici, hors IMC_EON (Vincent, 16/11).
-	Jira->SetSprintHeld(IsInputKeyDown(EKeys::LeftShift) || IsInputKeyDown(EKeys::RightShift));
+	// Sauf quand un outil pilote Jira (vitrine) : il tient lui-même le sprint.
+	if (!Jira->bDevDrive) { Jira->SetSprintHeld(IsInputKeyDown(EKeys::LeftShift) || IsInputKeyDown(EKeys::RightShift)); }
 	DevMenu.Tick(this, FMath::Min((float)FApp::GetDeltaTime(), 0.1f));
 	ApplyPostProcess();
 	// Jalon 8 : écran titre, dialogues, terminal du C.O.M (temps réel, jeu en pause).

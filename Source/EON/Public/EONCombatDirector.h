@@ -68,8 +68,21 @@ public:
 	void ShieldBurst(bool bMirror);
 	/** Chute d'un ennemi : « Chute +1 », +1 scrap, ADN. */
 	void OnEnemyFell(AEONEnemy* E);
-	/** Chiffre flottant (nums du proto). VyPx < 0 = monte. */
-	void AddNum(const FVector& World, const FString& Text, const FColor& Col, float Life = 0.6f, float VyPx = -38.f);
+	/** Chiffre flottant (nums du proto), dessiné par AEONHUD en lettres manga (police Bangers, Vincent 25/11). */
+	struct FNum
+	{
+		FVector Loc = FVector::ZeroVector;
+		float VelZ = 0.f;
+		float Life = 0.f;
+		float Life0 = 0.f;
+		/** 1 = coup blanc ; plus gros pour un coup orange (1,3) ou critique (1,8). */
+		float Taille = 1.f;
+		FString Text;
+		FColor Col = FColor::White;
+	};
+	/** VyPx < 0 = monte. Taille : échelle du chiffre (gros coups plus gros). */
+	void AddNum(const FVector& World, const FString& Text, const FColor& Col, float Life = 0.6f, float VyPx = -38.f, float Taille = 1.f);
+	const TArray<FNum>& GetNums() const { return Nums; }
 	void Shake(float V) const;
 	void Hitstop(float Ms) const;
 	/** hurtPlayer(amt, sx, sy), source en px salle. Pousse de PushPx (px/s) en plus si non nul (Brainless). */
@@ -128,15 +141,6 @@ private:
 		float T = 0.f;
 		bool bElite = false;
 	};
-	struct FNum
-	{
-		FVector Loc = FVector::ZeroVector;
-		float VelZ = 0.f;
-		float Life = 0.f;
-		FString Text;
-		FColor Col = FColor::White;
-	};
-
 	AEONFloorManager* GetFloor() const;
 	void BindFloor();
 	void OnFloorRoomLoaded(AEONFloorManager* Floor);

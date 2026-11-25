@@ -32,6 +32,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "EON|VFX")
 	static bool BindUser(UNiagaraSystem* System, UObject* Object, const FString& Path, const FString& UserName, const FString& Type);
 
+	/** Remplace les rendus de l'émetteur Lightweight par un rendu de maillage (Mesh, matériau Material) : fumée en sphères (24/11). */
+	UFUNCTION(BlueprintCallable, Category = "EON|VFX")
+	static bool UseMeshRenderer(UObject* Emitter, class UStaticMesh* Mesh, class UMaterialInterface* Material);
+
 	/** Après les réglages : reconstruit l'émetteur et recompile le système. */
 	UFUNCTION(BlueprintCallable, Category = "EON|VFX")
 	static void FinishSystem(UNiagaraSystem* System, UObject* Emitter);

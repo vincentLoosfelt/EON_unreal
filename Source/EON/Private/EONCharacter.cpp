@@ -1134,8 +1134,8 @@ void AEONCharacter::UpdateMutation(float Dt, const FEONGameFeelRow& Feel)
 					Energy = Cap * 0.3f;
 					const int32 Np = FMath::Max(ArmorPerm, FMath::Min(ArmorPerm + 1, PeakMut));
 					PeakMut = 0;
-					if (Np > ArmorPerm) { ArmorPerm = Np; EONSfx::Event(this, TEXT("grow")); Banner(TEXT("Etat sain - l'armure reste"), ColAm); }
-					else { Banner(TEXT("Etat sain"), ColCy); }
+					if (Np > ArmorPerm) { ArmorPerm = Np; EONSfx::Event(this, TEXT("grow")); Banner(TEXT("État sain - l'armure reste"), ColAm); }
+					else { Banner(TEXT("État sain"), ColCy); }
 				}
 			}
 		}
@@ -1162,7 +1162,7 @@ void AEONCharacter::UpdateMutation(float Dt, const FEONGameFeelRow& Feel)
 			if (!ArmorMsgShown.Contains(Lv))
 			{
 				ArmorMsgShown.Add(Lv);
-				static const TCHAR* Msg[4] = { TEXT(""), TEXT("Le bras se transforme"), TEXT("L'armure pousse"), TEXT("Casque : ciblage assiste en ligne") };
+				static const TCHAR* Msg[4] = { TEXT(""), TEXT("Le bras se transforme"), TEXT("L'armure pousse"), TEXT("Casque : ciblage assisté en ligne") };
 				Banner(Msg[FMath::Clamp(Lv, 0, 3)], ColArm);
 			}
 		}
@@ -1405,7 +1405,7 @@ bool AEONCharacter::DevHoloVisible() const
 void AEONCharacter::CastHolo()
 {
 	if (HoloCd > 0.f || bFallingIntoVoid) { return; }
-	if (AreSpellsBlocked()) { Banner(TEXT("Spells bloques"), ColRed); return; }
+	if (AreSpellsBlocked()) { Banner(TEXT("Spells bloqués"), ColRed); return; }
 	DecoyLoc = GetActorLocation();
 	DecoyT = 5.f;
 	if (AEONFxPiece* Old = Holo.Get()) { Old->Destroy(); }
@@ -1427,7 +1427,7 @@ void AEONCharacter::UpdateSpells(float Dt, const FEONGameFeelRow& Feel)
 	// Onde : appui court = onde de choc ; maintenu plus de 0,25 s = onde continue.
 	if (bSpellPress && !bSpHold && !bFallingIntoVoid)
 	{
-		if (bBlk) { Banner(TEXT("Spells bloques"), ColRed); }
+		if (bBlk) { Banner(TEXT("Spells bloqués"), ColRed); }
 		else { bSpHold = true; SpT = 0.f; bSpMaint = false; }
 	}
 	bSpellPress = false;
@@ -1535,7 +1535,7 @@ void AEONCharacter::UpdateQTE(float RealDt)
 			bQTE = false;
 			Ult = 50.f;
 			if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.3f); }
-			Banner(TEXT("Sequence ratee"), ColRed);
+			Banner(TEXT("Séquence ratée"), ColRed);
 			return;
 		}
 		QTEPrevDir = Dir;
