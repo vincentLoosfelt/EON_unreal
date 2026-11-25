@@ -26,7 +26,6 @@ private:
 	/** comLines : lignes coupées à N caractères, 8 px proto d'interligne. Renvoie le nombre de lignes. */
 	int32 Lines(const TArray<FString>& L, float X, float Y, const FLinearColor& C, int32 N);
 	void DrawToast();
-	void DrawDialog();
 	void DrawCom();
 	void DrawTitle();
 	float Ox = 0.f, Oy = 0.f;

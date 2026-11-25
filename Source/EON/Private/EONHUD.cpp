@@ -419,7 +419,7 @@ void AEONHUD::DrawHUD()
 		}
 	}
 	else { DrawToast(); }
-	DrawDialog();
+	// Dialogue : UEONHudWidget::PaintDialog (maquette du 25/11).
 	DrawCom();
 	DrawTitle();
 	DrawDevMenu();
@@ -468,38 +468,6 @@ void AEONHUD::DrawToast()
 	Box(X, Y, W, 26 * U, Am, FLinearColor(0.027f, 0.024f, 0.06f, 0.9f * K));
 	Txt(TEXT("DEBLOQUE  -  ") + Ud->Kind, Canvas->ClipX * 0.5f, Y + 3 * U, Am, U / 4.f, true);
 	Txt(Ud->Name, Canvas->ClipX * 0.5f, Y + 12 * U, FLinearColor(1.f, 1.f, 1.f, K), U / 3.f, true);
-}
-
-void AEONHUD::DrawDialog()
-{
-	// drawDialog : voile, boîte en bas sur toute la largeur, portrait au-dessus à gauche, nom, texte lettre par lettre.
-	const UEONUISubsystem* UI = UEONUISubsystem::Get(this);
-	const FEONDlgLine* L = UI ? UI->DlgLine() : nullptr;
-	if (!L) { return; }
-	const float SX = Canvas->ClipX, SY = Canvas->ClipY;
-	FString Name; FColor Col;
-	UEONUISubsystem::CharInfo(L->Who, Name, Col);
-	const FLinearColor C(Col);
-	Rect(0, 0, SX, SY, FLinearColor(0.027f, 0.024f, 0.06f, 0.55f));
-	const float Bx = 10 * U, By = SY - 56 * U, Bw = SX - 20 * U, Bh = 52 * U;
-	Rect(Bx, By, Bw, Bh, FLinearColor(0.04f, 0.035f, 0.094f, 0.94f));
-	for (float Y = By; Y < By + Bh; Y += 6 * U) { Rect(Bx, Y, Bw, 2 * U, FLinearColor(C.R, C.G, C.B, 0.08f)); }
-	Box(Bx, By, Bw, Bh, C, FLinearColor::Transparent);
-	// Portrait provisoire (MANQUANTS.md : vrais portraits à produire) : carré à la couleur du perso, initiale, expression.
-	const float Ps = 46 * U, Px = Bx + 6 * U, Py = By - Ps - 4 * U;
-	Rect(Px - U, Py - U, Ps + 2 * U, Ps + 2 * U, FLinearColor(0.027f, 0.024f, 0.06f, 1.f));
-	Rect(Px, Py, Ps, Ps, FLinearColor(C.R * 0.25f, C.G * 0.25f, C.B * 0.25f, 1.f));
-	Box(Px, Py, Ps, Ps, C, FLinearColor::Transparent);
-	Txt(Name.Left(1), Px + Ps * 0.5f, Py + 8 * U, C, U / 1.3f, true);
-	Txt(L->Ex.ToString(), Px + Ps * 0.5f, Py + Ps - 9 * U, FLinearColor(C.R, C.G, C.B, 0.7f), U / 5.f, true);
-	Txt(Name, Bx + 10 * U, By + 5 * U, C, U / 3.2f);
-	const FString Shown = L->T.Left(UI->DlgShown());
-	int32 K = 0;
-	for (const FString& Ln : Wrap(Shown, 92)) { Txt(Ln, Bx + 10 * U, By + 16 * U + K * 9 * U, FLinearColor(FColor(232, 228, 255)), U / 3.8f); ++K; }
-	if (UI->DlgShown() >= L->T.Len() && FMath::Fmod(FPlatformTime::Seconds(), 0.8) < 0.5)
-	{
-		Txt(TEXT("Espace / E / (A) : suite     Echap / (B) : passer"), Bx + Bw - 120 * U, By + Bh - 9 * U, Dim, U / 5.f);
-	}
 }
 
 void AEONHUD::DrawCom()

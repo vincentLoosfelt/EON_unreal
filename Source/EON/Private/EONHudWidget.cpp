@@ -186,9 +186,20 @@ int32 UEONHudWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Allott
 	const UEONUISubsystem* UI = UEONUISubsystem::Get(this);
 	const APlayerController* OPC = GetOwningPlayer();
 	const AHUD* Hud = OPC ? OPC->GetHUD() : nullptr;
-	if (!J || (Hud && !Hud->bShowHUD) || (UI && UI->IsTitleOpen()) || (F && F->IsCinematic())) { return LayerId; }
-
+	const bool bTitle = UI && UI->IsTitleOpen();
+	const FEONDlgLine* Dl = UI && !bTitle ? UI->DlgLine() : nullptr;
+	const bool bHud = J && !(Hud && !Hud->bShowHUD) && !bTitle && !(F && F->IsCinematic());
+	if (!bHud && !Dl) { return LayerId; }
 	const FPaint P(AllottedGeometry, OutDrawElements, LayerId + 1);
+	if (bHud) { PaintHud(P, J, F, Dl != nullptr); }
+	if (Dl) { PaintDialog(P, *Dl, UI->DlgShown()); }
+	return LayerId + 12;
+}
+
+void UEONHudWidget::PaintHud(const EONHud::FPaint& P, const AEONCharacter* J, const AEONFloorManager* F, bool bDialog) const
+{
+	const FGeometry& AllottedGeometry = P.G;
+	FSlateWindowElementList& OutDrawElements = P.L;
 	const float SW = P.W(), SH = 1080.f, M = 60.f;   // marges de la maquette
 
 	// ---------------------------------------------------------------- haut gauche : annonces « +1 »
@@ -341,6 +352,9 @@ int32 UEONHudWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Allott
 		P.Text(L2, X0 + Mw - 8.f, Y0 + Mh - 21.f, 2, 13.f, A(White, 0.85f), 2, 4);
 	}
 
+	// Pendant un dialogue, la boîte occupe le bas de l'écran : on s'arrête aux éléments du haut.
+	if (bDialog) { return; }
+
 	// ---------------------------------------------------------------- bas gauche : portrait, vie, énergie, greffes
 	{
 		const int32 Mut = J->GetMut();
@@ -468,5 +482,66 @@ int32 UEONHudWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Allott
 		const bool bReady = Ult >= 100.f;
 		Key(TEXT("R"), bReady && Blink(0.5f, 0.3f) ? TEXT("HYPERCHARGE PRÊTE") : TEXT("HYPERCHARGE"), SH - 106.f, Ult / 100.f, true, false, 24.f);
 	}
-	return LayerId + 6;
+}
+
+void UEONHudWidget::PaintDialog(const EONHud::FPaint& P0, const FEONDlgLine& L, int32 Shown) const
+{
+	// Maquette du designer (25/11) : boîte bleu nuit au contour ambre, coin coupé en bas à droite, barre ambre à bec
+	// sur la gauche, cartouche du nom qui déborde en haut (Kode Mono, halo), texte blanc en Oxanium, sans portrait.
+	const FPaint P(P0.G, P0.L, P0.Layer + 6);
+	FString Name; FColor Col;
+	UEONUISubsystem::CharInfo(L.Who, Name, Col);
+	const float SW = P.W(), Bw = 1046.f, Bh = 300.f, Bx = SW * 0.5f - Bw * 0.5f + 18.f, By = 1080.f - 40.f - Bh, Ch = 45.f;
+
+	// Voile léger sur le jeu.
+	P.Rect(0.f, 0.f, SW, 1080.f, A(Bg, 0.35f));
+
+	// Boîte : fond et contour, coin coupé à 45° en bas à droite.
+	P.Poly({ { Bx, By }, { Bx + Bw, By }, { Bx + Bw, By + Bh - Ch }, { Bx + Bw - Ch, By + Bh }, { Bx, By + Bh } }, A(Bg, 0.96f));
+	P.Line({ { Bx, By }, { Bx + Bw, By }, { Bx + Bw, By + Bh - Ch }, { Bx + Bw - Ch, By + Bh }, { Bx, By + Bh } }, Amber, 2.f);
+
+	// Barre ambre à gauche, son bec à mi-hauteur et deux fentes sombres.
+	P.Rect(Bx - 16.f, By, 16.f, Bh, Amber);
+	P.Poly({ { Bx - 16.f, By + 85.f }, { Bx - 16.f, By + 265.f }, { Bx - 36.f, By + 246.f }, { Bx - 36.f, By + 104.f } }, Amber);
+	P.Rect(Bx - 18.f, By + 115.f, 3.f, 41.f, Bg, 1);
+	P.Rect(Bx - 18.f, By + 182.f, 3.f, 56.f, Bg, 1);
+
+	// Cartouche du nom : déborde au-dessus de la boîte, fond noir, contour et halo ambre, souligné en biseau.
+	const FString Title = Name.ToUpper();
+	const float Tp = 72.f, Tw = P.Measure(Title, 0, Tp).X;
+	const float Nx = Bx + 30.f, Ny = By - 48.f, Nw = Tw + 68.f, Nh = 133.f;
+	P.Glow(Nx, Ny, Nw, Nh, Amber);
+	P.Rect(Nx, Ny, Nw, Nh, FLinearColor(0.f, 0.f, 0.f, 1.f), 1);
+	P.Line({ { Nx, Ny }, { Nx + Nw, Ny }, { Nx + Nw, Ny + Nh }, { Nx, Ny + Nh }, { Nx, Ny } }, Amber, 2.f, 2);
+	P.Rect(Nx + Nw - 68.f, Ny - 8.f, 68.f, 8.f, FLinearColor(0.f, 0.f, 0.f, 1.f), 1);
+	P.Poly({ { Nx, Ny + Nh }, { Nx + 72.f, Ny + Nh }, { Nx + 64.f, Ny + Nh + 8.f }, { Nx, Ny + Nh + 8.f } }, Amber, 2);
+	P.Text(Title, Nx + 34.f, Ny + (Nh - P.Measure(Title, 0, Tp).Y) * 0.5f, 0, Tp, Amber, 0, 3);
+
+	// Texte : coupé à la largeur de la boîte une fois pour toutes (les mots ne sautent pas), puis révélé lettre par lettre.
+	const float Fp = 30.f, Lh = 38.f, Tx = Bx + 28.f, Ty = By + 118.f, MaxW = Bw - 80.f;
+	TArray<FString> Lines;
+	{
+		TArray<FString> Words;
+		L.T.ParseIntoArray(Words, TEXT(" "), true);
+		FString Cur;
+		for (const FString& W : Words)
+		{
+			const FString Try = Cur.IsEmpty() ? W : Cur + TEXT(" ") + W;
+			if (!Cur.IsEmpty() && P.Measure(Try, 2, Fp).X > MaxW) { Lines.Add(Cur); Cur = W; }
+			else { Cur = Try; }
+		}
+		if (!Cur.IsEmpty()) { Lines.Add(Cur); }
+	}
+	int32 Left = Shown;
+	for (int32 I = 0; I < Lines.Num() && Left > 0; ++I)
+	{
+		P.Text(Lines[I].Left(Left), Tx, Ty + I * Lh, 2, Fp, White, 0, 3);
+		Left -= Lines[I].Len() + 1;
+	}
+
+	// Invite de suite, quand la ligne est entière.
+	if (Shown >= L.T.Len() && Blink(0.8f, 0.5f))
+	{
+		P.Text(TEXT("ESPACE / (A) : SUITE     ÉCHAP / (B) : PASSER"), Bx + Bw - Ch - 10.f, By + Bh - 34.f, 0, 15.f, A(Amber, 0.75f), 2, 3);
+	}
 }

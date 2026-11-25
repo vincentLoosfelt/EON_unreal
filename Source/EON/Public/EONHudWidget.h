@@ -15,6 +15,10 @@
 #include "EONHudWidget.generated.h"
 
 class AEONEnemy;
+class AEONCharacter;
+class AEONFloorManager;
+struct FEONDlgLine;
+namespace EONHud { struct FPaint; }
 
 UCLASS()
 class EON_API UEONHudWidget : public UUserWidget
@@ -26,6 +30,10 @@ public:
 		FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 private:
+	void PaintHud(const EONHud::FPaint& P, const AEONCharacter* J, const AEONFloorManager* F, bool bDialog) const;
+	/** Boîte de dialogue de la maquette (25/11) : cartouche du nom en Kode Mono, texte en Oxanium lettre par lettre. */
+	void PaintDialog(const EONHud::FPaint& P, const FEONDlgLine& L, int32 Shown) const;
+
 	struct FToast { FString Txt; FLinearColor Col; float T = 0.f; };
 	TArray<FToast> Toasts;
 	int32 SeenItems = -1;
