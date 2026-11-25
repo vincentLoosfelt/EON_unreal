@@ -219,6 +219,8 @@ int32 UEONHudWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Allott
 	{
 		const AEONPlayerController* EPC = Cast<AEONPlayerController>(OPC);
 		PaintNotices(P, *J, F, EPC && EPC->IsUsingGamepad());
+		const FPaint Ps(AllottedGeometry, OutDrawElements, LayerId + 8);   // boss, faille, Kibo, QTE, cut-in : au-dessus du HUD
+		PaintScene(Ps, *J, F, EPC && EPC->IsUsingGamepad());
 	}
 	if (Dl) { PaintDialog(P, *Dl, UI->DlgShown()); }
 	// Écrans par-dessus le HUD : montée de niveau, mort.
@@ -936,17 +938,16 @@ void UEONHudWidget::PaintNotices(const EONHud::FPaint& P, const AEONCharacter& J
 		}
 
 		// Bannière centrale (1,8 s) : cartouche au trait de la couleur de l'annonce, bloc plein à gauche.
-		if (F->BannerT > 0.f && !F->BannerText.IsEmpty())
+		if (F->BannerT > 0.f && !F->BannerText.IsEmpty() && J.GetCutin() <= 0.f)   // pas de doublon avec le cut-in
 		{
 			const float Al = FMath::Min(1.f, F->BannerT / 0.3f);
-			const float In = FMath::Clamp((1.8f - F->BannerT) / 0.15f, 0.f, 1.f);
 			FLinearColor C = F->BannerColor; C.A = 1.f;
 			const FString S = Upper(F->BannerText);
-			const float Tw = P.Measure(S, 0, 38.f).X, Bh = 76.f, Bw = (Tw + 110.f) * (0.6f + 0.4f * In), Bx = Cx - Bw * 0.5f, By = 300.f;
+			const float Tw = P.Measure(S, 0, 38.f).X, Bh = 76.f, Bw = Tw + 110.f, Bx = Cx - Bw * 0.5f, By = 300.f;
 			Frame(Bx, By, Bw, Bh, C, Al, 22.f);
 			P.Rect(Bx, By, 24.f, Bh, A(C, Al));
 			for (int32 I = 0; I < 3; ++I) { P.Slant(Bx + 4.f, By + 12.f + I * 20.f, 16.f, 10.f, A(Bg, 0.8f * Al), 1); }
-			P.Text(S, Cx + 12.f, By + 15.f, 0, 38.f, A(C, Al * In), 1, 3);
+			P.Text(S, Cx + 12.f, By + 15.f, 0, 38.f, A(C, Al), 1, 3);   // lisible même jeu en pause (dialogue)
 			P.Rect(Bx + 40.f, By + Bh + 8.f, 120.f, 3.f, A(RedC, Al));
 			P.Rect(Bx + 166.f, By + Bh + 8.f, 4.f, 3.f, A(RedC, Al));
 		}
@@ -1025,6 +1026,17 @@ void UEONHudWidget::NativeConstruct()
 			LogoBrush.SetResourceObject(LogoTex);
 			LogoBrush.ImageSize = FVector2D(LogoTex->GetSizeX(), LogoTex->GetSizeY());
 			LogoBrush.DrawAs = ESlateBrushDrawType::Image;
+		}
+	}
+	// Buste de Jira du cut-in « Protocole thoracique » (JIR-V23).
+	if (!CutInTex)
+	{
+		CutInTex = LoadObject<UTexture2D>(nullptr, TEXT("/Game/EON/UI/T_Jira_CutIn.T_Jira_CutIn"));
+		if (CutInTex)
+		{
+			CutInBrush.SetResourceObject(CutInTex);
+			CutInBrush.ImageSize = FVector2D(CutInTex->GetSizeX(), CutInTex->GetSizeY());
+			CutInBrush.DrawAs = ESlateBrushDrawType::Image;
 		}
 	}
 }
@@ -1262,5 +1274,209 @@ void UEONHudWidget::PaintLevelUp(const EONHud::FPaint& P, const AEONCharacter& J
 		Ty += 20.f;
 		for (const FString& S : WrapW(P, It->Desc, 2, 22.f, Cw - 60.f)) { P.Text(S, Ccx, Ty, 2, 22.f, A(White, 0.86f), 1); Ty += 32.f; }
 		if (bSel) { Button(P, TEXT("CHOISIR"), Ccx, Y + Ch - 84.f, 220.f, 52.f, 1); }
+	}
+}
+
+// ---------------------------------------------------------------- scène : boss, faille, Kibo, QTE, cut-in (charte)
+// Carton-titre du gardien, faille (oxygène, console, brèche, repère de bord), consigne du Kibo,
+// QTE « Clavier thoracique » et cut-in « Protocole thoracique ».
+void UEONHudWidget::PaintScene(const EONHud::FPaint& P, const AEONCharacter& J, const AEONFloorManager* F, bool bPad) const
+{
+	const float SW = P.W(), Cx = SW * 0.5f, SH = 1080.f;
+	APlayerController* PC = GetOwningPlayer();
+	// Monde -> écran de référence (1920 × 1080 en 16/9).
+	auto Proj = [PC](const FVector& Wl, FVector2f& Out)
+	{
+		FVector2D S; int32 Vx = 0, Vy = 0;
+		if (!PC || !PC->ProjectWorldLocationToScreen(Wl, S)) { return false; }
+		PC->GetViewportSize(Vx, Vy);
+		if (Vy <= 0) { return false; }
+		Out = FVector2f(S) * (1080.f / Vy);
+		return true;
+	};
+	// Étiquette au trait (Kode Mono), centrée sur X.
+	auto Tag = [&P](const FString& S, float X, float Y, const FLinearColor& C, bool bFill)
+	{
+		const float Tw = P.Measure(S, 0, 18.f).X + 24.f, H = 30.f, X0 = X - Tw * 0.5f;
+		P.Poly({ { X0, Y }, { X0 + Tw, Y }, { X0 + Tw, Y + H - 8.f }, { X0 + Tw - 8.f, Y + H }, { X0, Y + H } }, bFill ? C : A(Bg, 0.85f));
+		P.Line({ { X0, Y }, { X0 + Tw, Y }, { X0 + Tw, Y + H - 8.f }, { X0 + Tw - 8.f, Y + H }, { X0, Y + H }, { X0, Y } }, C, 1.5f);
+		P.Text(S, X, Y + 5.f, 0, 18.f, bFill ? Bg : C, 1, 3);
+	};
+	// Flèche pleine (QTE, repère de bord) : direction D (unitaire), longueur L.
+	auto Arrow = [&P](FVector2f C, FVector2f D, float L, const FLinearColor& Col, int32 Dl)
+	{
+		const FVector2f N(-D.Y, D.X);
+		const FVector2f Tip = C + D * L * 0.5f, Hb = C + D * L * 0.02f;
+		P.Poly({ Tip, Hb + N * L * 0.42f, Hb - N * L * 0.42f }, Col, Dl);
+		P.Poly({ Hb + N * L * 0.15f, Hb - N * L * 0.15f, C - D * L * 0.5f - N * L * 0.15f, C - D * L * 0.5f + N * L * 0.15f }, Col, Dl);
+	};
+
+	// --- Gardien : carton-titre (2,6 s), nom lettre par lettre entre crochets rouges.
+	if (const AEONBoss* Bs = AEONBoss::GetActive(this); Bs && Bs->GetTitleT() > 0.f)
+	{
+		const float T = Bs->GetTitleT(), K = 1.f - T / 2.6f, Al = FMath::Min(1.f, T / 0.4f), In = FMath::Clamp(K * 6.f, 0.f, 1.f);
+		const FString Nm = Upper(Bs->GetBossName());
+		const int32 N = FMath::Clamp(FMath::CeilToInt(K * 2.2f * Nm.Len()), 0, Nm.Len());
+		const float Y = 380.f, H = 190.f;
+		P.Rect(0.f, Y, SW, H, A(Bg, 0.82f * Al));
+		P.Rect(0.f, Y, SW * In, 2.f, A(RedC, Al));
+		P.Rect(SW * (1.f - In), Y + H - 2.f, SW * In, 2.f, A(RedC, Al));
+		for (int32 I = 0; I < 6; ++I) { P.Slant(60.f + I * 30.f, Y + 18.f, 22.f, 12.f, A(RedC, (I < 3 ? 0.9f : 0.35f) * Al)); }
+		Tag(TEXT("GARDIEN"), Cx, Y + 16.f, A(RedC, Al), true);
+		const float Tw = P.Measure(Nm, 0, 84.f).X, Bx = Cx - Tw * 0.5f - 40.f, Bw = Tw + 80.f, By = Y + 56.f, Bh = 100.f;
+		P.Text(Nm.Left(N), Cx - Tw * 0.5f, By + 4.f, 0, 84.f, A(White, Al));
+		P.Line({ { Bx + 22.f, By }, { Bx, By }, { Bx, By + Bh }, { Bx + 22.f, By + Bh } }, A(RedC, Al), 3.f);
+		P.Line({ { Bx + Bw - 22.f, By }, { Bx + Bw, By }, { Bx + Bw, By + Bh }, { Bx + Bw - 22.f, By + Bh } }, A(RedC, Al), 3.f);
+		P.Text(Bs->GetBossSub(), Cx, Y + H + 14.f, 1, 24.f, A(Amber, Al * In), 1);
+	}
+
+	// --- Faille : étiquettes de la console et de la brèche, jauge d'oxygène, repère de bord vers la console.
+	if (F && F->GetCurrentRole() == TEXT("FAILLE") && F->GetRoom())
+	{
+		const FEONFloorCell* Cc = F->GetCells().Find(F->GetCurrentCell());
+		if (Cc && !Cc->bRiftDone && Cc->RiftTiles.Num())
+		{
+			const bool bOn = F->IsConfinementReady();
+			const FVector ConfW = F->GetConfWorld();
+			FVector2f Cs;
+			const bool bConfVis = Proj(ConfW + FVector(0, 0, 60.f), Cs);
+			if (bConfVis) { Tag(bOn ? TEXT("CONFINEMENT") : TEXT("HORS LIGNE"), Cs.X, Cs.Y - 60.f, bOn ? CyanC : A(White, 0.5f), bOn); }
+			if (F->IsRiftActive())
+			{
+				const bool bFl = Blink(0.33f, 0.17f);
+				FVector2f Bs2;
+				if (Proj(F->GetRoom()->RoomPxToWorld(Cc->RiftPx, 20.f), Bs2)) { Tag(TEXT("BRÈCHE"), Bs2.X, Bs2.Y - 50.f, bFl ? White : RedC, !bFl); }
+
+				// Jauge d'oxygène : 24 segments penchés, en bas au centre.
+				const float O2 = FMath::Clamp(F->GetRiftO2(), 0.f, 1.f);
+				const bool bLo = O2 < 0.25f, bF8 = bLo && Blink(0.25f, 0.125f);
+				const FLinearColor Oc = bLo ? (bF8 ? White : RedC) : CyanC;
+				const int32 Ns = 24;
+				const float Sw = 22.f, Sg = 4.f, Gw = Ns * (Sw + Sg), Gx = Cx - Gw * 0.5f, Gy = 860.f, Gh = 22.f;
+				P.Poly({ { Gx - 20.f, Gy - 46.f }, { Gx + Gw + 20.f, Gy - 46.f }, { Gx + Gw + 20.f, Gy + Gh + 34.f }, { Gx + Gw + 4.f, Gy + Gh + 50.f }, { Gx - 20.f, Gy + Gh + 50.f } }, A(Bg, 0.8f));
+				P.Text(TEXT("OXYGÈNE"), Gx, Gy - 38.f, 0, 20.f, Oc);
+				P.Text(FString::Printf(TEXT("%d %%"), FMath::RoundToInt(O2 * 100.f)), Gx + Gw, Gy - 38.f, 0, 20.f, Oc, 2);
+				const int32 On = FMath::CeilToInt(O2 * Ns);
+				for (int32 I = 0; I < Ns; ++I) { P.Slant(Gx + I * (Sw + Sg), Gy, Sw + Gh * 0.5f, Gh, I < On ? Oc : A(Grey, 0.8f)); }
+				if (O2 <= 0.f) { P.Text(TEXT("ASPHYXIE"), Cx, Gy + Gh + 12.f, 0, 22.f, bF8 ? White : RedC, 1); }
+				else if (bOn) { P.Text(TEXT("CONFINEMENT PRÊT"), Cx, Gy + Gh + 12.f, 0, 22.f, Green, 1); }
+
+				// Repère de bord d'écran : la console hors champ, flèche qui pulse et distance.
+				const bool bOff = !bConfVis || Cs.X < 90.f || Cs.X > SW - 90.f || Cs.Y < 110.f || Cs.Y > SH - 110.f;
+				if (bOff)
+				{
+					const FVector2f Ctr(Cx, SH * 0.5f);
+					FVector2f Dv = Cs - Ctr;
+					if (!bConfVis)
+					{
+						const FVector D3 = ConfW - J.GetActorLocation();   // derrière la caméra : direction au sol
+						Dv = FVector2f(D3.Y, -D3.X);
+					}
+					const FVector2f Ud = Dv.GetSafeNormal();
+					const float Mx = Cx - 160.f, My = SH * 0.5f - 190.f;
+					const float Kk = FMath::Min(FMath::Abs(Ud.X) > 0.001f ? Mx / FMath::Abs(Ud.X) : 1e9f, FMath::Abs(Ud.Y) > 0.001f ? My / FMath::Abs(Ud.Y) : 1e9f);
+					const float Pl = 0.5f + 0.5f * FMath::Sin(Clock * (bOn ? 9.f : 5.f));
+					const FVector2f Ep = Ctr + Ud * (Kk + Pl * 14.f);
+					const FLinearColor Ac = bOn ? CyanC : Amber;
+					const float R = 44.f;
+					P.Poly({ { Ep.X, Ep.Y - R }, { Ep.X + R, Ep.Y }, { Ep.X, Ep.Y + R }, { Ep.X - R, Ep.Y } }, A(Bg, 0.85f));
+					P.Line({ { Ep.X, Ep.Y - R }, { Ep.X + R, Ep.Y }, { Ep.X, Ep.Y + R }, { Ep.X - R, Ep.Y }, { Ep.X, Ep.Y - R } }, A(Ac, 0.5f + 0.5f * Pl), 2.f);
+					Arrow(Ep, Ud, 46.f, Ac, 2);
+					const float Dpx = FVector2D::Distance(F->GetRoom()->WorldToRoomPx(J.GetActorLocation()), Cc->ConfPx);
+					Tag(FString::Printf(TEXT("%s %d M"), bOn ? TEXT("CONFINEMENT") : TEXT("CONSOLE"), FMath::RoundToInt(Dpx)), Ep.X, Ep.Y + R + 10.f, Ac, false);
+				}
+			}
+		}
+	}
+
+	// --- Kibo, salle de réveil : consigne et greffes en main avec leur touche.
+	if (F && F->IsDockedMode() && F->GetKiboRoom() == 1 && !F->IsCinematic())
+	{
+		const UEONTuningSubsystem* Tu = UEONTuningSubsystem::Get(this);
+		UDataTable* Gt = Tu ? Tu->GetGreffes() : nullptr;
+		const TArray<FName> Set = J.GetGreffeSet();
+		const FString Hd = TEXT("TESTE CHAQUE GREFFE SUR LES CIBLES");
+		TArray<FString> Nm;
+		float Rw = 0.f;
+		for (int32 I = 0; I < Set.Num(); ++I)
+		{
+			const FEONGreffeRow* Row = Gt ? Gt->FindRow<FEONGreffeRow>(Set[I], TEXT("HUD"), false) : nullptr;
+			Nm.Add(Upper(Row ? Row->DisplayName : Set[I].ToString()));
+			Rw += 34.f + 10.f + P.Measure(Nm.Last(), 0, 18.f).X + (I ? 28.f : 0.f);
+		}
+		const float Bw = FMath::Max(Rw, P.Measure(Hd, 0, 20.f).X + 60.f) + 60.f, Bx = Cx - Bw * 0.5f, By = 830.f, Bh = 104.f;   // au-dessus de l'indicateur d'esquive
+		P.Poly({ { Bx, By }, { Bx + Bw, By }, { Bx + Bw, By + Bh - 16.f }, { Bx + Bw - 16.f, By + Bh }, { Bx, By + Bh } }, A(Bg, 0.85f));
+		P.Line({ { Bx, By }, { Bx + Bw, By }, { Bx + Bw, By + Bh - 16.f }, { Bx + Bw - 16.f, By + Bh }, { Bx, By + Bh }, { Bx, By } }, A(Amber, 0.8f), 1.5f);
+		P.Rect(Bx, By, 8.f, Bh, Amber);
+		Tag(TEXT("OBJECTIF"), Bx + 70.f, By - 15.f, Amber, true);
+		P.Text(Hd, Cx, By + 20.f, 0, 20.f, White, 1);
+		float X = Cx - Rw * 0.5f;
+		for (int32 I = 0; I < Nm.Num(); ++I)
+		{
+			if (I) { X += 28.f; }
+			P.Poly({ { X, By + 56.f }, { X + 26.f, By + 56.f }, { X + 34.f, By + 64.f }, { X + 34.f, By + 90.f }, { X, By + 90.f } }, White);
+			P.Text(FString::FromInt(I + 1), X + 17.f, By + 61.f, 0, 20.f, Bg, 1, 3);
+			P.Text(Nm[I], X + 44.f, By + 63.f, 0, 18.f, Green);
+			X += 44.f + P.Measure(Nm[I], 0, 18.f).X;
+		}
+	}
+
+	// --- QTE de l'ultime : « Clavier thoracique », 5 flèches, chrono.
+	if (J.IsInQTE())
+	{
+		P.Rect(0.f, 0.f, SW, SH, A(Bg, 0.7f));
+		BgGrid(P, 0.6f);
+		const TArray<uint8>& Seq = J.GetQTESeq();
+		const int32 N = Seq.Num(), Cur = J.GetQTEIndex();
+		const float Bw = 120.f, Gp = 28.f, Tot = N * Bw + FMath::Max(0, N - 1) * Gp, X0 = Cx - Tot * 0.5f, Y0 = 470.f;
+		const FString Ti = TEXT("CLAVIER THORACIQUE");
+		const float Tw = P.Measure(Ti, 0, 48.f).X;
+		P.Text(Ti, Cx, Y0 - 120.f, 0, 48.f, CyanC, 1);
+		P.Line({ { Cx - Tw * 0.5f - 18.f, Y0 - 128.f }, { Cx - Tw * 0.5f - 36.f, Y0 - 128.f }, { Cx - Tw * 0.5f - 36.f, Y0 - 58.f }, { Cx - Tw * 0.5f - 18.f, Y0 - 58.f } }, CyanC, 2.f);
+		P.Line({ { Cx + Tw * 0.5f + 18.f, Y0 - 128.f }, { Cx + Tw * 0.5f + 36.f, Y0 - 128.f }, { Cx + Tw * 0.5f + 36.f, Y0 - 58.f }, { Cx + Tw * 0.5f + 18.f, Y0 - 58.f } }, CyanC, 2.f);
+		static const FVector2f Dir[5] = { { 0.f, 0.f }, { 0.f, -1.f }, { 0.f, 1.f }, { -1.f, 0.f }, { 1.f, 0.f } };
+		const FLinearColor QCol[5] = { White, CyanC, Amber, Orange, Green };
+		for (int32 I = 0; I < N; ++I)
+		{
+			const int32 D = FMath::Clamp((int32)Seq[I], 0, 4);
+			const float Bx = X0 + I * (Bw + Gp), Ch = 20.f;
+			const bool bDone = I < Cur, bCurI = I == Cur;
+			const FLinearColor C = QCol[D];
+			P.Poly({ { Bx, Y0 }, { Bx + Bw, Y0 }, { Bx + Bw, Y0 + Bw - Ch }, { Bx + Bw - Ch, Y0 + Bw }, { Bx, Y0 + Bw } }, bDone ? C : A(Bg, 0.95f));
+			P.Line({ { Bx, Y0 }, { Bx + Bw, Y0 }, { Bx + Bw, Y0 + Bw - Ch }, { Bx + Bw - Ch, Y0 + Bw }, { Bx, Y0 + Bw }, { Bx, Y0 } }, bCurI ? White : A(C, 0.6f), bCurI ? 3.f : 1.5f);
+			if (bCurI) { P.Glow(Bx, Y0, Bw, Bw, White); }
+			if (D == 0) { P.Text(TEXT("?"), Bx + Bw * 0.5f, Y0 + 30.f, 0, 50.f, bDone ? Bg : C, 1, 3); }
+			else { Arrow(FVector2f(Bx + Bw * 0.5f, Y0 + Bw * 0.5f), Dir[D], 64.f, bDone ? Bg : C, 3); }
+			P.Text(FString::FromInt(I + 1), Bx + 8.f, Y0 + 6.f, 0, 14.f, bDone ? A(Bg, 0.6f) : A(White, 0.4f), 0, 3);
+		}
+		// Chrono : 30 segments, rouge sous 30 %.
+		const float K = FMath::Clamp(J.GetQTETime01(), 0.f, 1.f);
+		const int32 Ns = 30, On = FMath::CeilToInt(K * Ns);
+		const float Sg = 4.f, Sw = (Tot - (Ns - 1) * Sg) / Ns, Ty = Y0 + Bw + 34.f;
+		for (int32 I = 0; I < Ns; ++I) { P.Slant(X0 + I * (Sw + Sg), Ty, Sw + 6.f, 12.f, I < On ? (K < 0.3f ? RedC : CyanC) : A(Grey, 0.8f)); }
+		P.Text(bPad ? TEXT("Croix directionnelle") : TEXT("ZQSD ou flèches"), Cx, Ty + 34.f, 1, 22.f, A(White, 0.6f), 1);
+	}
+
+	// --- Cut-in « Protocole thoracique » (1,1 s) : bande, Jira qui glisse depuis la gauche, texte.
+	if (J.GetCutin() > 0.f)
+	{
+		const float Ct = J.GetCutin(), K = 1.f - Ct / 1.1f, Al = FMath::Min3(1.f, K * 6.f, Ct * 5.f);
+		const float Cy = 400.f, Bh = 260.f, Sl = FMath::Min(1.f, K * 3.f);
+		P.Poly({ { 0.f, Cy + 30.f }, { SW, Cy }, { SW, Cy + Bh - 30.f }, { 0.f, Cy + Bh } }, A(Bg, 0.95f * Al));
+		P.Line({ { 0.f, Cy + 30.f }, { SW, Cy } }, A(CyanC, Al), 3.f);
+		P.Line({ { 0.f, Cy + Bh }, { SW, Cy + Bh - 30.f } }, A(CyanC, Al), 3.f);
+		for (int32 I = 0; I < 14; ++I) { P.Slant(SW - 120.f - I * 70.f + K * 300.f, Cy + 40.f, 40.f, 20.f, A(CyanC, 0.12f * Al)); }
+		const float Px = -240.f + Sl * 400.f;
+		if (CutInTex)
+		{
+			const float Ih = 360.f, Iw = Ih * CutInBrush.ImageSize.X / FMath::Max(1.0, CutInBrush.ImageSize.Y);
+			FSlateDrawElement::MakeBox(P.L, P.Layer + 1, P.G.ToPaintGeometry(FVector2f(Iw, Ih) * P.K, FSlateLayoutTransform(FVector2f(Px - 120.f, Cy + Bh - Ih) * P.K)),
+				&CutInBrush, ESlateDrawEffect::None, FLinearColor(1.f, 1.f, 1.f, Al));
+		}
+		const float Tx = Px + 320.f;
+		P.Text(TEXT("PROTOCOLE THORACIQUE"), Tx, Cy + 70.f, 0, 72.f, A(White, Al));
+		P.Rect(Tx, Cy + 164.f, 140.f, 4.f, A(Amber, Al));
+		P.Rect(Tx + 148.f, Cy + 164.f, 8.f, 4.f, A(Amber, Al));
+		P.Text(TEXT("Frappe de saturation : tous les ennemis de la salle"), Tx, Cy + 180.f, 1, 26.f, A(CyanC, Al));
 	}
 }

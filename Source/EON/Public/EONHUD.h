@@ -32,7 +32,6 @@ private:
 	float U = 4.f;
 	float Time = 0.f;
 	/** JIR-V23 : rendu provisoire de Jira détouré, posé dans la bande du cut-in « Protocole thoracique ». */
-	UPROPERTY(Transient) TObjectPtr<class UTexture2D> CutInTex;
 	/** Face Bangers (OFL, /Game/EON/UI/Fonts/FF_Bangers) et police « runtime » construite dessus au premier dessin. */
 	UPROPERTY() TObjectPtr<class UFontFace> NumFace;
 	UPROPERTY(Transient) TObjectPtr<class UFont> NumFont;

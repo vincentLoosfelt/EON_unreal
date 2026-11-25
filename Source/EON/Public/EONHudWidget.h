@@ -45,6 +45,8 @@ private:
 	void PaintDead(const EONHud::FPaint& P, const AEONCharacter& Jr, const AEONFloorManager* F) const;
 	/** Montée de niveau : cartouche « NIVEAU N | ADN ASSIMILÉ » et trois cartes. */
 	void PaintLevelUp(const EONHud::FPaint& P, const AEONCharacter& J) const;
+	/** Carton-titre du gardien, faille (oxygène, console, brèche), consigne du Kibo, QTE et cut-in de l'ultime. */
+	void PaintScene(const EONHud::FPaint& P, const AEONCharacter& J, const AEONFloorManager* F, bool bPad) const;
 
 	struct FToast { FString Txt; FLinearColor Col; float T = 0.f; };
 	TArray<FToast> Toasts;
@@ -56,4 +58,6 @@ private:
 
 	UPROPERTY(Transient) TObjectPtr<class UTexture2D> LogoTex;
 	FSlateBrush LogoBrush;
+	UPROPERTY(Transient) TObjectPtr<class UTexture2D> CutInTex;
+	FSlateBrush CutInBrush;
 };
