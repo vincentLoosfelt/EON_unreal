@@ -7,6 +7,8 @@
 
 #include "CoreMinimal.h"
 
+class AActor;
+
 namespace EONSfx
 {
 	/** Joue un son par son nom d'asset. Variante au hasard parmi <Name>_01.._<Variants> si Variants > 0.
@@ -18,4 +20,8 @@ namespace EONSfx
 	 *  La table clé -> son est dans EONSfx.cpp : c'est le seul endroit à changer pour réattribuer un son.
 	 *  VolMul multiplie le volume de la table. */
 	EON_API void Event(const UObject* WorldContext, const TCHAR* Key, float VolMul = 1.f);
+
+	/** Pas : à appeler à chaque tick. Joue l'évènement « step » selon la distance parcourue au sol
+	 *  (un pas tous les 110 cm en marchant, 150 cm en courant). */
+	EON_API void Steps(const AActor* Actor, float Dt, bool bOnGround, bool bRunning);
 }

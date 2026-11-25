@@ -612,7 +612,7 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 		else if (St == EEONEnemySt::Wind)
 		{
 			StT -= Dt;
-			if (StT <= 0.f) { St = EEONEnemySt::Dash; StT = 0.32f; }
+			if (StT <= 0.f) { St = EEONEnemySt::Dash; StT = 0.32f; EONSfx::Event(this, TEXT("whip")); }
 		}
 		else if (St == EEONEnemySt::Dash)
 		{

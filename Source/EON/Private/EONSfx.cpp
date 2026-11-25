@@ -9,6 +9,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/World.h"
+#include "GameFramework/Actor.h"
 #include "UObject/StrongObjectPtr.h"
 
 namespace
@@ -19,7 +20,8 @@ namespace
 	/** Groupes de volume (menu F6, rubrique Son). */
 	enum class EGrp : uint8 { Jira, Impacts, Ennemis, Monde };
 
-	/** /Game/EON/Audio/OldSchoolShonen/<Famille>/SFX_Shonen_<Famille>_NN, sinon /Game/EON/Audio/Placeholders/<Name>. */
+	/** /Game/EON/Audio/OldSchoolShonen/<Famille>/SFX_Shonen_<Famille>_NN, /Game/EON/Audio/Freesound/SFX_FS_*,
+	 *  sinon /Game/EON/Audio/Placeholders/<Name>. */
 	FString AssetPath(const FString& Name)
 	{
 		static const FString Shonen(TEXT("SFX_Shonen_"));
@@ -29,6 +31,10 @@ namespace
 			int32 Us = INDEX_NONE;
 			if (Fam.FindLastChar(TEXT('_'), Us)) { Fam.LeftInline(Us); }
 			return FString::Printf(TEXT("/Game/EON/Audio/OldSchoolShonen/%s/%s.%s"), *Fam, *Name, *Name);
+		}
+		if (Name.StartsWith(TEXT("SFX_FS_")))
+		{
+			return FString::Printf(TEXT("/Game/EON/Audio/Freesound/%s.%s"), *Name, *Name);
 		}
 		return FString::Printf(TEXT("/Game/EON/Audio/Placeholders/%s.%s"), *Name, *Name);
 	}
@@ -161,7 +167,21 @@ namespace
 		{ TEXT("grow"),    TEXT("SFX_Shonen_Land"),           11, 0.70f, 0.03f, 0.50f, EGrp::Jira },      // l'armure pousse
 		{ TEXT("holo"),    TEXT("SFX_Shonen_Fly"),             5, 0.55f, 0.05f, 0.30f, EGrp::Jira },      // hologramme leurre
 		{ TEXT("ult"),     TEXT("SFX_Shonen_AbilityRelease"), 15, 1.00f, 0.02f, 0.50f, EGrp::Jira },      // ultime (cut-in)
+		// --- Freesound CC0 retenus par Vincent (25/11), Audio_Sources/Freesound_CC0/CREDITS.txt
+		{ TEXT("alarm"),   TEXT("SFX_FS_Alarm"),               1, 0.70f, 0.02f, 0.50f, EGrp::Monde },     // klaxon de la Faille
+		{ TEXT("hiss"),    TEXT("SFX_FS_Hiss"),                2, 0.70f, 0.05f, 0.20f, EGrp::Monde },     // jet d'air
+		{ TEXT("hisslong"),TEXT("SFX_FS_HissLong"),            1, 0.60f, 0.03f, 0.50f, EGrp::Monde },     // vidange de la cuve de réveil
+		{ TEXT("lift"),    TEXT("SFX_FS_Lift"),                1, 0.55f, 0.03f, 0.50f, EGrp::Monde },     // bouffée de sortie de cuve
+		{ TEXT("khurt"),   TEXT("SFX_FS_KidHurt"),             1, 0.70f, 0.04f, 0.30f, EGrp::Monde },     // le Cartographe prend un coup
+		{ TEXT("item"),    TEXT("SFX_FS_Item"),                1, 0.70f, 0.00f, 0.20f, EGrp::Monde },     // objet débloqué (glockenspiel)
+		{ TEXT("pickup"),  TEXT("SFX_FS_Pickup"),              1, 0.45f, 0.10f, 0.04f, EGrp::Monde },     // ramassage (énergie, cœur, données, scrap)
+		{ TEXT("whip"),    TEXT("SFX_FS_Whip"),                3, 0.60f, 0.06f, 0.08f, EGrp::Ennemis },   // tentacule du boss, élan du Kama
+		{ TEXT("glass"),   TEXT("SFX_FS_Glass"),               1, 0.90f, 0.02f, 0.50f, EGrp::Monde },     // la cuve du boss éclate
+		{ TEXT("step"),    TEXT("SFX_FS_Step"),                7, 0.25f, 0.06f, 0.12f, EGrp::Jira },      // pas de Jira (EONSfx::Steps)
 	};
+
+	/** Distance parcourue depuis le dernier pas, par acteur. */
+	TMap<TWeakObjectPtr<const AActor>, float> GStepAcc;
 }
 
 void EONSfx::Play(const UObject* WorldContext, const TCHAR* Name, float Volume, int32 Variants, float PitchVar, float MinGap)
@@ -189,4 +209,20 @@ void EONSfx::Event(const UObject* WorldContext, const TCHAR* Key, float VolMul)
 		}
 	}
 	UE_LOG(LogEON, Warning, TEXT("Évènement sonore inconnu : %s"), Key);
+}
+
+void EONSfx::Steps(const AActor* Actor, float Dt, bool bOnGround, bool bRunning)
+{
+	if (!Actor) { return; }
+	float& Acc = GStepAcc.FindOrAdd(Actor);
+	const float Speed = Actor->GetVelocity().Size2D();
+	if (!bOnGround || Speed < 30.f) { Acc = 0.f; return; }
+	// Un pas tous les 110 cm en marchant (2,8 m/s : 2,5 pas/s), 150 cm en courant ; le premier pas part tout de suite.
+	const float Stride = bRunning ? 150.f : 110.f;
+	if (Acc <= 0.f || Acc >= Stride)
+	{
+		Acc = FMath::Max(0.f, Acc - Stride) + 0.01f;
+		Event(Actor, TEXT("step"), bRunning ? 1.5f : 1.f);
+	}
+	Acc += Speed * Dt;
 }

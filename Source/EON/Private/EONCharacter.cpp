@@ -552,6 +552,7 @@ void AEONCharacter::Tick(float DeltaSeconds)
 	const bool bWasRunning = bRunning;
 	bRunning = (HoldTimer > RunHoldTime || (bSprintHeld && !bFallingIntoVoid)) && DashRemaining <= 0.f && RawMove.Size() > 0.2f;
 	if (bRunning && !bWasRunning) { EONSfx::Event(this, TEXT("run")); }
+	EONSfx::Steps(this, Dt, GetCharacterMovement()->IsMovingOnGround() && !bFallingIntoVoid && DashRemaining <= 0.f, bRunning);
 	// Poussière de course : un grain toutes les 0,07 s derrière les pieds (0,35 s, sans frein).
 	RunFxT -= Dt;
 	if (bRunning && RunFxT <= 0.f)

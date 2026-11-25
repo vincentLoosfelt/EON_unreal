@@ -225,7 +225,7 @@ void AEONWakePod::Tick(float DeltaSeconds)
 	{
 		const float T0 = WakeT;
 		WakeT += DeltaSeconds;
-		if (T0 < 0.6f && WakeT >= 0.6f) { EONSfx::Play(this, TEXT("SFX_Proto_hiss"), 0.6f); }
+		if (T0 < 0.6f && WakeT >= 0.6f) { EONSfx::Event(this, TEXT("hisslong")); }
 		SetDrain(Smooth((WakeT - 0.6f) / 1.0f));
 		if (T0 < 1.7f && WakeT >= 1.7f) { EONSfx::Play(this, TEXT("SFX_Proto_door"), 0.6f); }
 		if (WakeT > 1.7f)
@@ -237,7 +237,7 @@ void AEONWakePod::Tick(float DeltaSeconds)
 		}
 		if (WakeT >= 2.6f)
 		{
-			EONSfx::Play(this, TEXT("SFX_Proto_lift"), 0.5f);
+			EONSfx::Event(this, TEXT("lift"));
 			for (int32 I = 0; I < 20; ++I) { EmitPuff(true); }
 			WakeT = -1.f;
 			State = EEONPodState::Open;

@@ -1,0 +1,420 @@
+{
+ "card": [
+  {
+   "f": "card_01.wav",
+   "d": 1.09,
+   "src": "card_709971.mp3",
+   "note": ""
+  },
+  {
+   "f": "card_02.wav",
+   "d": 1.1,
+   "src": "item_420501.mp3",
+   "note": "glockenspiel sol do sol"
+  }
+ ],
+ "deny": [
+  {
+   "f": "deny_01.wav",
+   "d": 1.67,
+   "src": "deny_17468.mp3",
+   "note": ""
+  }
+ ],
+ "door": [
+  {
+   "f": "door_01.wav",
+   "d": 3.29,
+   "src": "door_349140.mp3",
+   "note": ""
+  }
+ ],
+ "pickup": [
+  {
+   "f": "pickup_01.wav",
+   "d": 0.2,
+   "src": "pickup_575577.mp3",
+   "note": ""
+  }
+ ],
+ "glass": [
+  {
+   "f": "glass_01.wav",
+   "d": 3.0,
+   "src": "glass_452667.mp3",
+   "note": ""
+  }
+ ],
+ "mortar": [
+  {
+   "f": "mortar_01.wav",
+   "d": 1.6,
+   "src": "mortar_140727.mp3",
+   "note": ""
+  }
+ ],
+ "alarm": [
+  {
+   "f": "alarm_01.wav",
+   "d": 0.6,
+   "src": "alarm_514983.mp3",
+   "note": "klaxon 0.6 s"
+  },
+  {
+   "f": "alarm_02.wav",
+   "d": 0.9,
+   "src": "alarm_514983.mp3",
+   "note": "klaxon 0.9 s"
+  },
+  {
+   "f": "alarm_03.wav",
+   "d": 1.4,
+   "src": "alarm_514983.mp3",
+   "note": "klaxon 1.4 s"
+  }
+ ],
+ "hiss": [
+  {
+   "f": "hiss_01.wav",
+   "d": 0.32,
+   "src": "hiss_751354.mp3",
+   "note": ""
+  },
+  {
+   "f": "hiss_02.wav",
+   "d": 0.32,
+   "src": "hiss_751354.mp3",
+   "note": ""
+  },
+  {
+   "f": "hiss_03.wav",
+   "d": 0.44,
+   "src": "hiss_751354.mp3",
+   "note": ""
+  },
+  {
+   "f": "hiss_04.wav",
+   "d": 0.41,
+   "src": "hiss_751354.mp3",
+   "note": ""
+  },
+  {
+   "f": "hiss_05.wav",
+   "d": 0.34,
+   "src": "hiss_751354.mp3",
+   "note": ""
+  },
+  {
+   "f": "hiss_06.wav",
+   "d": 0.31,
+   "src": "hiss_751354.mp3",
+   "note": ""
+  },
+  {
+   "f": "hiss_07.wav",
+   "d": 0.38,
+   "src": "hiss_751354.mp3",
+   "note": ""
+  },
+  {
+   "f": "hiss_08.wav",
+   "d": 0.41,
+   "src": "hiss_751354.mp3",
+   "note": ""
+  },
+  {
+   "f": "hiss_09.wav",
+   "d": 2.0,
+   "src": "hiss_751354.mp3",
+   "note": "souffle long"
+  },
+  {
+   "f": "hiss_10.wav",
+   "d": 2.0,
+   "src": "hiss_751354.mp3",
+   "note": "souffle long"
+  },
+  {
+   "f": "hiss_11.wav",
+   "d": 2.0,
+   "src": "hiss_751354.mp3",
+   "note": "souffle long"
+  }
+ ],
+ "hurt": [
+  {
+   "f": "hurt_01.wav",
+   "d": 0.22,
+   "src": "hurt_476898.mp3",
+   "note": ""
+  },
+  {
+   "f": "hurt_02.wav",
+   "d": 0.19,
+   "src": "hurt_476898.mp3",
+   "note": ""
+  },
+  {
+   "f": "hurt_03.wav",
+   "d": 1.17,
+   "src": "hurt_476898.mp3",
+   "note": ""
+  },
+  {
+   "f": "hurt_04.wav",
+   "d": 0.32,
+   "src": "hurt_476898.mp3",
+   "note": ""
+  },
+  {
+   "f": "hurt_05.wav",
+   "d": 0.2,
+   "src": "hurt_476898.mp3",
+   "note": ""
+  },
+  {
+   "f": "hurt_06.wav",
+   "d": 0.19,
+   "src": "hurt_476898.mp3",
+   "note": ""
+  },
+  {
+   "f": "hurt_07.wav",
+   "d": 0.29,
+   "src": "hurt_476898.mp3",
+   "note": ""
+  },
+  {
+   "f": "hurt_08.wav",
+   "d": 0.19,
+   "src": "hurt_476898.mp3",
+   "note": ""
+  },
+  {
+   "f": "hurt_09.wav",
+   "d": 0.19,
+   "src": "hurt_476898.mp3",
+   "note": ""
+  },
+  {
+   "f": "hurt_10.wav",
+   "d": 0.39,
+   "src": "hurt_476898.mp3",
+   "note": ""
+  },
+  {
+   "f": "hurt_11.wav",
+   "d": 0.41,
+   "src": "hurt_476898.mp3",
+   "note": ""
+  },
+  {
+   "f": "hurt_12.wav",
+   "d": 0.55,
+   "src": "hurt_476898.mp3",
+   "note": ""
+  },
+  {
+   "f": "hurt_13.wav",
+   "d": 0.72,
+   "src": "hurt_476898.mp3",
+   "note": ""
+  },
+  {
+   "f": "hurt_14.wav",
+   "d": 1.2,
+   "src": "hurt_476898.mp3",
+   "note": ""
+  },
+  {
+   "f": "hurt_15.wav",
+   "d": 0.4,
+   "src": "hurt_476898.mp3",
+   "note": ""
+  },
+  {
+   "f": "hurt_16.wav",
+   "d": 0.85,
+   "src": "hurt_476898.mp3",
+   "note": ""
+  }
+ ],
+ "pas": [
+  {
+   "f": "pas_01.wav",
+   "d": 0.6,
+   "src": "pas_698697.mp3",
+   "note": ""
+  },
+  {
+   "f": "pas_02.wav",
+   "d": 0.38,
+   "src": "pas_698697.mp3",
+   "note": ""
+  },
+  {
+   "f": "pas_03.wav",
+   "d": 0.6,
+   "src": "pas_698697.mp3",
+   "note": ""
+  },
+  {
+   "f": "pas_04.wav",
+   "d": 0.51,
+   "src": "pas_698697.mp3",
+   "note": ""
+  },
+  {
+   "f": "pas_05.wav",
+   "d": 0.49,
+   "src": "pas_698697.mp3",
+   "note": ""
+  },
+  {
+   "f": "pas_06.wav",
+   "d": 0.38,
+   "src": "pas_698697.mp3",
+   "note": ""
+  },
+  {
+   "f": "pas_07.wav",
+   "d": 0.4,
+   "src": "pas_698697.mp3",
+   "note": ""
+  }
+ ],
+ "roar": [
+  {
+   "f": "roar_01.wav",
+   "d": 0.28,
+   "src": "roar_868444.mp3",
+   "note": ""
+  },
+  {
+   "f": "roar_02.wav",
+   "d": 0.56,
+   "src": "roar_868444.mp3",
+   "note": ""
+  },
+  {
+   "f": "roar_03.wav",
+   "d": 0.7,
+   "src": "roar_868444.mp3",
+   "note": ""
+  }
+ ],
+ "whip": [
+  {
+   "f": "whip_01.wav",
+   "d": 0.32,
+   "src": "whip_655058.mp3",
+   "note": ""
+  },
+  {
+   "f": "whip_02.wav",
+   "d": 0.37,
+   "src": "whip_655058.mp3",
+   "note": ""
+  },
+  {
+   "f": "whip_03.wav",
+   "d": 1.0,
+   "src": "whip_655058.mp3",
+   "note": ""
+  },
+  {
+   "f": "whip_04.wav",
+   "d": 0.3,
+   "src": "whip_655058.mp3",
+   "note": ""
+  },
+  {
+   "f": "whip_05.wav",
+   "d": 0.58,
+   "src": "whip_655058.mp3",
+   "note": ""
+  },
+  {
+   "f": "whip_06.wav",
+   "d": 0.35,
+   "src": "whip_655058.mp3",
+   "note": ""
+  },
+  {
+   "f": "whip_07.wav",
+   "d": 0.29,
+   "src": "whip_655058.mp3",
+   "note": ""
+  },
+  {
+   "f": "whip_08.wav",
+   "d": 0.33,
+   "src": "whip_655058.mp3",
+   "note": ""
+  }
+ ],
+ "lift": [
+  {
+   "f": "lift_01.wav",
+   "d": 1.55,
+   "src": "lift_203392.mp3",
+   "note": ""
+  },
+  {
+   "f": "lift_02.wav",
+   "d": 3.0,
+   "src": "lift_203392.mp3",
+   "note": ""
+  },
+  {
+   "f": "lift_03.wav",
+   "d": 0.37,
+   "src": "lift_203392.mp3",
+   "note": ""
+  },
+  {
+   "f": "lift_04.wav",
+   "d": 2.05,
+   "src": "lift_203392.mp3",
+   "note": ""
+  },
+  {
+   "f": "lift_05.wav",
+   "d": 3.0,
+   "src": "lift_203392.mp3",
+   "note": ""
+  },
+  {
+   "f": "lift_06.wav",
+   "d": 0.43,
+   "src": "lift_203392.mp3",
+   "note": ""
+  },
+  {
+   "f": "lift_07.wav",
+   "d": 1.34,
+   "src": "item_420501.mp3",
+   "note": "glockenspiel do mi sol do mi"
+  }
+ ],
+ "item": [
+  {
+   "f": "item_01.wav",
+   "d": 1.24,
+   "src": "item_420501.mp3",
+   "note": "do mi sol do, 0,06 s (comme le proto)"
+  },
+  {
+   "f": "item_02.wav",
+   "d": 1.33,
+   "src": "item_420501.mp3",
+   "note": "do mi sol do, 0,09 s"
+  },
+  {
+   "f": "item_03.wav",
+   "d": 1.02,
+   "src": "item_420501.mp3",
+   "note": "sol do"
+  }
+ ]
+}

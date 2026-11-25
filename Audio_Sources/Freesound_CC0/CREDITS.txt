@@ -1,0 +1,26 @@
+Sons Freesound pour EON : tous sous licence Creative Commons 0 (CC0), domaine public, attribution facultative.
+Licence vérifiée sur chaque page le 25/11/2026. Accord de Vincent pour télécharger les aperçus HQ (mp3 128 kbps) le 25/11/2026.
+Apercus/  : les aperçus téléchargés tels quels.
+Decoupes/ : montage seulement (coupes, fondus, mono, normalisation à 0,9), sans aucune synthèse. Les arpèges sont montés à partir des notes enregistrées du glockenspiel.
+Les originaux en WAV demandent un compte Freesound : ils pourront remplacer les sons retenus.
+
+alarm  514983  jameswrowles          Klaxon off axis long.wav                          https://freesound.org/people/jameswrowles/sounds/514983/
+card   709971  Squidems              xylophone chime                                   https://freesound.org/people/Squidems/sounds/709971/
+door   349140  Yoyodaman234          Tilt Train Door Open 2B                           https://freesound.org/people/Yoyodaman234/sounds/349140/
+hiss   751354  itmightgetloud        AIRBrst_Air Pump Release Variations               https://freesound.org/people/itmightgetloud/sounds/751354/
+hurt   476898  Hidiku                Boy Pack 1.wav                                    https://freesound.org/people/Hidiku/sounds/476898/
+item   420501  mooncubedesign        Toy Glockenspiel                                  https://freesound.org/people/mooncubedesign/sounds/420501/
+lift   203392  joshs                 080223-002-freight-elevator.wav                   https://freesound.org/people/joshs/sounds/203392/
+roar   868444  randbsoundbites       Various growls & roars for monster or beast       https://freesound.org/people/randbsoundbites/sounds/868444/
+pas    698697  IENBA                 Footsteps on Metal                                https://freesound.org/people/IENBA/sounds/698697/
+pickup 575577  The_Frisbee_of_Peace  Single Gold Coin Drop on Others.wav               https://freesound.org/people/The_Frisbee_of_Peace/sounds/575577/
+deny   17468   cognito perceptu      buzzer of car wash.wav                            https://freesound.org/people/cognito%20perceptu/sounds/17468/
+whip   655058  juanstrydom2002       Sjambok Whiping Sound.wav                         https://freesound.org/people/juanstrydom2002/sounds/655058/
+mortar 140727  j1987                 tinymortar.wav                                    https://freesound.org/people/j1987/sounds/140727/
+glass  452667  kyles                 window break with axe glass shatter in trailer    https://freesound.org/people/kyles/sounds/452667/
+
+Retenus par Vincent le 25/11/2026 (Retenus/ -> /Game/EON/Audio/Freesound) :
+SFX_FS_Alarm_01 <- alarm_01 | SFX_FS_Hiss_01/02 <- hiss_01/07 | SFX_FS_HissLong_01 <- hiss_10 | SFX_FS_Lift_01 <- lift_04
+SFX_FS_KidHurt_01 <- hurt_06 | SFX_FS_Item_01 <- item_03 (glockenspiel sol-do) | SFX_FS_Step_01..07 <- pas_01..07
+SFX_FS_Pickup_01 <- pickup_01 | SFX_FS_Whip_01..03 <- whip_04/06/07 | SFX_FS_Glass_01 <- glass_01
+Refusés : door, roar, card, deny, mortar.

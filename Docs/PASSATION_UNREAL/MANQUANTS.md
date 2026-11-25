@@ -188,8 +188,11 @@ Plus une petite voix synthétique par personnage pour le défilement des dialogu
 > - Branchés par `EONSfx::Event(clé)`. La table clé → son est dans `EONSfx.cpp`. Choix provisoires, à valider à l'écoute avec `Audio_Sources/OldSchoolShonen/Planche_Ecoute.html` :
 >   - combat : `hit`, `kill`, `hurt`, `dash` (+ `run`, le départ de la course), `fall`, `efall`, `explode` ;
 >   - pouvoirs : `slash`, `charge`, `ready` (charge pleine), `spell`, `pulse` (onde maintenue), `mut`, `grow`, `holo`, `ult`.
-> - Toujours sans son : `shoot`, `burst` et `shotgun` (les placeholders Kenney font le tir), `eshot` (Kenney), `tele`, `whip`, `mortar`, `glass`, `deny`, `pickup`, les pas, les voix de dialogue.
-> - Sons de synthèse encore en place, à remplacer par de vrais enregistrements libres : `SFX_Proto_alarm`, `card`, `door`, `hiss`, `hurt` (Cartographe), `item`, `lift`, `roar`. `explode` est remplacé.
+> - **Freesound CC0 (25/11)**, retenus par Vincent sur `Audio_Sources/Freesound_CC0/Planche_Freesound.html`, aperçus MP3 128 kbps, `/Game/EON/Audio/Freesound/SFX_FS_*`, crédits `Audio_Sources/Freesound_CC0/CREDITS.txt`.
+>   - Remplacent les sons synthétisés : `alarm`, `hiss` (Faille) et `hisslong` (vidange de la cuve de réveil), `lift`, `khurt` (le Cartographe), `item`.
+>   - Nouveaux : `step` (pas de Jira, `EONSfx::Steps`, un pas tous les 110 cm en marchant et 150 cm en courant), `pickup` (tout sauf l'ADN), `whip` (tentacule du boss, élan du Kama), `glass` (la cuve du boss éclate).
+> - Refusés par Vincent, à rechercher : `door`, `roar` et `card` (encore synthétisés : `SFX_Proto_*`), `deny` et `mortar` (sans son).
+> - Toujours sans son : `shoot`, `burst` et `shotgun` (les placeholders Kenney font le tir), `eshot` (Kenney), `tele`, les voix de dialogue.
 > - Volume : menu F6, rubrique Son. Réglages `Sound`, `Vol` (0,5 = volume de référence), groupes `VolJira`, `VolImpacts`, `VolEnnemis`, `VolMonde`. Avec `SonSpatial`, les sons joués depuis un ennemi s'entendent à gauche ou à droite selon sa position par rapport à Jira : l'oreille est sur Jira, tournée comme la caméra. Pas de baisse de volume à moins de 15 m.
 
 ## 9. Écarts de réglage

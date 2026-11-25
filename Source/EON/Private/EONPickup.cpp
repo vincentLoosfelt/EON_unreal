@@ -13,6 +13,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
+#include "EONSfx.h"
 
 AEONPickup::AEONPickup()
 {
@@ -114,6 +115,7 @@ void AEONPickup::Tick(float Dt)
 	if (Type != EEONPickup::Adn && Type != EEONPickup::Donnee && Type != EEONPickup::Log && Type != EEONPickup::Doudou && Type != EEONPickup::Insigne && T > 0.8f && D >= 40.f && Vel.Size() < 10.f && Rm->PitAtPx(Px)) { Destroy(); return; }
 	if (D < 8.f && T > 0.3f && !bHeartFull)
 	{
+		if (Type != EEONPickup::Adn) { EONSfx::Event(this, TEXT("pickup")); }
 		switch (Type)
 		{
 		case EEONPickup::Adn: J->GainADN(Value); break;
@@ -142,7 +144,7 @@ void AEONPickup::Tick(float Dt)
 			if (AEONCombatDirector* Dir = AEONCombatDirector::Get(GetWorld()))
 			{
 				Dir->Donnees += Gn;
-				Dir->AddNum(J->GetActorLocation() + FVector(0.f, 0.f, 160.f), FString::Printf(TEXT("+%d donnees"), Gn), FColor(154, 216, 255), 0.9f, -30.f);
+				Dir->AddNum(J->GetActorLocation() + FVector(0.f, 0.f, 160.f), FString::Printf(TEXT("+%d données"), Gn), FColor(154, 216, 255), 0.9f, -30.f);
 			}
 			break;
 		}

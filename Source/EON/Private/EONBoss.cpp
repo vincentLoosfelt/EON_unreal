@@ -302,6 +302,7 @@ void AEONBoss::UpdateEnemy(float Dt, const FVector2D& Tg)
 		if (BStT < 0.7f && !bTankBroken)
 		{
 			bTankBroken = true;
+			EONSfx::Event(this, TEXT("glass"));
 			Dir->Shake(1.f); Dir->Hitstop(140.f);
 			// La cuve éclate : 60 éclats vert d'eau et blancs (50 à 250 px/s, 0,5 à 1 s, 1 sur 4 de 2 px, frein 3).
 			if (const AEONTileRoom* Rf = Room.Get()) { EONFx::Gerbe2(this, Rf->RoomPxToWorld(TankC, Cm(14.f)), 60, 3, EONFx::Hex(TEXT("7affd0")), FLinearColor::White, 250.f, 0.75f, 1.25f, 3.f, 10.f); }
@@ -410,7 +411,7 @@ void AEONBoss::UpdateFx(float Dt)
 	{
 		FTent& Tn = Tents[I];
 		Tn.T -= Dt;
-		if (Tn.St == 0) { if (Tn.T <= 0.f) { Tn.St = 1; Tn.T = 0.16f; Dir->Shake(0.12f); } }
+		if (Tn.St == 0) { if (Tn.T <= 0.f) { Tn.St = 1; Tn.T = 0.16f; Dir->Shake(0.12f); EONSfx::Event(this, TEXT("whip")); } }
 		else if (Tn.St == 1) { Tn.Len = Tn.Max * (1.f - FMath::Max(0.f, Tn.T) / 0.16f); if (Tn.T <= 0.f) { Tn.St = 2; Tn.T = 0.4f; Tn.Len = Tn.Max; } }
 		else if (Tn.St == 2) { if (Tn.T <= 0.f) { Tn.St = 3; Tn.T = 0.3f; } }
 		else { Tn.Len = Tn.Max * FMath::Max(0.f, Tn.T) / 0.3f; if (Tn.T <= 0.f) { Tents.RemoveAt(I); continue; } }
