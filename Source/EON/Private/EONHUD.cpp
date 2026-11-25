@@ -17,6 +17,10 @@
 #include "Engine/DataTable.h"
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
+#include "Engine/FontFace.h"
+#include "EONCombatDirector.h"
+#include "EONFx.h"
+#include "UObject/ConstructorHelpers.h"
 #include "Engine/Texture2D.h"
 #include "CanvasItem.h"
 #include "Kismet/GameplayStatics.h"
@@ -45,6 +49,125 @@ void AEONHUD::Txt(const FString& S, float X, float Y, const FLinearColor& C, flo
 	T.Scale = FVector2D(Scale, Scale);
 	T.EnableShadow(FLinearColor::Black);
 	Canvas->DrawItem(T);
+}
+
+AEONHUD::AEONHUD()
+{
+	static ConstructorHelpers::FObjectFinder<UFontFace> Face(TEXT("/Game/EON/UI/Fonts/FF_Bangers.FF_Bangers"));
+	NumFace = Face.Object;
+	static ConstructorHelpers::FObjectFinder<UTexture2D> Ono(TEXT("/Game/EON/VFX/Planches/T_EON_VFX_P7_Onomatopees.T_EON_VFX_P7_Onomatopees"));
+	OnoTex = Ono.Object;
+}
+
+void AEONHUD::DrawGrosCoup()
+{
+	float Age = 0.f;
+	const EONFx::FGrosCoup* G = EONFx::GrosCoupActif(&Age);
+	if (!G || !Canvas) { return; }
+	const float SX = Canvas->ClipX, SY = Canvas->ClipY;
+	U = SY / 270.f;
+	const FVector P3 = Project(G->At, false);
+	const FVector2D C = P3.Z > 0.f ? FVector2D(P3.X, P3.Y) : FVector2D(SX * 0.5f, SY * 0.5f);
+	const float A = FMath::Clamp((EONFx::GrosCoupDuree - Age) / 0.12f, 0.f, 1.f);
+	// --- Traits de vitesse (référence de Vincent, 25/11) : coins noirs effilés qui pointent vers le coup, laissant
+	// une zone claire ovale autour de lui ; nouveau tirage 12 fois par seconde (focus / vitesse façon manga).
+	{
+		const int32 Img = FMath::FloorToInt(Age * 12.f);
+		FRandomStream Rs(G->Graine + Img * 7919);
+		const float Loin = FVector2D(SX, SY).Size() * 1.1f;
+		const float Rx = SX * 0.24f, Ry = SY * 0.27f;
+		TArray<FCanvasUVTri> Tris;
+		const int32 N = 110;
+		for (int32 I = 0; I < N; ++I)
+		{
+			const float Th = (I + Rs.FRandRange(-0.45f, 0.45f)) * UE_TWO_PI / N;
+			const FVector2D D(FMath::Cos(Th), FMath::Sin(Th));
+			// rayon de la zone claire sur l'ovale, plus ou moins entamé par chaque trait
+			const float Re = 1.f / FMath::Sqrt(FMath::Square(D.X / Rx) + FMath::Square(D.Y / Ry));
+			const float Rin = Re * Rs.FRandRange(0.95f, 1.75f);
+			const float W = SY * Rs.FRandRange(0.002f, 0.011f) * (Rs.FRand() < 0.15f ? 2.2f : 1.f);
+			const FVector2D Pn(-D.Y, D.X);
+			FCanvasUVTri T;
+			T.V0_Pos = C + D * Rin;
+			T.V1_Pos = C + D * Loin + Pn * W * (Loin / SY);
+			T.V2_Pos = C + D * Loin - Pn * W * (Loin / SY);
+			T.V0_Color = T.V1_Color = T.V2_Color = FLinearColor(0.f, 0.f, 0.f, A);
+			Tris.Add(T);
+		}
+		FCanvasTriangleItem Ti(Tris, GWhiteTexture);
+		Ti.BlendMode = SE_BLEND_Translucent;
+		Canvas->DrawItem(Ti);
+	}
+	// --- Onomatopée (planche P7) au-dessus du coup : jaillit (×1,5 puis ×1,15 puis taille) à 12 i/s, penchée.
+	if (OnoTex && OnoTex->GetResource())
+	{
+		const int32 Img = FMath::FloorToInt(Age * 12.f);
+		const float Pop = Img == 0 ? 1.5f : Img == 1 ? 1.15f : 1.f;
+		const float Wd = 62.f * U * Pop;
+		const int32 Cx = G->Mot % 3, Cy = G->Mot / 3;
+		const FVector2D Pos = C + FVector2D(10.f * U, -38.f * U);
+		FCanvasTileItem T(Pos - FVector2D(Wd, Wd) * 0.5f, OnoTex->GetResource(), FVector2D(Wd, Wd),
+			FVector2D(Cx / 3.f, Cy / 2.f), FVector2D((Cx + 1) / 3.f, (Cy + 1) / 2.f), FLinearColor(1.f, 1.f, 1.f, A));
+		T.Rotation = FRotator(0.f, G->Rot, 0.f);
+		T.PivotPoint = FVector2D(0.5f, 0.5f);
+		T.BlendMode = SE_BLEND_Translucent;
+		Canvas->DrawItem(T);
+	}
+}
+
+void AEONHUD::DrawNums()
+{
+	const AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld());
+	if (!D || D->GetNums().Num() == 0) { return; }
+	if (!NumFont && NumFace)
+	{
+		NumFont = NewObject<UFont>(this);
+		NumFont->FontCacheType = EFontCacheType::Runtime;
+		NumFont->LegacyFontSize = 48;
+		FTypefaceEntry& E = NumFont->GetMutableInternalCompositeFont().DefaultTypeface.Fonts.AddDefaulted_GetRef();
+		E.Name = TEXT("Regular");
+		E.Font = FFontData(NumFace.Get());
+	}
+	UFont* F = NumFont ? NumFont.Get() : (GEngine ? GEngine->GetLargeFont() : nullptr);
+	if (!F || !Canvas) { return; }
+	U = Canvas->ClipY / 270.f;
+	for (const AEONCombatDirector::FNum& N : D->GetNums())
+	{
+		const FVector P = Project(N.Loc, false);
+		if (P.Z <= 0.f) { continue; }
+		// Jaillit : 1,7 fois plus gros à l'apparition, revient à sa taille en 0,12 s ; s'efface dans le dernier tiers.
+		const float Age = N.Life0 - N.Life;
+		const float Pop = 1.f + 0.7f * FMath::Exp(-Age * 25.f);
+		const float Sc = U / 4.f * 0.75f * N.Taille * Pop;
+		const float A = FMath::Clamp(N.Life / FMath::Max(0.01f, N.Life0 * 0.33f), 0.f, 1.f);
+		FLinearColor Fill = FLinearColor(N.Col); Fill.A = A;
+		const FLinearColor Noir(0.f, 0.f, 0.f, A);
+		FCanvasTextItem T(FVector2D(P.X, P.Y), FText::FromString(N.Text), F, Noir);
+		T.bCentreX = true; T.bCentreY = true;
+		T.Scale = FVector2D(Sc, Sc);
+		T.BlendMode = SE_BLEND_Translucent;
+		// Contour noir épais : le chiffre en noir tout autour (16 directions), puis le chiffre en couleur par-dessus.
+		const float O = 3.2f * Sc;
+		for (int32 I = 0; I < 16; ++I)
+		{
+			const float Ang = I * UE_TWO_PI / 16.f;
+			T.Position = FVector2D(P.X + FMath::Cos(Ang) * O, P.Y + FMath::Sin(Ang) * O);
+			Canvas->DrawItem(T);
+		}
+		// ombre portée dure en bas à droite, façon cel
+		T.Position = FVector2D(P.X + O * 1.6f, P.Y + O * 1.6f);
+		Canvas->DrawItem(T);
+		T.Position = FVector2D(P.X, P.Y);
+		T.SetColor(Fill);
+		Canvas->DrawItem(T);
+	}
+}
+
+void AEONHUD::PostRender()
+{
+	EONFx::AvancerHorlogeEcran(FApp::GetDeltaTime());
+	Super::PostRender();
+	if (!bShowHUD && Canvas) { DrawGrosCoup(); DrawNums(); }
 }
 
 void AEONHUD::DrawHUD()
@@ -82,6 +205,10 @@ void AEONHUD::DrawHUD()
 
 	// --- Flash rouge (flashHurt)
 	if (J->GetHurtFlash() > 0.f) { Rect(0, 0, SX, SY, FLinearColor(1.f, 0.05f, 0.1f, J->GetHurtFlash() * 1.2f)); }
+
+	// --- Gros coup (traits de vitesse, onomatopée) puis chiffres de dégâts (manga)
+	DrawGrosCoup();
+	DrawNums();
 
 	// --- Réticule (JIR-U2, proto l. 3435) : à la souris, en jeu seulement. Quatre traits de 3 px autour d'un point,
 	// écartés de 3 + crossT × 4 px (le tir ouvre, ça se referme en 0,25 s). Blanc, rouge en mutation. Le curseur

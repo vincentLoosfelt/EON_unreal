@@ -446,6 +446,8 @@ void AEONCombatDirector::KillEnemy(AEONEnemy* E, float Dx, float Dy)
 		EONFx::GerbeDir2(this, Rm0->RoomPxToWorld(E->Pos, EON::PxToCm(4.f)), FVector(Dx, Dy, 0.f), 18, 3, EONFx::Hex(Hx), FLinearColor::White, 170.f, 0.6f, 1.3f, 5.f);
 	}
 	if (E->Type == TEXT("kamikaze")) { Aoe(E->Pos, 26.f, 2.f, false, EONFx::Hex(TEXT("ff9a3d"))); }
+	// Mort d'élite : gros coup (bichrome rouge, traits de vitesse, « BAM »).
+	if (E->bElite) { EONFx::GrosCoup(this, E->GetActorLocation(), FLinearColor(1.f, 0.12f, 0.15f), 0); }
 	// ADN (= XP) à chaque mort ; scrap rare, proportionnel à la valeur du mob. Ramassables : jalon 6, crédités d'office.
 	const int32 Av = E->Adn;
 	AEONTileRoom* Rm = CurRoom.Get();
@@ -483,8 +485,9 @@ void AEONCombatDirector::Aoe(const FVector2D& At, float RPx, float Dmg, bool bHu
 		const FVector W = Rm->RoomPxToWorld(At, EON::PxToCm(4.f));
 		EONFx::Gerbe2(this, W, 34, 3, Col, FLinearColor::White, 180.f, 0.5f, 1.25f, 5.f);
 		EONFx::Anneau(this, Rm->RoomPxToWorld(At, 0.f), RPx, 0.25f, Col);
-		// ONI-V3 : éclair lumineux de l'explosion, couleur de l'explosion, rayon 2,2 × celui de l'explosion, 0,25 s.
-		EONFx::Lumiere(this, Rm->RoomPxToWorld(At, EON::PxToCm(10.f)), Col, 60000.f, RPx * 2.2f, 0.25f);
+		// ONI-V3 + style animé 90 (Vincent, 24/11) : dôme blanc bordé de la couleur de l'explosion, éclair de lumière,
+		// puis fumée sombre qui monte (EONFx::Explosion, qui porte la lumière).
+		EONFx::Explosion(this, Rm->RoomPxToWorld(At, 0.f), EON::PxToCm(RPx) * 0.8f, Col);
 	}
 	Shake(0.45f);
 	Hitstop(UEONStatics::GetGameFeel(this).Hitstop * 0.6f);
@@ -533,12 +536,14 @@ void AEONCombatDirector::OnEnemyFell(AEONEnemy* E)
 	}
 }
 
-void AEONCombatDirector::AddNum(const FVector& World, const FString& Text, const FColor& Col, float Life, float VyPx)
+void AEONCombatDirector::AddNum(const FVector& World, const FString& Text, const FColor& Col, float Life, float VyPx, float Taille)
 {
 	FNum N;
 	N.Loc = World;
 	N.VelZ = -VyPx;   // vy < 0 = monte à l'écran = +Z
 	N.Life = Life;
+	N.Life0 = Life;
+	N.Taille = Taille;
 	N.Text = Text;
 	N.Col = Col;
 	Nums.Add(N);
@@ -706,11 +711,6 @@ void AEONCombatDirector::UpdateNums(float Dt)
 		N.Loc.Z += EON::PxToCm(N.VelZ) * Dt;
 		N.VelZ -= 60.f * Dt;   // n.vy += 60 dt
 		if (N.Life <= 0.f) { Nums.RemoveAt(I); continue; }
-#if ENABLE_DRAW_DEBUG
-		FColor C = N.Col;
-		C.A = (uint8)(255.f * FMath::Min(1.f, N.Life * 3.f));
-		DrawDebugString(W, N.Loc, N.Text, nullptr, C, 0.f, true, 1.2f);
-#endif
 	}
 #if ENABLE_DRAW_DEBUG
 	// Marqueurs d'apparition (carré magenta qui se resserre et clignote) et anneau d'AOE : placeholders en debug.

@@ -553,13 +553,13 @@ void AEONCharacter::Tick(float DeltaSeconds)
 	bRunning = (HoldTimer > RunHoldTime || (bSprintHeld && !bFallingIntoVoid)) && DashRemaining <= 0.f && RawMove.Size() > 0.2f;
 	if (bRunning && !bWasRunning) { EONSfx::Event(this, TEXT("run")); }
 	EONSfx::Steps(this, Dt, GetCharacterMovement()->IsMovingOnGround() && !bFallingIntoVoid && DashRemaining <= 0.f, bRunning);
-	// Poussière de course : un grain toutes les 0,07 s derrière les pieds (0,35 s, sans frein).
+	// Poussière de course : fumée toon (Vincent, 24/11), une petite bouffée toutes les 0,14 s derrière les pieds.
 	RunFxT -= Dt;
 	if (bRunning && RunFxT <= 0.f)
 	{
-		RunFxT = 0.07f;
+		RunFxT = 0.14f;
 		const FVector V = GetVelocity().GetSafeNormal2D();
-		EONFx::Gerbe(this, JiraFeetUp(this, 0.f) - V * 15.f, 1, EONFx::Hex(TEXT("8a84b8")), 20.f, 0.35f, 1.f, 0.f);
+		EONFx::Fumee(this, JiraFeetUp(this, 0.f) - V * 25.f, 5, EONFx::Hex(TEXT("9a7c88")), 0.8f, 0.55f);
 		// JIR-V6 : en course, un fantôme une fois sur deux (0,12 s).
 		if (FMath::FRand() < 0.5f) { EONFx::Fantome(this, GetMesh(), EONFx::Hex(TEXT("3ef2e0")), 0.4f, 0.12f); }
 	}
@@ -702,8 +702,8 @@ void AEONCharacter::PressDash()
 	if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.06f); }
 	// Pose de dash (A_Jira_dash : une seule image) tenue pendant le dash, puis fondu vers la course.
 	PlayBodyAnim(TEXT("dash"), DashDuration + 0.08f, false, 0.08f);
-	// Poussière du dash : 8 grains gris-violet vers l'arrière (-d × 60 px/s ± 20), 0,3 s. Fantômes : dans le Tick (JIR-V6).
-	EONFx::GerbeDir(this, JiraFeetUp(this, 1.f), -DashDir, 8, EONFx::Hex(TEXT("8a84b8")), 80.f, 0.3f);
+	// Poussière du dash : bouffée de fumée toon au départ (Vincent, 24/11). Fantômes : dans le Tick (JIR-V6).
+	EONFx::Fumee(this, JiraFeetUp(this, 1.f) - DashDir.GetSafeNormal2D() * 30.f, 18, EONFx::Hex(TEXT("9a7c88")), 1.1f, 1.0f);
 }
 
 // ---------------------------------------------------------------- Visée
@@ -1361,6 +1361,10 @@ void AEONCharacter::Shockwave(float RPx, float Dmg, float Kn, bool bBig)
 	}
 	// Anneau magenta du rayon de l'onde (0,3 s pour la grande, 0,18 s sinon) ; la grande projette 24 éclats en couronne (180 px/s, 0,25 s, frein 6).
 	EONFx::Anneau(this, JiraFeetUp(this, 0.f), RPx, bBig ? 0.3f : 0.18f, EONFx::Hex(TEXT("ff3d8b")));
+	// Onde de choc (sphère de distorsion, Vincent 25/11) qui finit un peu au-delà du rayon de l'onde, avec un très léger
+	// éclat magenta sur son bord (fresnel d'émission) pour matérialiser la portée ; plus douce pour l'onde maintenue.
+	EONFx::OndeChocMonde(this, JiraFeetUp(this, 8.f), EON::PxToCm(RPx) * 1.3f, 0.f, bBig ? 0.45f : 0.25f, bBig ? 0.1f : 0.05f,
+		bBig ? 0.22f : 0.12f, EONFx::Hex(TEXT("ff3d8b")));
 	if (bBig)
 	{
 		PlayBodyAnim(TEXT("charged_attack"), 0.7f);   // grande onde : frappe chargée, accélérée
@@ -1491,6 +1495,7 @@ void AEONCharacter::UpdateSpells(float Dt, const FEONGameFeelRow& Feel)
 		// Impact du rayon : 26 éclats cyan et blanc (40 à 190 px/s, 0,5 s, 1 sur 4 de 2 px).
 		EONFx::Gerbe2(this, At + FVector(0.f, 0.f, EON::PxToCm(E->Ehh() * 0.5f)), 26, 3, EONFx::Hex(TEXT("3ef2e0")), FLinearColor::White, 190.f, 0.5f, 1.25f, 4.f);
 		EONSfx::Play(this, TEXT("SFX_Jira_Ultime_Rayon"), 0.7f, 0, 0.08f);
+		EONFx::GrosCoup(this, At, EONFx::Hex(TEXT("3ef2e0")), 1);   // ZAP
 		E->HitPx(E->IsBoss() ? 30.f : 14.f, 0.f, 1.f, 2.5f);
 		if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.35f); }
 	}

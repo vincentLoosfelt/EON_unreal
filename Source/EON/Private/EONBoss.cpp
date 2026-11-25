@@ -216,7 +216,7 @@ void AEONBoss::HitPx(float Dmg, float Dx, float Dy, float KMul)
 	{
 		const int32 D10 = FMath::RoundToInt(Dmg * 10.f);
 		const FString Txt = D10 % 10 == 0 ? FString::FromInt(D10 / 10) : FString::Printf(TEXT("%.1f"), D10 / 10.f);
-		Dir->AddNum(Rm->RoomPxToWorld(FVector2D(Pos.X + (Rand01() - 0.5f) * 16.f, Pos.Y), Cm(48.f)), Txt, Dmg >= 3.f ? FColor(255, 194, 61) : FColor::White);
+		Dir->AddNum(Rm->RoomPxToWorld(FVector2D(Pos.X + (Rand01() - 0.5f) * 16.f, Pos.Y), Cm(48.f)), Txt, Dmg >= 3.f ? FColor(255, 194, 61) : FColor::White, 0.6f, -38.f, Dmg >= 3.f ? 1.3f : 1.f);
 	}
 	if (Hp <= 0.f) { StartDeath(); }
 	(void)Dx; (void)Dy; (void)KMul;
@@ -288,6 +288,8 @@ void AEONBoss::UpdateEnemy(float Dt, const FVector2D& Tg)
 			{
 				const FVector2D At(Pos.X + (Rand01() - 0.5f) * 40.f, Pos.Y + (Rand01() - 0.5f) * 34.f);
 				EONFx::Gerbe2(this, Rf->RoomPxToWorld(At, Cm(10.f)), 16, 2, EONFx::Hex(TEXT("c84a7a")), FLinearColor::White, 150.f, 0.4f, 1.3f, 5.f);
+				// Explosions en chaîne : petits dômes bordés de la couleur du boss ; fumée une fois sur deux (14 explosions).
+				EONFx::Explosion(this, Rf->RoomPxToWorld(At, 0.f), Cm(9.f + Rand01() * 6.f), EONFx::Hex(TEXT("c84a7a")), Rand01() < 0.5f);
 			}
 		}
 		if (DeathT <= 0.f) { FinishDeath(); }
@@ -402,6 +404,7 @@ void AEONBoss::UpdateFx(float Dt)
 			{
 				EONFx::Gerbe2(this, Rf->RoomPxToWorld(M.P, Cm(3.f)), 26, 3, EONFx::Hex(TEXT("ff9a3d")), FLinearColor::White, 150.f, 0.5f, 1.25f, 5.f);
 				EONFx::Anneau(this, Rf->RoomPxToWorld(M.P, 0.f), M.R, 0.25f, EONFx::Hex(TEXT("ff9a3d")));
+				EONFx::Explosion(this, Rf->RoomPxToWorld(M.P, 0.f), EON::PxToCm(M.R) * 0.7f, EONFx::Hex(TEXT("ff9a3d")));
 			}
 			Mortars.RemoveAt(I);
 		}
