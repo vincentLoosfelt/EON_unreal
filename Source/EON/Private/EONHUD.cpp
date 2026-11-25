@@ -1,4 +1,5 @@
 ﻿#include "EONHUD.h"
+#include "EONHudWidget.h"
 #include "EONBoss.h"
 #include "EONCharacter.h"
 #include "EONFloorManager.h"
@@ -24,20 +25,9 @@ namespace
 {
 	// Couleurs du proto (COL) : rouge PV, cyan énergie, fond sombre.
 	const FLinearColor Red = FLinearColor(FColor(255, 61, 85));
-	const FLinearColor RedDark = FLinearColor(FColor(70, 20, 34));
 	const FLinearColor Cyan = FLinearColor(FColor(62, 242, 224));
 	const FLinearColor Dim = FLinearColor(FColor(90, 86, 120));
 	const FLinearColor Ink = FLinearColor(0.004f, 0.004f, 0.012f, 0.75f);
-	FLinearColor RoleColor(FName R)
-	{
-		if (R == TEXT("COMBAT") || R == TEXT("CORRIDOR")) { return FLinearColor(FColor(229, 70, 196)); }
-		if (R == TEXT("TENSION") || R == TEXT("FAILLE")) { return FLinearColor(FColor(255, 140, 50)); }
-		if (R == TEXT("CALME")) { return FLinearColor(FColor(120, 220, 120)); }
-		if (R == TEXT("OPPORTUNITE") || R == TEXT("MARCHAND") || R == TEXT("TRESOR")) { return FLinearColor(FColor(255, 194, 61)); }
-		if (R == TEXT("ASCENSEUR") || R == TEXT("SECURITE")) { return Red; }
-		if (R == TEXT("EVENEMENT") || R == TEXT("CARTO")) { return FLinearColor(FColor(184, 156, 255)); }
-		return FLinearColor(FColor(216, 212, 240));
-	}
 }
 
 void AEONHUD::Rect(float X, float Y, float W, float H, const FLinearColor& C)
@@ -117,91 +107,9 @@ void AEONHUD::DrawHUD()
 		else { PCr->CurrentMouseCursor = EMouseCursor::Crosshairs; }
 	}
 
-	// --- En haut à gauche : PV, énergie, dash
-	float X = 6 * U, Y = 6 * U;
-	for (int32 I = 0; I < J->GetMaxHP(); ++I) { Rect(X + I * 7 * U, Y, 6 * U, 6 * U, I < J->GetHP() ? Red : RedDark); }
-	// Bouclier (cassette Shield) : un carré cyan après les cœurs.
-	for (int32 I = 0; I < J->GetShieldMax(); ++I) { Rect(X + J->GetMaxHP() * 7 * U + I * 7 * U, Y, 6 * U, 6 * U, I < J->GetShield() ? Cyan : Ink); }
-	Y += 9 * U;
-	const float EMax = FMath::Max(1.f, J->GetEnergyMax());
-	const float E = J->GetEnergy() / EMax;
-	const float CapK = J->GetEnergyCap() / EMax;
-	Rect(X, Y, 60 * U, 4 * U, Ink);
-	// Part d'énergie max perdue à cause de l'armure : rose au bout de la barre (hachures simplifiées).
-	if (CapK < 1.f)
-	{
-		for (float Hx = 60 * U * CapK; Hx < 60 * U; Hx += 2 * U) { Rect(X + Hx, Y, U, 4 * U, FLinearColor(FColor(224, 90, 138))); }
-	}
-	if (Mut > 0)
-	{
-		// En mutation : barre rouge qui clignote de plus en plus vite, « Mutation I / II / III », trois carrés de stade.
-		const bool bOn = FMath::Fmod(Time * (2.f + 2.f * Mut), 1.f) < 0.6f;
-		Rect(X, Y, 60 * U * CapK, 4 * U, bOn ? Red : RedDark);
-		static const TCHAR* Roman[4] = { TEXT(""), TEXT("I"), TEXT("II"), TEXT("III") };
-		Txt(FString::Printf(TEXT("Mutation %s"), Roman[FMath::Clamp(Mut, 0, 3)]), X + 62 * U, Y - 2.5f * U, Red, U / 4.f);
-		for (int32 I = 0; I < 3; ++I) { Rect(X + 100 * U + I * 4 * U, Y, 3 * U, 3 * U, I < Mut ? Red : RedDark); }
-	}
-	else
-	{
-		const bool bBlink = E < 0.25f && FMath::Fmod(Time, 0.3f) < 0.15f;
-		Rect(X, Y, 60 * U * E, 4 * U, bBlink ? FLinearColor::White : Cyan);
-		Txt(TEXT("Energie"), X + 62 * U, Y - 2.5f * U, Cyan, U / 4.f);
-	}
-	Y += 7 * U;
-	for (int32 I = 0; I < J->GetDashMax(); ++I) { Rect(X + I * 9 * U, Y, 7 * U, 1.5f * U, I < J->GetDashCharges() ? FLinearColor(FColor(138, 132, 184)) : Ink); }
-	// ADN (expérience) : barre verte, niveau ; scrap en ambre.
-	Y += 4 * U;
-	{
-		const FLinearColor Green(FColor(138, 240, 122)), Amber(FColor(255, 194, 61));
-		Rect(X, Y, 60 * U, 2 * U, Ink);
-		Rect(X, Y, 60 * U * FMath::Clamp(J->GetADN() / J->GetADNNeed(), 0.f, 1.f), 2 * U, Green);
-		Txt(FString::Printf(TEXT("Niv %d"), J->GetLevel()) + (J->GetLevelPending() > 0 ? TEXT(" +") : TEXT("")), X + 62 * U, Y - 3 * U, Green, U / 4.f);
-		Txt(FString::Printf(TEXT("Scrap %d"), J->GetScrap()), X + 82 * U, Y - 3 * U, Amber, U / 4.f);
-		// Données (méta) : affichées dès qu'on en a.
-		if (const UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this); MS && MS->GetDonnees() > 0)
-		{
-			Txt(FString::Printf(TEXT("Donnees %d"), MS->GetDonnees()), X + 112 * U, Y - 3 * U, FLinearColor(FColor(154, 216, 255)), U / 4.f);
-		}
-	}
+	// PV, énergie, dash, greffes, ADN, Onde / Holo / Hypercharge, barre du monstre et mini-carte : UEONHudWidget (charte, 25/11).
+	EnsureHudWidget();
 
-	// --- En bas à gauche : greffe active
-	if (const UEONTuningSubsystem* T = UEONTuningSubsystem::Get(this))
-	{
-		if (UDataTable* G = T->GetGreffes())
-		{
-			if (const FEONGreffeRow* Row = G->FindRow<FEONGreffeRow>(J->GetGreffeId(), TEXT("HUD"), false))
-			{
-				Txt(TEXT("Cobra : ") + Row->DisplayName, 6 * U, SY - 24 * U, Row->Col, U / 3.f);
-				// Charge de Rafale / Laser
-				const float Ch = J->GetCharge01();
-				if (Ch > 0.f)
-				{
-					Rect(6 * U, SY - 27 * U, 40 * U, 1.5f * U, Ink);
-					Rect(6 * U, SY - 27 * U, 40 * U * Ch, 1.5f * U, Ch >= 1.f ? FLinearColor::White : Row->Col);
-				}
-			}
-		}
-	}
-
-	// --- Onde, Holo, Ultime : touche + barre de recharge ; grisés en recharge, rouge sombre si la mutation les bloque.
-	{
-		const bool bBlk = J->AreSpellsBlocked();
-		auto Slot = [&](float Sx, const TCHAR* Key, const TCHAR* Name, float K01, bool bReady)
-		{
-			const FLinearColor C = bBlk && FCString::Strcmp(Name, TEXT("Ultime")) != 0 ? RedDark : (bReady ? Cyan : Dim);
-			Txt(FString::Printf(TEXT("%s %s"), Key, Name), Sx, SY - 14 * U, C, U / 4.f);
-			Rect(Sx, SY - 6 * U, 30 * U, 1.5f * U, Ink);
-			Rect(Sx, SY - 6 * U, 30 * U * FMath::Clamp(K01, 0.f, 1.f), 1.5f * U, C);
-		};
-		Slot(6 * U, TEXT("E"), TEXT("Onde"), 1.f - FMath::Max(0.f, J->GetSpellCooldown()) / 0.9f, J->GetSpellCooldown() <= 0.f);
-		Slot(42 * U, TEXT("F"), TEXT("Holo"), 1.f - FMath::Max(0.f, J->GetHoloCooldown()) / 7.f, J->GetHoloCooldown() <= 0.f);
-		const float Ult = J->GetUlt();
-		const bool bReady = Ult >= 100.f;
-		Slot(78 * U, TEXT("R"), TEXT("Ultime"), Ult / 100.f, bReady);
-		if (bReady && FMath::Fmod(Time, 0.5f) < 0.3f) { Txt(TEXT("PRET"), 110 * U, SY - 14 * U, FLinearColor::White, U / 4.f); }
-		// Armure de mutation : niveau permanent
-		if (J->GetArmorPerm() > 0) { Txt(FString::Printf(TEXT("Armure %d"), J->GetArmorPerm()), 6 * U, SY - 34 * U, FLinearColor(FColor(224, 90, 138)), U / 4.f); }
-	}
 	if (const AEONFloorManager* FC = AEONFloorManager::Get(this))
 	{
 		// Carte rouge en main : petite carte rouge et son nom (sous les cœurs).
@@ -345,7 +253,7 @@ void AEONHUD::DrawHUD()
 		}
 	}
 
-	// --- Gardien : carton-titre (nom lettre par lettre, sous-titre, 2,6 s) et barre de vie en bas au centre, encoches aux seuils de phase.
+	// --- Gardien : carton-titre (nom lettre par lettre, sous-titre, 2,6 s). Sa barre de vie est dans UEONHudWidget (haut centre).
 	if (const AEONBoss* Bs = AEONBoss::GetActive(this))
 	{
 		if (Bs->GetTitleT() > 0.f)
@@ -358,27 +266,14 @@ void AEONHUD::DrawHUD()
 			Txt(Nm.Left(N), SX * 0.5f, SY * 0.36f + 4 * U, FLinearColor(1.f, 0.69f, 0.75f, Al), U / 1.6f, true);
 			Txt(Bs->GetBossSub(), SX * 0.5f, SY * 0.36f + 22 * U, FLinearColor(0.85f, 0.83f, 0.94f, Al), U / 3.5f, true);
 		}
-		if (!Bs->IsInIntro() || Bs->GetTitleT() > 0.f)
-		{
-			const float W = 150 * U, H = 5 * U, Bx = (SX - W) * 0.5f, By = SY - 20 * U;
-			const float R = FMath::Clamp(Bs->Hp / FMath::Max(1.f, Bs->MaxHp), 0.f, 1.f);
-			Txt(Bs->GetBossName(), SX * 0.5f, By - 9 * U, FLinearColor(1.f, 0.69f, 0.75f), U / 3.5f, true);
-			Rect(Bx - U, By - U, W + 2 * U, H + 2 * U, FLinearColor(0.f, 0.f, 0.f, 0.8f));
-			Rect(Bx, By, W * R, H, Bs->IsInvulnerableNow() ? FLinearColor(0.45f, 0.45f, 0.5f) : Red);
-			for (const float Q : { 0.66f, 0.33f }) { Rect(Bx + W * Q - U * 0.5f, By - U, U, H + 2 * U, FLinearColor(0.9f, 0.9f, 0.95f)); }
-		}
 	}
 
-	// --- En haut à droite : mini-carte, rôle, étage
+	// --- Kibo, bannière centrale (la mini-carte, l'étage et la salle sont dans UEONHudWidget)
 	if (const AEONFloorManager* F = AEONFloorManager::Get(this))
 	{
-		DrawMinimap(U);
-		const FName R = F->GetCurrentRole();
 		if (F->IsDockedMode())
 		{
 			const uint8 Kb = F->GetKiboRoom();
-			Txt(TEXT("KIBO"), SX - 80 * U, 64 * U, FLinearColor(FColor(62, 242, 224)), U / 3.5f);
-			Txt(Kb == 1 ? TEXT("Salle de reveil") : Kb == 2 ? TEXT("Passerelle") : TEXT("A quai"), SX - 80 * U, 72 * U, Dim, U / 3.5f);
 			// Salle de réveil : la consigne du proto et les greffes en main, avec leur touche (« 1 Standard 2 Rafale… »).
 			if (Kb == 1 && !F->IsCinematic())
 			{
@@ -394,11 +289,6 @@ void AEONHUD::DrawHUD()
 				}
 				Txt(L, SX * 0.5f - 60 * U, SY - 33 * U, Dim, U / 3.5f);
 			}
-		}
-		else
-		{
-		Txt(R.ToString(), SX - 80 * U, 64 * U, RoleColor(R), U / 3.5f);
-		Txt(FString::Printf(TEXT("Etage %d"), F->GetFloorN()), SX - 80 * U, 72 * U, Dim, U / 3.5f);
 		}
 		// --- Bannière centrale (1,8 s)
 		if (F->BannerT > 0.f && !(UEONUISubsystem::Get(this) && UEONUISubsystem::Get(this)->IsTitleOpen()))
@@ -860,33 +750,10 @@ void AEONHUD::DrawDevMenu()
 	Txt(Footer, X0 + 4 * U, Y + Lh * 0.6f, Footer.StartsWith(TEXT("Fl")) ? FLinearColor(FColor(170, 166, 205)) : Amber, U / 4.4f);
 }
 
-void AEONHUD::DrawMinimap(float S)
+void AEONHUD::EnsureHudWidget()
 {
-	// Une case 8 × 6 px par salle, seulement les salles vues ; portes = traits ; salle courante qui clignote.
-	const AEONFloorManager* F = AEONFloorManager::Get(this);
-	if (!F) { return; }
-	const float CW = 8 * S, CH = 6 * S, Gap = 3 * S;
-	const float X0 = Canvas->ClipX - 6 * S - 7 * (CW + Gap), Y0 = 6 * S;
-	for (const auto& KV : F->GetCells())
-	{
-		const FEONFloorCell& C = KV.Value;
-		if (!C.bSeen) { continue; }
-		const float X = X0 + C.Pos.X * (CW + Gap), Y = Y0 + C.Pos.Y * (CH + Gap);
-		const bool bCur = C.Pos == F->GetCurrentCell();
-		FLinearColor Col = C.bVisited ? FLinearColor(FColor(70, 66, 100)) : FLinearColor(FColor(36, 34, 54));
-		// Carte du Cartographe : les salles pas encore visitées prennent la couleur de leur rôle (atténuée).
-		if (!C.bVisited && F->IsMapped()) { Col = RoleColor(C.Role); Col.A = 0.55f; }
-		if (bCur && FMath::Fmod(Time, 0.6f) < 0.4f) { Col = FLinearColor(FColor(216, 212, 240)); }
-		Rect(X, Y, CW, CH, Col);
-		// Points : Opportunité ambre, gardien rouge, Événement violet, hostile entamée magenta.
-		FLinearColor Dot(0, 0, 0, 0);
-		if (C.Role == TEXT("OPPORTUNITE")) { Dot = RoleColor(C.Role); }
-		else if (C.Role == TEXT("ASCENSEUR")) { Dot = F->HasRedCard() ? Cyan : Red; }
-		else if (C.Role == TEXT("SECURITE") && !F->HasRedCard()) { Dot = FLinearColor(FColor(255, 194, 61)); }
-		else if (C.Role == TEXT("EVENEMENT")) { Dot = RoleColor(C.Role); }
-		else if (C.bVisited && !C.bCleared) { Dot = FLinearColor(FColor(229, 70, 196)); }
-		if (Dot.A > 0.f) { Rect(X + CW * 0.5f - S, Y + CH * 0.5f - S, 2 * S, 2 * S, Dot); }
-		if (C.Doors & EONDoor::E) { Rect(X + CW, Y + CH * 0.5f - 0.5f * S, Gap, S, Dim); }
-		if (C.Doors & EONDoor::S) { Rect(X + CW * 0.5f - 0.5f * S, Y + CH, S, Gap, Dim); }
-	}
+	// Widget UMG du HUD (charte du studio) : créé une fois, au-dessus du Canvas.
+	if (HudWidget || !GetOwningPlayerController()) { return; }
+	HudWidget = CreateWidget<UEONHudWidget>(GetOwningPlayerController(), UEONHudWidget::StaticClass());
+	if (HudWidget) { HudWidget->SetVisibility(ESlateVisibility::HitTestInvisible); HudWidget->AddToViewport(5); }
 }

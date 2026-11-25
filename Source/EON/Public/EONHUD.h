@@ -16,7 +16,9 @@ public:
 private:
 	void Rect(float X, float Y, float W, float H, const FLinearColor& C);
 	void Txt(const FString& S, float X, float Y, const FLinearColor& C, float Scale = 1.f, bool bCenter = false);
-	void DrawMinimap(float S);
+	/** Crée le widget du HUD de la charte (UEONHudWidget) à la première image. */
+	void EnsureHudWidget();
+	UPROPERTY(Transient) TObjectPtr<class UEONHudWidget> HudWidget;
 	void DrawDevMenu();
 	// Jalon 8 : méta et écrans figés (coordonnées du proto 480 × 270, origine O).
 	void Box(float X, float Y, float W, float H, const FLinearColor& Border, const FLinearColor& Fill);
