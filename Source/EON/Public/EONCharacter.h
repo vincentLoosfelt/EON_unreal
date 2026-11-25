@@ -12,6 +12,7 @@
 
 class UPointLightComponent;
 class UAnimInstance;
+class UAnimSequence;
 class AEONPlayerCameraManager;
 
 UCLASS(Blueprintable)
@@ -243,6 +244,14 @@ private:
 	/** ABP de locomotion du Game Animation Sample (SandboxCharacter_CMC_ABP). */
 	UPROPERTY(Transient)
 	TSubclassOf<UAnimInstance> LocoAnimClass;
+public:
+	/** Anims du corps entier (dash, coups reçus, mort, Lame, onde, ultime) : A_Jira_<Nom> de Anims/UEFN jouée en montage
+	 *  dynamique sur le slot DefaultSlot de l'ABP, ramenée à Duree secondes (0 = vitesse d'origine). bTenir : reste sur
+	 *  la dernière image (mort). Renvoie false si l'anim ou l'ABP manque. Test : eon.jira.anim <nom> [durée] [tenir]. */
+	bool PlayBodyAnim(const TCHAR* Nom, float Duree, bool bTenir = false, float FondueOut = 0.12f);
+private:
+	UPROPERTY(Transient)
+	TMap<FName, TObjectPtr<UAnimSequence>> BodyAnims;
 	bool bDashHeld = false;
 	bool bSprintHeld = false;
 	FVector2D WalkOutDir = FVector2D::ZeroVector;

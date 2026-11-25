@@ -25,6 +25,8 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
+#include "Animation/AnimSequence.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/DataTable.h"
 #include "Engine/World.h"
@@ -45,6 +47,15 @@ static TAutoConsoleVariable<int32> CVarEONAuto(TEXT("eon.auto"), 0,
 	TEXT("1 = pilote automatique de test : Jira vise et tire sur l'ennemi le plus proche, tourne autour, puis passe une porte."));
 static TAutoConsoleVariable<int32> CVarEONDemo(TEXT("eon.demo"), 0,
 	TEXT("1 = démo de locomotion : Jira au centre de la COM, parcours marche / course automatique."));
+// Test des anims de corps de Jira sans clavier : eon.jira.anim death 2 1 (nom de A_Jira_<nom>, durée en s, tenue).
+static FAutoConsoleCommandWithWorldAndArgs GEONCmdJiraAnim(TEXT("eon.jira.anim"),
+	TEXT("eon.jira.anim <nom> [durée] [tenir] : joue A_Jira_<nom> sur le corps entier (dash, light_hit, heavy_hit, death, light_attack, charged_attack, hacking, knockback)"),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& A, UWorld* W)
+	{
+		AEONCharacter* J = W ? Cast<AEONCharacter>(UGameplayStatics::GetPlayerPawn(W, 0)) : nullptr;
+		if (!J || A.Num() == 0) { return; }
+		J->PlayBodyAnim(*A[0], A.Num() > 1 ? FCString::Atof(*A[1]) : 0.f, A.Num() > 2 && FCString::Atoi(*A[2]) != 0);
+	}));
 static TAutoConsoleVariable<int32> CVarEONDiagSol(TEXT("eon.diagsol"), 0,
 	TEXT("1 = journal EON_SOL toutes les 0,5 s : mode de déplacement de Jira, sol sous ses pieds, contrainte de plan."));
 
@@ -194,6 +205,31 @@ void AEONCharacter::ResetForRoom(FVector Location)
 	SmoothMove = FVector2D::ZeroVector;
 	GetMesh()->SetRelativeLocation(MeshBaseLocation);
 	GetMesh()->SetRelativeScale3D(MeshBaseScale);
+	// Nouvelle salle ou nouvelle partie : plus d'anim de corps en cours (la mort reste sinon sur sa dernière image).
+	if (UAnimInstance* AI = GetMesh()->GetAnimInstance()) { AI->StopAllMontages(0.f); }
+}
+
+bool AEONCharacter::PlayBodyAnim(const TCHAR* Nom, float Duree, bool bTenir, float FondueOut)
+{
+	UAnimInstance* AI = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (!AI) { return false; }
+	TObjectPtr<UAnimSequence>& Seq = BodyAnims.FindOrAdd(FName(Nom));
+	if (!Seq)
+	{
+		const FString P = FString::Printf(TEXT("/Game/EON/Characters/Jira/Anims/UEFN/A_Jira_%s.A_Jira_%s"), Nom, Nom);
+		Seq = LoadObject<UAnimSequence>(nullptr, *P);
+		if (!Seq) { UE_LOG(LogEON, Warning, TEXT("EON_JIRA_ANIM introuvable : %s"), *P); return false; }
+	}
+	const float Len = Seq->GetPlayLength();
+	const float Rate = (Duree > 0.f && Len > KINDA_SMALL_NUMBER) ? Len / Duree : 1.f;
+	// Slot DefaultSlot de SandboxCharacter_CMC_ABP (corps entier, avant la couche « tir » du haut du corps). Le montage
+	// est créé puis réglé avant d'être lancé : la tenue (pas de fondu de sortie) n'est prise en compte qu'ainsi.
+	UAnimMontage* M = UAnimMontage::CreateSlotAnimationAsDynamicMontage(Seq, TEXT("DefaultSlot"), 0.05f, bTenir ? 0.f : FondueOut, Rate);
+	if (!M) { return false; }
+	M->bEnableAutoBlendOut = !bTenir;
+	if (AI->Montage_Play(M, Rate) <= 0.f) { return false; }   // le taux passé à la création n'est pas utilisé par le moteur
+	UE_LOG(LogEON, Display, TEXT("EON_JIRA_ANIM %s (%.2f s, x%.2f%s)"), Nom, Len / Rate, Rate, bTenir ? TEXT(", tenue") : TEXT(""));
+	return true;
 }
 
 // ---------------------------------------------------------------- PV, coups, chute
@@ -249,6 +285,8 @@ void AEONCharacter::HurtPlayer(int32 Amount, FVector SourceWorld)
 	FVector D = GetActorLocation() - SourceWorld; D.Z = 0.f;
 	RecoilVel += D.GetSafeNormal() * EON::PxToCm(120.f);
 	UE_LOG(LogEON, Display, TEXT("EON Jira touchée : %d PV"), HP);
+	// Réaction au coup (corps entier, courte pour ne pas bloquer le jeu) : forte si le coup retire 2 PV ou plus.
+	if (HP > 0) { const bool bFort = Amount * (Mut >= 1 ? 2 : 1) >= 2; PlayBodyAnim(bFort ? TEXT("heavy_hit") : TEXT("light_hit"), bFort ? 0.7f : 0.45f); }
 	CheckDeath();
 }
 
@@ -270,6 +308,7 @@ void AEONCharacter::CheckDeath()
 		// META.st.runs++, morts++ (checkDeath du proto).
 		if (UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this)) { MS->OnDeath(); }
 		GetCharacterMovement()->StopMovementImmediately();
+		PlayBodyAnim(TEXT("death"), 2.f, true);   // Jira s'effondre et reste au sol (écran Signal perdu)
 		UE_LOG(LogEON, Display, TEXT("EON Jira : signal perdu"));
 	}
 }
@@ -660,6 +699,8 @@ void AEONCharacter::PressDash()
 	HoldTimer = 0.f;
 
 	if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.06f); }
+	// Pose de dash (A_Jira_dash : une seule image) tenue pendant le dash, puis fondu vers la course.
+	PlayBodyAnim(TEXT("dash"), DashDuration + 0.08f, false, 0.08f);
 	// Poussière du dash : 8 grains gris-violet vers l'arrière (-d × 60 px/s ± 20), 0,3 s. Fantômes : dans le Tick (JIR-V6).
 	EONFx::GerbeDir(this, JiraFeetUp(this, 1.f), -DashDir, 8, EONFx::Hex(TEXT("8a84b8")), 80.f, 0.3f);
 }
@@ -1233,6 +1274,7 @@ void AEONCharacter::DoSlash(float A, const FEONGreffeRow& G, const FEONGameFeelR
 	if (G.Cost > 0.f) { Spend(G.Cost * Feel.EnergyCost); }   // la Lame ne coûte rien et ne nourrit pas la mutation
 	EONSfx::Event(this, TEXT("slash"));
 	CrossT = 1.f;   // proto : le coup de lame ouvre le réticule en grand
+	PlayBodyAnim(TEXT("light_attack"), 0.45f);   // coup de lame (Lame, Fauche) : anim de frappe accélérée
 	if (Room)
 	{
 		for (AEONEnemy* E : LiveEnemies(GetWorld()))
@@ -1320,6 +1362,7 @@ void AEONCharacter::Shockwave(float RPx, float Dmg, float Kn, bool bBig)
 	EONFx::Anneau(this, JiraFeetUp(this, 0.f), RPx, bBig ? 0.3f : 0.18f, EONFx::Hex(TEXT("ff3d8b")));
 	if (bBig)
 	{
+		PlayBodyAnim(TEXT("charged_attack"), 0.7f);   // grande onde : frappe chargée, accélérée
 		EONFx::Gerbe2(this, JiraFeetUp(this, 8.f), 24, 2, EONFx::Hex(TEXT("ff3d8b")), FLinearColor::White, 180.f, 0.25f, 1.f, 6.f, 8.f);
 		const FEONGameFeelRow F = UEONStatics::GetGameFeel(this);
 		if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.25f); }
@@ -1505,6 +1548,7 @@ void AEONCharacter::UltFire()
 	Ult = 0.f;
 	CutinT = 1.1f;
 	EONSfx::Event(this, TEXT("ult"));
+	PlayBodyAnim(TEXT("charged_attack"), 1.4f);   // pose de l'ultime (jouée après le gel de 1 s)
 	if (UEONTuningSubsystem* Tun = UEONTuningSubsystem::Get(this)) { Tun->RequestHitstop(1000.f); }
 	int32 K = 0;
 	for (AEONEnemy* E : LiveEnemies(GetWorld())) { FUltStrike S; S.E = E; S.T = 0.15f + K * 0.09f; UltStrikes.Add(S); ++K; }

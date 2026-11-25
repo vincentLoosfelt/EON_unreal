@@ -80,11 +80,23 @@ Légende : ❌ rien · 🟡 existe mais pas prêt pour Unreal · 🔲 placeholde
 | Veines de mutation | Teinte rouge qui pulse | ❌ |
 | Bras Rafale, Laser, Lame, Shotgun, Griffe, Rayon, Fauche | Couleur du bras | ❌ |
 | Anim de chute dans le vide | Réduction d'échelle | ❌ |
-| Anim de mêlée (Lame, Fauche) | `attack_light` accélérée | ❌ |
+| Anim de mêlée (Lame, Fauche) | 🔲 `A_Jira_light_attack` ramenée à 0,45 s (25/11) | 🔲 |
 | Anim de la Griffe | | ❌ |
-| Anim de l'onde, pose de l'ultime | `attack_charged` | ❌ |
+| Anim de l'onde, pose de l'ultime | 🔲 `A_Jira_charged_attack` : 0,7 s pour la grande onde, 1,4 s pour l'ultime (25/11) | 🔲 |
 | Anim de sortie de cuve | `idle` | ❌ |
 | Illustration du cut-in de l'ultime | Bande de couleur | ❌ |
+
+> **25/11/2026 : anims de corps de Jira branchées** (`AEONCharacter::PlayBodyAnim`).
+> - Chaque anim est jouée en montage dynamique sur le slot `DefaultSlot` de `SandboxCharacter_CMC_ABP`. La couche « tir » du haut du corps reste par-dessus.
+> - Dash : `dash`, une pose tenue pendant le dash.
+> - Coup reçu : `light_hit` en 0,45 s, ou `heavy_hit` en 0,7 s si le coup retire 2 PV ou plus.
+> - Mort : `death` en 2 s. Jira reste au sol sur la dernière image jusqu'à la salle ou la partie suivante (`StopAllMontages` dans `ResetForRoom`).
+> - Lame, onde et ultime : voir le tableau ci-dessus.
+> - Test sans clavier : `eon.jira.anim <nom> [durée] [tenir]`. Vérifié en jeu (salle du marchand, `eon.blesse 2`, `eon.blesse 99`) : planche `Saved/Shots/Anims/Jira_anims_corps.png`.
+> - Pièges du moteur :
+>   - la tenue (`bEnableAutoBlendOut`) est copiée au lancement du montage, il faut la régler avant `Montage_Play` ;
+>   - le taux passé à `CreateSlotAnimationAsDynamicMontage` n'est pas utilisé, il faut le passer à `Montage_Play`.
+> - Pas encore branchés : `hacking` (le terminal du C.O.M met le jeu en pause), `knockback` (3,9 s, trop long pour un coup), `shoot_back`, `shoot_left` et `shoot_right` (Jira regarde toujours où elle vise, seul `shoot_front` sert).
 
 ## 4. Décor à produire
 
