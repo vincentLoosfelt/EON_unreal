@@ -407,10 +407,29 @@ function gas(fn, ...args) {
   return new Promise((ok, ko) => google.script.run.withSuccessHandler(ok)
     .withFailureHandler(e => ko(e instanceof Error ? e : new Error(String((e && e.message) || e))))[fn](...args));
 }
+// Onglet d'Unreal (menu EON Salles › Éditeur de salles, Source/EON/Private/EONSallesPanel.cpp) : la page est servie par
+// l'éditeur Unreal (http://localhost:8790/eon/editeur), qui lit et écrit les salles et la bibliothèque pour elle.
+const UE = !GAS && /^\/eon\//.test(location.pathname);
+const REMOTE = GAS || UE, OU = GAS ? "le Drive" : "le dossier des salles";
+async function ueFetch(url, opt) {
+  const r = await fetch(url, opt);
+  if (!r.ok) throw new Error((await r.text()) || "HTTP " + r.status);
+  return r;
+}
+async function ue(fn, ...args) {
+  if (fn === "listeSalles") return (await ueFetch("/eon/api/salles")).json();
+  if (fn === "ecrireSalle") {
+    const [name, txt, known, force] = args;
+    return (await ueFetch("/eon/api/salle?nom=" + encodeURIComponent(name) + "&connu=" + encodeURIComponent(known || "") + "&force=" + (force ? 1 : 0),
+      { method: "POST", body: txt, headers: { "Content-Type": "text/plain; charset=utf-8" } })).json();
+  }
+  throw new Error("appel inconnu : " + fn);
+}
+function remote(fn, ...args) { return GAS ? gas(fn, ...args) : ue(fn, ...args); }
 function b64Blob(b, type) { const s = atob(b), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return new Blob([u], { type }); }
 
 async function openFiles() {
-  if (GAS) { showTab("lib"); await refreshLib(); return; }
+  if (REMOTE) { showTab("lib"); await refreshLib(); return; }
   if (!confirmLose()) return;
   if (hasFS) {
     try {
@@ -437,7 +456,7 @@ function loadText(txt, name, handle) {
 }
 
 async function save(as) {
-  if (GAS && as) {
+  if (REMOTE && as) {
     const n = (prompt("Enregistrer sous le nom (fichier et Blueprint BP_nom) :", room.nom) || "").trim();
     if (!n) return;
     if (n !== room.nom) { pushUndo(); room.nom = n; syncProps(); changed(); }
@@ -446,13 +465,13 @@ async function save(as) {
   const txt = toFileText(room);
   const name = room.nom + ".eonsalle";
   try {
-    if (GAS) {
+    if (REMOTE) {
       const known = fileHandle && fileHandle.drive && fileName === name ? fileHandle.t : null;
-      let r = await gas("ecrireSalle", name, txt, known, false);
+      let r = await remote("ecrireSalle", name, txt, known, false);
       if (r.conflit) {
-        if (!confirm(known ? "« " + name + " » a été modifiée sur le Drive depuis son ouverture (un autre PC ?). L'écraser avec cette version ?"
-                           : "« " + name + " » existe déjà sur le Drive. La remplacer ?")) return;
-        r = await gas("ecrireSalle", name, txt, known, true);
+        if (!confirm(known ? "« " + name + " » a été modifiée dans " + OU + " depuis son ouverture (un autre PC ?). L'écraser avec cette version ?"
+                           : "« " + name + " » existe déjà dans " + OU + ". La remplacer ?")) return;
+        r = await remote("ecrireSalle", name, txt, known, true);
       }
       fileHandle = { drive: r.id, t: r.t }; fileName = name;
     }
@@ -472,7 +491,7 @@ async function save(as) {
     setDirty(false); $("docName").textContent = fileName;
     try { localStorage.removeItem("eonsalle.brouillon"); } catch (e) {}
     toast("Enregistré : " + fileName + (analysis.issues.some(i => i.lvl === "err") ? " — attention, la salle a des erreurs : Unreal la refusera" : ""));
-    if (dirHandle || GAS) refreshLib();
+    if (dirHandle || REMOTE) refreshLib();
   } catch (e) { if (e.name !== "AbortError") toast("Enregistrement impossible : " + e.message); }
 }
 
@@ -490,7 +509,7 @@ function download(name, data, type) {
 // ======================================================================= bibliothèque (dossier)
 let libItems = [];
 async function openDir() {
-  if (GAS) { showTab("lib"); await refreshLib(); return; }
+  if (REMOTE) { showTab("lib"); await refreshLib(); return; }
   if (!("showDirectoryPicker" in window)) { toast("Ce navigateur n'ouvre pas de dossier : utilise Chrome ou Edge, ou « Ouvrir » fichier par fichier."); return; }
   try {
     dirHandle = await window.showDirectoryPicker({ id: "eon-salles", mode: "readwrite" });
@@ -498,15 +517,15 @@ async function openDir() {
   } catch (e) { if (e.name !== "AbortError") toast("Dossier : " + e.message); }
 }
 async function refreshLib() {
-  if (GAS) {
-    $("libInfo").textContent = "Lecture des salles sur le Drive…";
+  if (REMOTE) {
+    $("libInfo").textContent = "Lecture des salles dans " + OU + "…";
     try {
-      libItems = (await gas("listeSalles")).map(f => { try { return { name: f.name, drive: f.id, t: f.t, txt: f.txt, r: fromFileText(f.txt), warn: loadWarn }; }
+      libItems = (await remote("listeSalles")).map(f => { try { return { name: f.name, drive: f.id, t: f.t, txt: f.txt, r: fromFileText(f.txt), warn: loadWarn }; }
         catch (e) { return { name: f.name, drive: f.id, t: f.t, r: null, err: e.message }; } });
-    } catch (e) { $("libInfo").textContent = "Salles du Drive illisibles : " + e.message; return; }
+    } catch (e) { $("libInfo").textContent = "Salles illisibles (" + OU + ") : " + e.message; return; }
     libItems.sort((a, b) => a.name.localeCompare(b.name));
-    $("libInfo").innerHTML = "<b>Drive · EON_EditeurSalles/Salles</b> · " + libItems.length + " salle(s)";
-    $("docWhere").textContent = "· Drive";
+    $("libInfo").innerHTML = "<b>" + (GAS ? "Drive · EON_EditeurSalles/Salles" : "Unreal · " + (ueInfo.salles || "Salles")) + "</b> · " + libItems.length + " salle(s)";
+    $("docWhere").textContent = GAS ? "· Drive" : "· Unreal";
     renderLib(); return;
   }
   if (!dirHandle) return;
@@ -869,8 +888,22 @@ async function driveAssets() {
     await loadAssetFiles(man.map(m => { const c = keep[m.id]; return { path: m.path, text: async () => c.txt, blob: async () => b64Blob(c.b64, c.type) }; }));
   } catch (e) { H.textContent = "Bibliothèque du Drive illisible : " + e.message; toast("Bibliothèque du Drive : " + e.message); }
 }
+// Onglet d'Unreal : la bibliothèque est lue dans SourceAssets par Unreal, fichier par fichier à la demande.
+let ueInfo = {};
+async function ueAssets() {
+  const H = $("assetsHint"); H.textContent = "Lecture de la bibliothèque dans Unreal…";
+  try {
+    const man = await (await ueFetch("/eon/api/biblio")).json();
+    assetsName = "Unreal · SourceAssets";
+    await loadAssetFiles(man.map(p => {
+      const u = "/eon/biblio?p=" + encodeURIComponent(p);
+      return { path: p, text: async () => (await ueFetch(u)).text(), blob: async () => (await ueFetch(u)).blob() };
+    }));
+  } catch (e) { H.textContent = "Bibliothèque d'Unreal illisible : " + e.message; toast("Bibliothèque d'Unreal : " + e.message); }
+}
 async function pickAssetDir() {
   if (GAS) return driveAssets();
+  if (UE) return ueAssets();
   if ("showDirectoryPicker" in window) {
     try { const h = await window.showDirectoryPicker({ id: "eon-assets", mode: "read" }); await openAssetDir(h); idbSet("assets", h); }
     catch (e) { if (e.name !== "AbortError") toast("Bibliothèque : " + e.message); }
@@ -1339,8 +1372,10 @@ function resizeCanvas() {
   cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d);
   draw();
 }
+// Vue cadrée par fit() : elle suit la taille de la fenêtre tant qu'on ne zoome ni ne déplace la vue à la main.
+let vueAuto = true;
 function fit() {
-  V3.fitted = false;
+  V3.fitted = false; vueAuto = true;
   const r = $("main").getBoundingClientRect();
   const m = 50;
   view.z = Math.max(2, Math.min(64, Math.floor(Math.min((r.width - m * 2) / room.W, (r.height - m * 2) / room.H))));
@@ -1349,7 +1384,7 @@ function fit() {
 }
 function centerOn(x, y) {
   const r = $("main").getBoundingClientRect();
-  view.z = Math.max(view.z, 20);
+  view.z = Math.max(view.z, 20); vueAuto = false;
   view.ox = r.width / 2 - (x + .5) * view.z; view.oy = r.height / 2 - (y + .5) * view.z;
   draw();
 }
@@ -1919,7 +1954,7 @@ function onMove(ev) {
   const c = cellAt(ev);
   hover = c; updateStatus();
   if (!drag) { draw(); return; }
-  if (drag.kind === "pan") { view.ox = drag.ox + ev.clientX - drag.sx; view.oy = drag.oy + ev.clientY - drag.sy; draw(); return; }
+  if (drag.kind === "pan") { vueAuto = false; view.ox = drag.ox + ev.clientX - drag.sx; view.oy = drag.oy + ev.clientY - drag.sy; draw(); return; }
   if (drag.kind === "brush") { line(drag.last.x, drag.last.y, c.x, c.y, (x, y) => stamp(x, y, drag.t)); drag.last = c; changed(); return; }
   if (drag.kind === "rect" || drag.kind === "indoor") { drag.b = { x: clampX(c.x), y: clampY(c.y) }; draw(); return; }
   if (drag.kind === "line") {
@@ -1951,7 +1986,7 @@ function onWheel(ev) {
   const r = cv.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
   const k = Math.exp(-ev.deltaY * (ev.ctrlKey ? .01 : .0015));
   const nz = Math.max(2, Math.min(96, view.z * k));
-  view.ox = mx - (mx - view.ox) * nz / view.z; view.oy = my - (my - view.oy) * nz / view.z; view.z = nz;
+  vueAuto = false; view.ox = mx - (mx - view.ox) * nz / view.z; view.oy = my - (my - view.oy) * nz / view.z; view.z = nz;
   updateStatus(); draw();
 }
 
@@ -2166,7 +2201,8 @@ cv.addEventListener("pointercancel", onUp);
 cv.addEventListener("pointerleave", () => { hover = null; updateStatus(); draw(); });
 cv.addEventListener("wheel", onWheel, { passive: false });
 cv.addEventListener("contextmenu", e => e.preventDefault());
-window.addEventListener("resize", () => { resizeCanvas(); });
+// La fenêtre change de taille (onglet d'Unreal qui s'ouvre puis grandit, fenêtre agrandie) : la salle reste cadrée.
+window.addEventListener("resize", () => { resizeCanvas(); if (vueAuto) fit(); });
 window.addEventListener("beforeunload", e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
 
 $("bCouv").onclick = renderCouverture; $("bVerifTout").onclick = verifTout;
@@ -2181,7 +2217,7 @@ $("bHab").onclick = () => {
   changed(); toast(n + " objet(s) posé(s) comme dans le proto");
 };
 // Actualiser : relit le même dossier (Chrome, Edge), sinon le redemande.
-$("bAssetsRe").onclick = async () => { for (const k in assets) assets[k].sprites = null; if (GAS || !(await reopenAssets(true))) pickAssetDir(); };
+$("bAssetsRe").onclick = async () => { for (const k in assets) assets[k].sprites = null; if (REMOTE || !(await reopenAssets(true))) pickAssetDir(); };
 $("assetSearch").addEventListener("input", e => { assetFilter = e.target.value; renderAssets(); });
 $("assetIn").addEventListener("change", async e => {
   const fs = [...e.target.files].filter(f => /\.(eonasset|eonapercu|eontheme|png|webp)$/i.test(f.name));
@@ -2236,6 +2272,14 @@ if (GAS) {
   $("bDir").title = "Salles du Drive"; $("bOpen").title = "Ouvrir une salle du Drive (Ctrl+O)";
   $("libInfo").textContent = "Salles du dossier Drive EON_EditeurSalles/Salles.";
   driveAssets(); refreshLib();
+} else if (UE) {
+  // Onglet d'Unreal : salles et bibliothèque viennent d'Unreal, sans dossier à choisir.
+  $("bAssets").textContent = "Relire la bibliothèque d'Unreal";
+  $("bDir2").textContent = "Relire les salles";
+  $("bDir").title = "Salles du projet (via Unreal)"; $("bOpen").title = "Ouvrir une salle (Ctrl+O)";
+  $("libInfo").textContent = "Salles lues par Unreal.";
+  ueFetch("/eon/api/info").then(r => r.json()).then(i => { ueInfo = i; }).catch(() => {}).finally(refreshLib);
+  ueAssets();
 } else reopenAssets(false);
 try {
   const b = JSON.parse(localStorage.getItem("eonsalle.brouillon") || "null");

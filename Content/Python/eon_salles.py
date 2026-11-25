@@ -563,6 +563,11 @@ def toggle_watch():
     return watch(_watch["handle"] is None)
 
 
+def open_panel():
+    """Onglet « Éditeur de salles » dans Unreal (Source/EON/Private/EONSallesPanel.cpp)."""
+    unreal.SystemLibrary.execute_console_command(None, "eon.salles.panneau")
+
+
 def open_editor():
     import webbrowser
     p = os.path.join(unreal.Paths.convert_relative_path_to_full(unreal.Paths.project_dir()), "Tools", "EditeurSalles", "EditeurSalles.html")

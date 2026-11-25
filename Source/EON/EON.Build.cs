@@ -16,6 +16,8 @@ public class EON : ModuleRules
 		if (Target.bBuildEditor)
 		{
 			PrivateDependencyModuleNames.AddRange(new string[] { "UnrealEd", "BlueprintGraph", "AnimGraph", "Kismet" });
+			// Éditeur de salles dans un onglet d'Unreal (EONSallesPanel.cpp) : navigateur intégré + serveur HTTP local.
+			PrivateDependencyModuleNames.AddRange(new string[] { "WebBrowser", "HTTPServer", "Json", "WorkspaceMenuStructure" });
 		}
 	}
 }

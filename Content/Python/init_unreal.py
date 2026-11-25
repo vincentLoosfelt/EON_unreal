@@ -16,7 +16,9 @@ def _menu():
     if not main:
         return
     m = main.add_sub_menu("EON", "EONSalles", "EONSalles", "EON Salles", "Salles dessinées (.eonsalle) <-> Blueprints")
-    _entry(m, "Ouvrir", "Ouvrir l'éditeur de salles", "Ouvre Tools/EditeurSalles/EditeurSalles.html dans le navigateur",
+    _entry(m, "Panneau", "Éditeur de salles (onglet dans Unreal)", "Ouvre l'éditeur de salles dans un onglet ancrable d'Unreal : salles et bibliothèque sans dossier à choisir",
+           "import eon_salles; eon_salles.open_panel()")
+    _entry(m, "Ouvrir", "Ouvrir l'éditeur de salles dans Chrome", "Ouvre Tools/EditeurSalles/EditeurSalles.html dans le navigateur",
            "import eon_salles; eon_salles.open_editor()")
     _entry(m, "Importer", "Importer toutes les salles (.eonsalle -> Blueprint)", "Crée ou met à jour /Game/EON/Salles/BP_<nom> pour chaque fichier du dossier Salles",
            "import eon_salles; eon_salles.import_all()")

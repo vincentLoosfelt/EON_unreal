@@ -69,31 +69,30 @@ tr:nth-child(even) td { background: #f7f9fa; }
     <div class="sub">De la page blanche à une salle jouable dans le jeu, pas à pas.<br>Pour quelqu'un qui n'a jamais ouvert l'outil.</div>
   </div>
   <img src="06_construite.png" alt="">
-  <div class="foot"><span>Version 2 · 23 novembre 2026</span><span>Tools/EditeurSalles/EditeurSalles.html</span></div>
+  <div class="foot"><span>Version 2.1 · 25 novembre 2026</span><span>Tools/EditeurSalles/EditeurSalles.html</span></div>
 </section>
 
 <section class="chap">
   <h2>Avant de commencer</h2>
   <p class="lead">Dans EON, chaque étage est assemblé par le jeu à partir de <b>salles</b>. L'éditeur sert à dessiner ces salles vues de dessus, sur une grille où <b>une case = un mètre</b>. Tu poses des murs, des portes, du décor et des objets ; Unreal transforme ensuite le dessin en Blueprint que le générateur d'étage tire au hasard.</p>
   <div class="flow">
-    <div><b>1. Dessiner</b>dans l'éditeur (navigateur)</div><i>→</i>
+    <div><b>1. Dessiner</b>dans l'éditeur (Unreal ou navigateur)</div><i>→</i>
     <div><b>2. Enregistrer</b>un fichier <code>.eonsalle</code></div><i>→</i>
     <div><b>3. Importer</b>dans Unreal : <code>BP_nom</code></div><i>→</i>
     <div><b>4. Jouer</b>le générateur tire la salle</div>
   </div>
   <h3>Ce qu'il te faut</h3>
   <ul>
-    <li><b>Google Chrome ou Microsoft Edge</b>, sur PC comme sur Mac. Firefox et Safari ne savent pas ouvrir un dossier : ils ne pourraient ni enregistrer directement ni lister les salles.</li>
+    <li>Sur le PC qui a le projet Unreal : rien, l'éditeur s'ouvre <b>dans un onglet d'Unreal</b>. Ailleurs : <b>Google Chrome ou Microsoft Edge</b>, sur PC comme sur Mac. Firefox et Safari ne savent pas ouvrir un dossier : ils ne pourraient ni enregistrer directement ni lister les salles.</li>
     <li>Le <b>Drive</b> monté sur le PC (lecteur <code>G:</code>). Le dossier de travail est <code>G:\My Drive\EON_EditeurSalles</code> : il contient l'éditeur, le dossier <code>Salles</code> (le dossier maître des salles) et le dossier <code>Bibliotheque</code> (les assets à poser).</li>
     <li>Pour voir la salle dans le jeu : le projet Unreal <code>EON</code> ouvert dans l'éditeur Unreal.</li>
   </ul>
   <h3>Ouvrir l'éditeur</h3>
   <ul class="steps">
-    <li>Double-clique sur <code>EditeurSalles.html</code> dans <code>G:\My Drive\EON_EditeurSalles</code> (il s'ouvre dans ton navigateur). Depuis Unreal, le menu <b>EON Salles › Ouvrir l'éditeur de salles</b> fait la même chose.</li>
-    <li>Clique sur <b>Dossier</b> (en haut) et choisis <code>G:\My Drive\EON_EditeurSalles\Salles</code>. Le navigateur demande l'autorisation de modifier les fichiers : accepte. Les salles existantes apparaissent dans l'onglet <b>Salles</b>.</li>
-    <li>Onglet <b>Objets</b> › <b>Ouvrir la bibliothèque d'assets…</b> et choisis :<br>· sur le PC qui a le projet Unreal : le dossier du projet <code>EON_UE</code> (l'éditeur y lit tout seul <code>SourceAssets</code>, toujours à jour) ;<br>· sans Unreal (Mac, autre PC) : <code>EON_EditeurSalles\Bibliotheque</code> sur le Drive.<br>Les vignettes des assets (néons, terminaux, barrières…) s'affichent.</li>
+    <li><b>Dans Unreal</b> : menu <b>EON Salles › Éditeur de salles (onglet dans Unreal)</b>, ou <b>Window › Outils</b>. L'onglet s'ancre où tu veux ; Unreal lit les salles et la bibliothèque : <b>aucun dossier à choisir</b>.</li>
+    <li><b>Sans Unreal</b> (Mac, autre PC) : double-clique sur <code>EditeurSalles.html</code> dans <code>G:\My Drive\EON_EditeurSalles</code>. Bouton <b>Dossier</b> : choisis <code>Salles</code> et accepte l'autorisation de modifier. Onglet <b>Objets</b> › <b>Ouvrir la bibliothèque d'assets…</b> : choisis <code>Bibliotheque</code> (ou le dossier du projet <code>EON_UE</code> s'il est sur le PC).</li>
   </ul>
-  <div class="box tip"><b class="t">Bon à savoir</b>Le navigateur se souvient de ces deux dossiers : les fois suivantes, un clic suffit. Ton travail en cours est aussi gardé en brouillon : si tu fermes l'onglet par erreur, la salle revient à la réouverture.</div>
+  <div class="box tip"><b class="t">Bon à savoir</b>Le navigateur se souvient de ces dossiers. Ton travail en cours est gardé en brouillon : si tu fermes l'onglet par erreur, la salle revient à la réouverture.</div>
   <h3>Ce guide en un coup d'œil</h3>
   <ul class="toc">
     <li><b>1</b>L'écran de l'éditeur</li>
@@ -326,6 +325,8 @@ tr:nth-child(even) td { background: #f7f9fa; }
   <table>
     <tr><th style="width:38%">Ce que tu vois</th><th>Quoi faire</th></tr>
     <tr><td>« Ce navigateur n'ouvre pas de dossier »</td><td>Ouvre l'éditeur dans Chrome ou Edge.</td></tr>
+    <tr><td>L'onglet d'Unreal dit « le port 8790 est déjà pris »</td><td>Un autre Unreal EON a déjà l'éditeur de salles ouvert : ferme-le, puis rouvre l'onglet.</td></tr>
+    <tr><td>Onglet d'Unreal absent du menu</td><td>Le code C++ n'est pas encore compilé : après un <code>git pull</code>, compile le projet (Unreal le propose à l'ouverture).</td></tr>
     <tr><td>Aucune vignette dans l'onglet Objets</td><td><b>Ouvrir la bibliothèque d'assets…</b> et choisis le dossier du projet <code>EON_UE</code>, ou <code>Bibliotheque</code> sur le Drive. Après de nouveaux assets, le bouton ⟳ relit tout.</td></tr>
     <tr><td>Un fichier <code>Salle (1).eonsalle</code> apparaît</td><td>Deux personnes ont enregistré la même salle en même temps : le Drive a gardé les deux. Compare, garde la bonne, supprime l'autre.</td></tr>
     <tr><td>Du sol en rouge</td><td>Ce sol n'est relié à aucune porte : ouvre un passage (porte intérieure) ou remplis-le de mur.</td></tr>
