@@ -9,3 +9,6 @@ Saved/*
 !Saved/Scripts/
 Reference/3D_Studio/
 __pycache__/
+
+# Sources du pack Old-School Shonen (1 Go) : gardées en local, les .uasset suffisent
+Audio_Sources/OldSchoolShonen/*.wav

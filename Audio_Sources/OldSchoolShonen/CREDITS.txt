@@ -1,0 +1,12 @@
+Pack « Old-School Shonen SFX » de Helton Yan
+Licence : Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+Attribution OBLIGATOIRE dans les crédits du jeu : « Sound effects: Helton Yan's Old-School Shonen SFX (CC BY 4.0) ».
+
+Fourni par Vincent le 25/11/2026 (Téléchargements, zip de 668 Mo).
+120 WAV 96 kHz / 24 bits / stéréo, ~1 Go. Les WAV ne sont pas dans Git (.gitignore) : seuls les .uasset le sont.
+Import : Saved/Scripts/eon_import_shonen.py -> /Game/EON/Audio/OldSchoolShonen/<Famille>/SFX_Shonen_<Famille>_NN
+
+Familles : Spark 4, Explosion 11, Land 11, Swing 5, Melee 11, MeleeGore 6, Dodge 9, Jump 5, Throw 5,
+FallRocket 1 (FRWKMisc Falling), FallWhistle 5 (TOONWhis Falling), AbilityCharge 19, AbilityReady 8,
+AbilityRelease 15, Fly 5.
