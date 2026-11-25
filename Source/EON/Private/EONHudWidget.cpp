@@ -188,7 +188,7 @@ int32 UEONHudWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Allott
 	const AHUD* Hud = OPC ? OPC->GetHUD() : nullptr;
 	const bool bTitle = UI && UI->IsTitleOpen();
 	const FEONDlgLine* Dl = UI && !bTitle ? UI->DlgLine() : nullptr;
-	const bool bHud = J && !(Hud && !Hud->bShowHUD) && !bTitle && !(F && F->IsCinematic());
+	const bool bHud = J && !(Hud && !Hud->bShowHUD) && !bTitle && !(UI && UI->IsComOpen()) && !(F && F->IsCinematic());   // terminal du C.O.M ouvert : pas de HUD (Vincent, 25/11)
 	if (!bHud && !Dl) { return LayerId; }
 	const FPaint P(AllottedGeometry, OutDrawElements, LayerId + 1);
 	if (bHud) { PaintHud(P, J, F, Dl != nullptr); }
