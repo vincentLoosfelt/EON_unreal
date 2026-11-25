@@ -1,8 +1,10 @@
 # EON — lance l'éditeur (ou le jeu) avec des arguments, place ses fenêtres sur l'écran 2 (X=-1920, Y=506) sans voler
 # le focus, attend la fin. Usage : powershell -File eon_lancer_ecran2.ps1 -Script <chemin.py> [-Log nom.log] [-Max 900]
 # (le script python part par -ExecCmds="py ..." : l'éditeur reste ouvert jusqu'à ce que le script le ferme).
-param([string]$Script, [string]$Log = "EON_ecran2.log", [int]$Max = 900)
-$Ligne = "`"D:/_PROJETS/briscard/EON_UE/EON.uproject`" -ExecCmds=`"py $Script`" -nosplash -log=$Log"
+param([string]$Script, [string]$Ligne, [string]$Log = "EON_ecran2.log", [int]$Max = 900)
+# -Ligne : ligne de commande complète (ex. jeu en -game) ; appeler alors ce script par & dans PowerShell, pas par -File
+# (powershell -File retire les guillemets intérieurs).
+if (-not $Ligne) { $Ligne = "`"D:/_PROJETS/briscard/EON_UE/EON.uproject`" -ExecCmds=`"py $Script`" -nosplash -log=$Log" }
 Add-Type @"
 using System; using System.Runtime.InteropServices; using System.Text;
 public class W {

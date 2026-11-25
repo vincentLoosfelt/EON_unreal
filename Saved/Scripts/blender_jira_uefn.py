@@ -55,16 +55,85 @@ def align(n, target, hint_now=None, hint_target=None):
     rotate(n, R)
     h2, t2 = cur(n)
     log("%-12s écart après alignement : %.2f°" % (n, math.degrees((t2 - h2).angle(target))))
+# Jambes (25/11) : les os des jambes du rig d'origine ne sont pas dans le maillage (os du pied G tourné de 53° vers
+# l'extérieur, hanche D décalée de 9 cm) et leurs poids sont asymétriques. Se fier aux os tordait la jambe gauche vers
+# l'intérieur. On part donc du maillage, symétrique, jambes droites et pieds vers l'avant :
+#  - articulations (hanche, genou, cheville, ball) mesurées sur les sections du maillage, puis symétrisées ;
+#  - poids des pièces rigides legs_up / legs_down refaits par la géométrie (mêmes des deux côtés) ;
+#  - chaque segment tourné autour de ses vraies articulations vers les directions du mannequin (skinning linéaire à la main),
+#    CONF des os de jambe = cette transformation appliquée à leur repos (transfert exact des anims de corps).
+OB = arm.data.bones
+LEGM = {o.name: o for o in MESH if o.name in ("legs_up", "legs_down")}
+def section(objs, s, z0, z1):
+    vs = [v.co for o in objs for v in o.data.vertices if z0 <= v.co.z <= z1 and (v.co.x > 0) == (s == "L")]
+    return sum(vs, V()) / len(vs)
+def zavg(n): return (OB[n + ".L"].head_local.z + OB[n + ".R"].head_local.z) / 2
+JM = {}
+for s in "LR":
+    up, dn = LEGM["legs_up"], LEGM["legs_down"]
+    ztop = max(v.co.z for v in up.data.vertices)
+    zh, zk, za, zt = zavg("leg_up"), zavg("leg_down"), zavg("foot"), zavg("toes")
+    hs = section([up], s, min(zh, ztop) - 0.08, min(zh, ztop) - 0.02); H = V((hs.x, hs.y, zh))
+    ks = section([up, dn], s, zk - 0.02, zk + 0.02); K = V((ks.x, ks.y, zk))
+    as_ = section([dn], s, za + 0.02, za + 0.06); A = V((as_.x, as_.y, za))
+    foot = [v.co for v in dn.data.vertices if v.co.z < za and (v.co.x > 0) == (s == "L")]
+    tip = min(foot, key=lambda c: c.y)
+    B = A.lerp(V((tip.x, tip.y, A.z)), 0.70); B.z = zt
+    JM[s] = {"H": H, "K": K, "A": A, "B": B, "T": V((tip.x, tip.y, zt))}
+for k in ("H", "K", "A", "B", "T"):   # symétrie gauche/droite (le maillage est symétrique en x)
+    l, r = JM["L"][k], JM["R"][k]
+    m = (l + V((-r.x, r.y, r.z))) / 2
+    JM["L"][k], JM["R"][k] = m, V((-m.x, m.y, m.z))
+def sm(t):
+    t = min(max(t, 0.0), 1.0); return t * t * (3 - 2 * t)
+for o in LEGM.values():   # poids géométriques des pièces de jambe
+    for s in "LR":
+        for n in ("leg_up", "leg_down", "foot", "toes"):
+            if o.vertex_groups.get(n + "." + s) is None: o.vertex_groups.new(name=n + "." + s)
+    G = {g.name: g for g in o.vertex_groups}
+    for v in o.data.vertices:
+        s = "L" if v.co.x > 0 else "R"; J_ = JM[s]; c = v.co
+        wk = sm((J_["K"].z + 0.04 - c.z) / 0.08)                 # 0 au-dessus du genou -> 1 en dessous
+        wa = sm((J_["A"].z + 0.05 - c.z) / 0.07)                 # pied sous la cheville
+        wb = sm((J_["B"].y + 0.02 - c.y) / 0.04) * sm((0.10 - c.z) / 0.04)   # avant du pied (vers -y) -> ball
+        w = {"leg_up": 1 - wk, "leg_down": wk * (1 - wa), "foot": wk * wa * (1 - wb), "toes": wk * wa * wb}
+        for g in [g.group for g in v.groups]:
+            o.vertex_groups[g].remove([v.index])
+        for n, x in w.items():
+            if x > 1e-4: G[n + "." + s].add([v.index], x, 'REPLACE')
+def tr(Xold, Xnew, R):
+    return mathutils.Matrix.Translation(Xnew) @ R.to_4x4() @ mathutils.Matrix.Translation(-Xold)
+LEGT = {}
+side = V((0, 0, 1))
 for s, u in (("L", "l"), ("R", "r")):
-    fwd_u = flat(UP["ball_" + u] - UP["foot_" + u])
-    def fwd_j():
-        return flat(cur("toes." + s)[1] - cur("foot." + s)[0])
-    align("leg_up." + s, udir("thigh_" + u, "calf_" + u), fwd_j(), fwd_u)
-    align("leg_down." + s, udir("calf_" + u, "foot_" + u), fwd_j(), fwd_u)
-    side = V((0, 0, 1))
-    align("foot." + s, udir("foot_" + u, "ball_" + u), side.cross(fwd_j()), side.cross(fwd_u))
+    J_ = JM[s]; fwd_u = flat(UP["ball_" + u] - UP["foot_" + u]); fwd_m = flat(J_["B"] - J_["A"])
     bx = (UF["ball_" + u].to_3x3() @ V((1, 0, 0)))          # axe X UE de ball = sa longueur
-    align("toes." + s, bx, side.cross(fwd_j()), side.cross(fwd_u))
+    Rt = frame(udir("thigh_" + u, "calf_" + u), fwd_u) @ frame(J_["K"] - J_["H"], fwd_m).inverted()
+    Rc = frame(udir("calf_" + u, "foot_" + u), fwd_u) @ frame(J_["A"] - J_["K"], fwd_m).inverted()
+    Rf = frame(udir("foot_" + u, "ball_" + u), side.cross(fwd_u)) @ frame(J_["B"] - J_["A"], side.cross(fwd_m)).inverted()
+    Rb = frame(bx, side.cross(fwd_u)) @ frame(J_["T"] - J_["B"], side.cross(fwd_m)).inverted()
+    H2 = J_["H"]; K2 = H2 + Rt @ (J_["K"] - J_["H"]); A2 = K2 + Rc @ (J_["A"] - J_["K"]); B2 = A2 + Rf @ (J_["B"] - J_["A"])
+    LEGT["leg_up." + s] = tr(J_["H"], H2, Rt); LEGT["leg_down." + s] = tr(J_["K"], K2, Rc)
+    LEGT["foot." + s] = tr(J_["A"], A2, Rf); LEGT["toes." + s] = tr(J_["B"], B2, Rb)
+    J_.update({"H2": H2, "K2": K2, "A2": A2, "B2": B2})
+    log("jambe %s : hanche %s genou %s cheville %s ball %s (m, maillage)" % (s, *(tuple(round(x, 3) for x in J_[k]) for k in ("H", "K", "A", "B"))))
+    for n, R, d in (("cuisse", Rt, J_["K"] - J_["H"]), ("tibia", Rc, J_["A"] - J_["K"]), ("pied", Rf, J_["B"] - J_["A"])):
+        log("   %s %s tourné de %.1f°" % (s, n, math.degrees(R.to_quaternion().angle)))
+def leg_of(n):   # os de jambe d'origine dont dépend le groupe n (ou None)
+    b = OB.get(n)
+    while b is not None and b.name not in LEGT: b = b.parent
+    return b.name if b is not None else None
+for o in MESH:   # skinning linéaire des jambes autour des articulations du maillage
+    nm = {g.index: g.name for g in o.vertex_groups}
+    for v in o.data.vertices:
+        acc = V(); tot = 0.0
+        for g in v.groups:
+            n = nm[g.group]
+            if g.weight <= 0 or OB.get(n) is None or not OB[n].use_deform: continue
+            L_ = leg_of(n); tot += g.weight
+            acc += g.weight * ((LEGT[L_] @ v.co) if L_ else v.co)
+        if tot > 0 and any(leg_of(nm[g.group]) for g in v.groups if g.weight > 0): v.co = acc / tot
+    o.data.update()
 align("clavicle.L", udir("clavicle_l", "upperarm_l"))
 align("upper_arm.L", udir("upperarm_l", "lowerarm_l"))
 align("forearm.L", udir("lowerarm_l", "hand_l"))
@@ -73,6 +142,7 @@ align("clavicle.R", udir("clavicle_r", "upperarm_r"))
 align("upper_arm.R", udir("upperarm_r", "lowerarm_r"))
 align("canon.R", udir("lowerarm_r", "hand_r"))
 CONF = {pb.name: pb.matrix.copy() for pb in arm.pose.bones}   # pose « mannequin » des os de Jira (m)
+for n, T_ in LEGT.items(): CONF[n] = T_ @ OB[n].matrix_local   # jambes : transformation du maillage, pas la pose des os
 
 # articulations de Jira dans la pose du mannequin (cm)
 JP = {}
@@ -98,6 +168,8 @@ P["pelvis"] = JP["CTRL_pelvis"]
 for s, u in (("L", "l"), ("R", "r")):
     P["thigh_" + u] = JP["leg_up." + s]; P["calf_" + u] = JP["leg_down." + s]
     P["foot_" + u] = JP["foot." + s]; P["ball_" + u] = JP["toes." + s]
+    P["thigh_" + u], P["calf_" + u] = JM[s]["H2"] * 100, JM[s]["K2"] * 100       # jambes : articulations du maillage
+    P["foot_" + u], P["ball_" + u] = JM[s]["A2"] * 100, JM[s]["B2"] * 100
 P["clavicle_l"] = JP["clavicle.L"]; P["upperarm_l"] = JP["upper_arm.L"]; P["lowerarm_l"] = JP["forearm.L"]; P["hand_l"] = JP["hand.L"]
 P["clavicle_r"] = JP["clavicle.R"]; P["upperarm_r"] = JP["upper_arm.R"]; P["lowerarm_r"] = JP["canon.R"]; P["hand_r"] = JP["canon.R@tail"]
 P["neck_01"] = JP["CTRL_neck"]; P["head"] = JP["CTRL_head"]
@@ -108,6 +180,8 @@ def chain(names, a, b):
     for n, l in zip(names[1:-1], L[1:-1]): P[n] = P[a].lerp(P[b], l / L[-1])
 chain(["pelvis", "spine_01", "spine_02", "spine_03", "spine_04", "spine_05", "neck_01"], "pelvis", "neck_01")
 chain(["neck_01", "neck_02", "head"], "neck_01", "head")
+for n in ("pelvis", "spine_01", "spine_02", "spine_03", "spine_04", "spine_05", "neck_01", "neck_02", "head"):
+    P[n] = V((0.0, P[n].y, P[n].z))   # axe du corps : le maillage est symétrique en x, les os CTRL d'origine sont décalés
 # facteur d'échelle par segment (os placé -> son enfant principal)
 MAIN = {"thigh": "calf", "calf": "foot", "foot": "ball", "upperarm": "lowerarm", "lowerarm": "hand", "clavicle": "upperarm"}
 def seg_scale(n):

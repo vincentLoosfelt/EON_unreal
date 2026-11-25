@@ -10,7 +10,7 @@ def log(s):
     LOG.append(str(s)); open(PROJ + "Saved/Logs/eon_jira_uefn.txt", "w", encoding="utf-8").write("\n".join(LOG))
 uefn = unreal.load_asset("/Game/Characters/UEFN_Mannequin/Meshes/SKM_UEFN_Mannequin")
 skel = uefn.get_editor_property("skeleton")
-old = unreal.load_asset(DIR + "/SK_Jira")
+old = unreal.load_asset(DIR + "/SK_Jira") if EAL.does_asset_exist(DIR + "/SK_Jira") else unreal.load_asset(DIR + "/SK_Jira_UEFN")   # SK_Jira supprimé : on garde les matériaux actuels
 avant = {str(m.get_editor_property("material_slot_name")): m.get_editor_property("material_interface") for m in old.get_editor_property("materials")}
 o = unreal.FbxImportUI()
 o.automated_import_should_detect_type = False
