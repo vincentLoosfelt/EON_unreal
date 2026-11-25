@@ -1,0 +1,174 @@
+{
+ "door": [
+  {
+   "f": "door_01.wav",
+   "d": 1.11,
+   "src": 434162,
+   "note": "aérosols, MicktheMicGuy"
+  },
+  {
+   "f": "door_02.wav",
+   "d": 1.18,
+   "src": 375954,
+   "note": "volet de vaisseau, Glitchedtones"
+  },
+  {
+   "f": "door_03.wav",
+   "d": 2.04,
+   "src": 660528,
+   "note": "tiroir CD, ouverture, Joachim_Berger"
+  }
+ ],
+ "roar": [
+  {
+   "f": "roar_01.wav",
+   "d": 1.45,
+   "src": 315798,
+   "note": "dragon, bevibeldesign"
+  },
+  {
+   "f": "roar_02.wav",
+   "d": 3.0,
+   "src": 263115,
+   "note": "vrai tigre"
+  },
+  {
+   "f": "roar_03.wav",
+   "d": 3.78,
+   "src": 263115,
+   "note": "vrai tigre, 4 demi-tons plus grave"
+  },
+  {
+   "f": "roar_04.wav",
+   "d": 2.5,
+   "src": 469123,
+   "note": "éternuement ralenti, Manim8"
+  }
+ ],
+ "card": [
+  {
+   "f": "card_01.wav",
+   "d": 1.3,
+   "src": 874687,
+   "note": "carillon qui monte, 1,3 s"
+  },
+  {
+   "f": "card_02.wav",
+   "d": 0.8,
+   "src": 874687,
+   "note": "carillon qui monte, 0,8 s"
+  },
+  {
+   "f": "card_03.wav",
+   "d": 0.53,
+   "src": 517662,
+   "note": "barres de carillon, SamuelGremaud"
+  },
+  {
+   "f": "card_04.wav",
+   "d": 0.29,
+   "src": 517662,
+   "note": "barres de carillon, SamuelGremaud"
+  },
+  {
+   "f": "card_05.wav",
+   "d": 0.44,
+   "src": 517662,
+   "note": "barres de carillon, SamuelGremaud"
+  },
+  {
+   "f": "card_06.wav",
+   "d": 1.21,
+   "src": 116779,
+   "note": "sonnette de comptoir"
+  }
+ ],
+ "deny": [
+  {
+   "f": "deny_01.wav",
+   "d": 0.77,
+   "src": 324248,
+   "note": "vrai badge refusé"
+  },
+  {
+   "f": "deny_02.wav",
+   "d": 0.6,
+   "src": 324248,
+   "note": "vrai badge refusé, 0,6 s"
+  },
+  {
+   "f": "deny_03.wav",
+   "d": 0.38,
+   "src": 630500,
+   "note": "bip de micro-ondes"
+  },
+  {
+   "f": "deny_04.wav",
+   "d": 0.3,
+   "src": 668982,
+   "note": "clavier de micro-ondes"
+  },
+  {
+   "f": "deny_05.wav",
+   "d": 0.3,
+   "src": 668982,
+   "note": "clavier de micro-ondes"
+  },
+  {
+   "f": "deny_06.wav",
+   "d": 0.29,
+   "src": 668982,
+   "note": "clavier de micro-ondes"
+  },
+  {
+   "f": "deny_07.wav",
+   "d": 0.29,
+   "src": 668982,
+   "note": "clavier de micro-ondes"
+  },
+  {
+   "f": "deny_08.wav",
+   "d": 0.28,
+   "src": 668982,
+   "note": "clavier de micro-ondes"
+  },
+  {
+   "f": "deny_09.wav",
+   "d": 0.28,
+   "src": 668982,
+   "note": "clavier de micro-ondes"
+  }
+ ],
+ "mortar": [
+  {
+   "f": "mortar_01.wav",
+   "d": 0.34,
+   "src": 432781,
+   "note": "pop de bouteille"
+  },
+  {
+   "f": "mortar_02.wav",
+   "d": 0.36,
+   "src": 162402,
+   "note": "vrai M203"
+  },
+  {
+   "f": "mortar_03.wav",
+   "d": 0.88,
+   "src": 187542,
+   "note": "vrai mortier M-327"
+  },
+  {
+   "f": "mortar_04.wav",
+   "d": 0.97,
+   "src": 187542,
+   "note": "vrai mortier M-327"
+  },
+  {
+   "f": "mortar_05.wav",
+   "d": 0.36,
+   "src": "432781+162402",
+   "note": "pop de bouteille + M203 superposés"
+  }
+ ]
+}

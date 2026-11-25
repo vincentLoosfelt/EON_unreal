@@ -1432,7 +1432,7 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 		{
 			bool bAlive = false;
 			for (const AEONEnemy* E : Dir->GetEnemies()) { if (E && !E->bDead) { bAlive = true; } }
-			if (!bAlive) { Room->SetLocked(false); EONSfx::Play(this, TEXT("SFX_Proto_door"), 0.8f); }
+			if (!bAlive) { Room->SetLocked(false); EONSfx::Event(this, TEXT("door")); }
 		}
 	}
 	else if (ExpBias != 0.f || LampLight->IsVisible()) { ExpBias = 0.f; LampLight->SetVisibility(false); EyeLight->SetVisibility(false); }
@@ -1475,6 +1475,7 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 				if (FVector2D::Distance(P, Tp) < 24.f)
 				{
 					InfBumpT = 3.f;
+					EONSfx::Event(this, TEXT("deny"));
 					if (!bInfHint)
 					{
 						bInfHint = true;
@@ -1491,6 +1492,7 @@ void AEONFloorManager::Tick(float DeltaSeconds)
 	if (Room->GetRedDoor() && RedBumpT <= 0.f && FVector2D::Distance(P, Room->DoorCenterPx(Room->GetRedDoor())) < 20.f)
 	{
 		RedBumpT = 2.5f;
+		EONSfx::Event(this, TEXT("deny"));
 		if (!bRedHint) { bRedHint = true; if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->Say(TEXT("redDoor")); } }
 		else { ShowBanner(TEXT("Carte rouge requise"), FLinearColor(FColor(255, 61, 85))); }
 	}
@@ -1927,6 +1929,7 @@ void AEONFloorManager::TickHub(float DeltaSeconds, AEONCharacter* J)
 				if (A && FVector2D::Distance(P, FVector2D(A->GetActorLocation())) < 160.f)
 				{
 					InfBumpT = 3.f;
+					EONSfx::Event(this, TEXT("deny"));
 					if (!bInfHint) { bInfHint = true; if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->Say(TEXT("infestCom")); } }
 					else { ShowBanner(TEXT("La mutation bloque le passage"), FLinearColor(FColor(255, 61, 85))); }
 					break;
@@ -1947,6 +1950,7 @@ void AEONFloorManager::TickHub(float DeltaSeconds, AEONCharacter* J)
 			if (RedBumpT <= 0.f)
 			{
 				RedBumpT = 2.5f;
+				EONSfx::Event(this, TEXT("deny"));
 				if (!bRedHint) { bRedHint = true; if (UEONUISubsystem* UI = UEONUISubsystem::Get(this)) { UI->Say(TEXT("redDoor")); } }
 				else { ShowBanner(TEXT("Carte rouge requise"), FLinearColor(FColor(255, 61, 85))); }
 			}
@@ -2093,7 +2097,7 @@ void AEONFloorManager::TickRift(float Dt, AEONCharacter* J, const FVector2D& P, 
 	{
 		bConfOn = true;
 		ShowBanner(TEXT("Confinement disponible"), FLinearColor(FColor(62, 242, 224)));
-		EONSfx::Play(this, TEXT("SFX_Proto_card"), 0.8f);
+		EONSfx::Event(this, TEXT("card"));
 		if (ConfMID) { ConfMID->SetVectorParameterValue(TEXT("BC1"), FLinearColor(0.24f, 0.95f, 0.88f)); ConfMID->SetVectorParameterValue(TEXT("EmisAdd"), FLinearColor(0.4f, 3.f, 2.8f)); }
 	}
 	if (bConfOn && !J->IsFallingIntoVoid() && FVector2D::Distance(P, C.ConfPx) < 12.f)
@@ -2111,7 +2115,7 @@ void AEONFloorManager::TickRift(float Dt, AEONCharacter* J, const FVector2D& P, 
 		RiftStage = 0;
 		bConfOn = false;
 		if (ConfMesh) { ConfMesh->SetVisibility(false); }
-		EONSfx::Play(this, TEXT("SFX_Proto_door"), 0.8f);
+		EONSfx::Event(this, TEXT("door"));
 		// Paroi confinée : 30 éclats cyan sur le confineur (100 px/s), 0,5 s.
 		EONFx::Gerbe(this, Room->RoomPxToWorld(C.ConfPx, 50.f), 30, EONFx::Hex(TEXT("3ef2e0")), 100.f, 0.5f);
 		if (Dir) { Dir->Shake(0.3f); }
@@ -2277,7 +2281,7 @@ void AEONFloorManager::TickIrruption(float Dt, AEONCharacter* J, const FVector2D
 			LampLight->SetVisibility(false);
 			EyeLight->SetVisibility(false);
 			MarkCurrentRoomCleared();
-			EONSfx::Play(this, TEXT("SFX_Proto_door"), 0.8f);
+			EONSfx::Event(this, TEXT("door"));
 			ShowBanner(TEXT("La lumière revient"), FLinearColor(FColor(62, 242, 224)));
 			const FVector2D Ctr((C.Grid.W >> 1) * 16.f, (C.Grid.H >> 1) * 16.f);
 			FName It = NAME_None;
@@ -2329,7 +2333,7 @@ void AEONFloorManager::TickCarto(float Dt, AEONCharacter* J, const FVector2D& P,
 			Room->SetLocked(true);
 			RoomWaves = 2;
 			if (AEONCombatDirector* Dd = AEONCombatDirector::Get(GetWorld())) { Dd->StartRoomWaves(2, 0.8f); }
-			EONSfx::Play(this, TEXT("SFX_Proto_door"), 0.8f);
+			EONSfx::Event(this, TEXT("door"));
 		});
 	}
 	if (C.KidSt == 2 && Dir)
@@ -2555,7 +2559,7 @@ void AEONFloorManager::TickEvent(float Dt, AEONCharacter* J, const FVector2D& P,
 			C.EvtSt = 4;
 			MarkCurrentRoomCleared();
 			if (M) { M->bNewtDone = true; M->NewtEnd = TEXT("perdue"); MS->Save(); }
-			EONSfx::Play(this, TEXT("SFX_Proto_door"), 0.8f);
+			EONSfx::Event(this, TEXT("door"));
 			ShowBanner(TEXT("Elle ne souffre plus"), FLinearColor(FColor(138, 132, 184)));
 			PlaceEvtPed(C, N + FVector2D(P.X < N.X ? 34.f : -34.f, 30.f), true);
 		}
@@ -2579,7 +2583,7 @@ void AEONFloorManager::TickEvent(float Dt, AEONCharacter* J, const FVector2D& P,
 	{
 		C.EvtSt = 2;
 		MarkCurrentRoomCleared();
-		EONSfx::Play(this, TEXT("SFX_Proto_door"), 0.8f);
+		EONSfx::Event(this, TEXT("door"));
 		if (AEONNpc* Np = EvtNpc.Get()) { Np->ShakePx = 0.f; }
 		if (C.EvtKind == 2) { ShowBanner(TEXT("Ulysse est sauf"), EvtAm); }
 		else if (C.EvtKind == 3 && !(M && M->Crew.Contains(C.CrewName)))
@@ -2671,7 +2675,7 @@ void AEONFloorManager::OnQuestPickup(EEONPickup Type, const FString& Name)
 		LogT0 = FPlatformTime::Seconds();
 		if (MS && MS->M()) { ++MS->M()->LogN; MS->Save(); }
 		if (C) { C->bLogTaken = true; }
-		EONSfx::Play(this, TEXT("SFX_Proto_card"), 0.8f);
+		EONSfx::Event(this, TEXT("card"));
 	}
 	else if (Type == EEONPickup::Doudou)
 	{

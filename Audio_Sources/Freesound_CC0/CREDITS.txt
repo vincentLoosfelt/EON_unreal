@@ -24,3 +24,12 @@ SFX_FS_Alarm_01 <- alarm_01 | SFX_FS_Hiss_01/02 <- hiss_01/07 | SFX_FS_HissLong_
 SFX_FS_KidHurt_01 <- hurt_06 | SFX_FS_Item_01 <- item_03 (glockenspiel sol-do) | SFX_FS_Step_01..07 <- pas_01..07
 SFX_FS_Pickup_01 <- pickup_01 | SFX_FS_Whip_01..03 <- whip_04/06/07 | SFX_FS_Glass_01 <- glass_01
 Refusés : door, roar, card, deny, mortar.
+
+2e série (accord de Vincent le 25/11/2026), Apercus2/ et Decoupes2/ (montage : coupes, fondus, mono, ralenti du tigre, superposition pop + M203) :
+door   434162 MicktheMicGuy, Space Ship Door Open | 375954 Glitchedtones, Spacecraft Shutter Open 01 | 660528 Joachim_Berger, Panel 2
+roar   315798 bevibeldesign, dragon roar short 3 | 263115 lauramellis, Tiger Roar | 469123 Manim8, Demon_Lion_Monster_Growl_Roar
+card   874687 loganzsound, 36 Bar Chimes Sweep Ascend | 517662 SamuelGremaud, CHIMES - 3 | 116779 domrodrig, Ringing bell - happy
+deny   324248 PerMagnusLindborg, Card Reject Alarm | 630500 jimbo555, Microwave Beep | 668982 vestibule-door, numberpad beeps
+mortar 432781 jackyyang09, Bottle Pop | 162402 qubodup, M203 Grenade Launcher 1 | 187542 qubodup, M-327 Mortar Shots
+Toutes les pages affichent CC0 (vérifié le 25/11/2026). Adresse des pages : https://freesound.org/s/<id>/
+Retenus 2e série : SFX_FS_Door_01 <- door_01 (434162) | SFX_FS_Card_01 <- card_05 (517662) | SFX_FS_Deny_01 <- deny_05 (668982) | SFX_FS_Mortar_01 <- mortar_05 (432781 + 162402). Roar : aucun retenu.

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sons Freesound EON</title>
+<style>
+:root{--bg:#f4f1ea;--card:#fffdf8;--ink:#1d1c1a;--mut:#6b675f;--line:#ddd6c8;--acc:#0e8f84;--acc2:#c2410c;--chip:#ece6d8;--keep:#dff3ef}
+@media (prefers-color-scheme:dark){:root{--bg:#141414;--card:#1e1e1d;--ink:#ece8df;--mut:#9c978c;--line:#34322e;--acc:#3ec9ba;--acc2:#fb923c;--chip:#2a2926;--keep:#173a35}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,"Segoe UI",sans-serif}
+main{max-width:1000px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:22px;margin:0 0 4px}p.sub{color:var(--mut);margin:0 0 16px;max-width:75ch}
+.need{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:0 0 12px}
+.head{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.head h2{font-size:16px;margin:0}
+.tag{font-size:11px;padding:1px 7px;border-radius:99px;background:var(--chip);color:var(--mut)}.tag.nouveau{color:var(--acc2)}
+.src{font-size:12px;color:var(--mut);margin:2px 0 10px}.src a{color:var(--acc)}
+.vars{display:flex;flex-wrap:wrap;gap:6px}
+.v{display:flex;align-items:center;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.v.keep{background:var(--keep);border-color:var(--acc)}
+.v button{font:inherit;cursor:pointer;border:0;background:none;color:var(--ink);padding:4px 8px;font-variant-numeric:tabular-nums}
+.v button.p:hover{color:var(--acc)}.v small{color:var(--mut);margin-left:3px}
+.v label{display:flex;align-items:center;gap:3px;padding:4px 8px 4px 4px;font-size:12px;color:var(--mut);cursor:pointer;border-left:1px solid var(--line)}
+.none{margin-top:8px;font-size:13px;color:var(--mut)}.none input{vertical-align:middle}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0 8px;position:sticky;bottom:0;background:var(--bg);padding:8px 0}
+.bar button{font:inherit;cursor:pointer;border:1px solid var(--acc);background:var(--acc);color:#fff;border-radius:6px;padding:6px 14px}
+textarea{width:100%;min-height:110px;font:12px ui-monospace,Consolas,monospace;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px}
+</style></head><body><main>
+<h1>Sons Freesound (CC0) pour EON, 2e série</h1>
+<p class="sub">15 nouveaux enregistrements libres (CC0), pris dans les aperçus Freesound et découpés en variantes. Clique sur un numéro pour l'écouter, et coche « garder » pour chaque variante à mettre dans le jeu. Le jeu en tirera une au hasard. Si rien ne va pour un son, coche « Aucun ne va ». Clique ensuite sur « Copier mes choix » et colle le texte à Claude.</p>
+<div id="list"></div>
+<div class="bar"><button id="copy">Copier mes choix</button><span id="msg" style="color:var(--mut)"></span></div>
+<textarea id="out" readonly></textarea>
+</main>
+<script>
+const D=[{"k": "door", "l": "Porte qui s'ouvre (salles, cuve de réveil)", "kind": "remplace", "credit": "MicktheMicGuy 434162, Glitchedtones 375954, Joachim_Berger 660528", "url": "https://freesound.org/people/MicktheMicGuy/sounds/434162/", "v": [{"f": "Decoupes2/door_01.wav", "d": 1.11, "note": "aérosols, MicktheMicGuy"}, {"f": "Decoupes2/door_02.wav", "d": 1.18, "note": "volet de vaisseau, Glitchedtones"}, {"f": "Decoupes2/door_03.wav", "d": 2.04, "note": "tiroir CD, ouverture, Joachim_Berger"}]}, {"k": "roar", "l": "Rugissement (boss, la chose de l'Irruption)", "kind": "remplace", "credit": "bevibeldesign 315798, lauramellis 263115 (tigre), Manim8 469123", "url": "https://freesound.org/people/lauramellis/sounds/263115/", "v": [{"f": "Decoupes2/roar_01.wav", "d": 1.45, "note": "dragon, bevibeldesign"}, {"f": "Decoupes2/roar_02.wav", "d": 3.0, "note": "vrai tigre"}, {"f": "Decoupes2/roar_03.wav", "d": 3.78, "note": "vrai tigre, 4 demi-tons plus grave"}, {"f": "Decoupes2/roar_04.wav", "d": 2.5, "note": "éternuement ralenti, Manim8"}]}, {"k": "card", "l": "Carte de niveau choisie", "kind": "remplace", "credit": "loganzsound 874687, SamuelGremaud 517662, domrodrig 116779", "url": "https://freesound.org/people/loganzsound/sounds/874687/", "v": [{"f": "Decoupes2/card_01.wav", "d": 1.3, "note": "carillon qui monte, 1,3 s"}, {"f": "Decoupes2/card_02.wav", "d": 0.8, "note": "carillon qui monte, 0,8 s"}, {"f": "Decoupes2/card_03.wav", "d": 0.53, "note": "barres de carillon, SamuelGremaud"}, {"f": "Decoupes2/card_04.wav", "d": 0.29, "note": "barres de carillon, SamuelGremaud"}, {"f": "Decoupes2/card_05.wav", "d": 0.44, "note": "barres de carillon, SamuelGremaud"}, {"f": "Decoupes2/card_06.wav", "d": 1.21, "note": "sonnette de comptoir"}]}, {"k": "deny", "l": "Refusé (porte verrouillée, QTE raté, infestation)", "kind": "nouveau", "credit": "PerMagnusLindborg 324248 (badge), jimbo555 630500, vestibule-door 668982", "url": "https://freesound.org/people/PerMagnusLindborg/sounds/324248/", "v": [{"f": "Decoupes2/deny_01.wav", "d": 0.77, "note": "vrai badge refusé"}, {"f": "Decoupes2/deny_02.wav", "d": 0.6, "note": "vrai badge refusé, 0,6 s"}, {"f": "Decoupes2/deny_03.wav", "d": 0.38, "note": "bip de micro-ondes"}, {"f": "Decoupes2/deny_04.wav", "d": 0.3, "note": "clavier de micro-ondes"}, {"f": "Decoupes2/deny_05.wav", "d": 0.3, "note": "clavier de micro-ondes"}, {"f": "Decoupes2/deny_06.wav", "d": 0.29, "note": "clavier de micro-ondes"}, {"f": "Decoupes2/deny_07.wav", "d": 0.29, "note": "clavier de micro-ondes"}, {"f": "Decoupes2/deny_08.wav", "d": 0.28, "note": "clavier de micro-ondes"}, {"f": "Decoupes2/deny_09.wav", "d": 0.28, "note": "clavier de micro-ondes"}]}, {"k": "mortar", "l": "Départ d'un tir de mortier", "kind": "nouveau", "credit": "jackyyang09 432781, qubodup 162402 (M203) et 187542 (M-327)", "url": "https://freesound.org/people/qubodup/sounds/162402/", "v": [{"f": "Decoupes2/mortar_01.wav", "d": 0.34, "note": "pop de bouteille"}, {"f": "Decoupes2/mortar_02.wav", "d": 0.36, "note": "vrai M203"}, {"f": "Decoupes2/mortar_03.wav", "d": 0.88, "note": "vrai mortier M-327"}, {"f": "Decoupes2/mortar_04.wav", "d": 0.97, "note": "vrai mortier M-327"}, {"f": "Decoupes2/mortar_05.wav", "d": 0.36, "note": "pop de bouteille + M203 superposés"}]}];
+let st={};try{st=JSON.parse(localStorage.getItem('eon_freesound2')||'{}')}catch(_){}
+const save=()=>{try{localStorage.setItem('eon_freesound2',JSON.stringify(st))}catch(_){}};
+let cur=null;const play=f=>{if(cur)cur.pause();cur=new Audio(f);cur.play()};
+function render(){const L=document.getElementById('list');L.innerHTML='';
+ D.forEach(n=>{const s=st[n.k]||(st[n.k]={keep:[],none:false});const c=document.createElement('div');c.className='need';
+  c.innerHTML=`<div class="head"><h2>${n.l}</h2><span class="tag ${n.kind}">${n.kind==='nouveau'?'son nouveau':'remplace le son synthétisé'}</span><code style="font-size:12px">${n.k}</code></div><div class="src">Source : <a href="${n.url}" target="_blank" rel="noopener">${n.credit}</a> · CC0</div><div class="vars"></div><div class="none"><label><input type="checkbox"${s.none?' checked':''}> Aucun ne va</label></div>`;
+  const vs=c.querySelector('.vars');
+  n.v.forEach((v,i)=>{const id=i+1,nn=String(id).padStart(2,'0');const w=document.createElement('div');w.className='v'+(s.keep.includes(id)?' keep':'');
+   w.innerHTML=`<button class="p" title="${v.note||''}">▶ ${nn}<small>${v.d.toFixed(1)} s${v.note?' · '+v.note:''}</small></button><label><input type="checkbox"${s.keep.includes(id)?' checked':''}>garder</label>`;
+   w.querySelector('.p').onclick=()=>play(v.f);
+   w.querySelector('input').onchange=e=>{s.keep=e.target.checked?[...new Set([...s.keep,id])].sort((a,b)=>a-b):s.keep.filter(x=>x!==id);if(e.target.checked)s.none=false;save();render();out()};
+   vs.appendChild(w)});
+  c.querySelector('.none input').onchange=e=>{s.none=e.target.checked;if(s.none)s.keep=[];save();render();out()};
+  L.appendChild(c)})}
+function out(){const lines=D.map(n=>{const s=st[n.k]||{keep:[],none:false};return `${n.k} : `+(s.none?'aucun ne va':s.keep.length?'garder '+s.keep.map(x=>String(x).padStart(2,'0')).join(', '):'pas encore choisi')});
+ document.getElementById('out').value='Choix Freesound EON, 2e série :\n'+lines.join('\n')}
+document.getElementById('copy').onclick=async()=>{out();const t=document.getElementById('out');try{await navigator.clipboard.writeText(t.value);document.getElementById('msg').textContent='Copié.'}catch(_){t.select();document.getElementById('msg').textContent='Texte sélectionné : Ctrl+C.'}};
+render();out();
+</script></body></html>

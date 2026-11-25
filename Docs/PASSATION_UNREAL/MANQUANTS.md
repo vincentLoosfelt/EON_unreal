@@ -191,7 +191,8 @@ Plus une petite voix synthétique par personnage pour le défilement des dialogu
 > - **Freesound CC0 (25/11)**, retenus par Vincent sur `Audio_Sources/Freesound_CC0/Planche_Freesound.html`, aperçus MP3 128 kbps, `/Game/EON/Audio/Freesound/SFX_FS_*`, crédits `Audio_Sources/Freesound_CC0/CREDITS.txt`.
 >   - Remplacent les sons synthétisés : `alarm`, `hiss` (Faille) et `hisslong` (vidange de la cuve de réveil), `lift`, `khurt` (le Cartographe), `item`.
 >   - Nouveaux : `step` (pas de Jira, `EONSfx::Steps`, un pas tous les 110 cm en marchant et 150 cm en courant), `pickup` (tout sauf l'ADN), `whip` (tentacule du boss, élan du Kama), `glass` (la cuve du boss éclate).
-> - Refusés par Vincent, à rechercher : `door`, `roar` et `card` (encore synthétisés : `SFX_Proto_*`), `deny` et `mortar` (sans son).
+> - **2e série Freesound CC0 (25/11)**, `Planche_Freesound_2.html` : `door` (aérosols), `card` (barres de carillon), `deny` (micro-ondes ; infestation, porte rouge, QTE raté), `mortar` (pop de bouteille + M203 superposés ; départ des obus du boss).
+> - Seul son synthétisé restant : `roar` (`SFX_Proto_roar`), car Vincent a refusé les 6 candidats.
 > - Toujours sans son : `shoot`, `burst` et `shotgun` (les placeholders Kenney font le tir), `eshot` (Kenney), `tele`, les voix de dialogue.
 > - Volume : menu F6, rubrique Son. Réglages `Sound`, `Vol` (0,5 = volume de référence), groupes `VolJira`, `VolImpacts`, `VolEnnemis`, `VolMonde`. Avec `SonSpatial`, les sons joués depuis un ennemi s'entendent à gauche ou à droite selon sa position par rapport à Jira : l'oreille est sur Jira, tournée comme la caméra. Pas de baisse de volume à moins de 15 m.
 

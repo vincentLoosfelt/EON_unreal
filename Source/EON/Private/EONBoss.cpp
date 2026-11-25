@@ -173,6 +173,7 @@ void AEONBoss::AddMortar(const FVector2D& At)
 {
 	const AEONTileRoom* Rm = Room.Get();
 	if (!Rm || Rm->TileAtPx(At) == EEONTile::Wall) { return; }
+	EONSfx::Event(this, TEXT("mortar"));
 	FMortar M; M.P = At;
 	Mortars.Add(M);
 }

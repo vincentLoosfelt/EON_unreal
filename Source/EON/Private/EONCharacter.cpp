@@ -1541,12 +1541,13 @@ void AEONCharacter::UpdateQTE(float RealDt)
 			Ult = 50.f;
 			if (AEONPlayerCameraManager* Cam = GetEONCamera()) { Cam->AddTrauma(0.3f); }
 			Banner(TEXT("Séquence ratée"), ColRed);
+			EONSfx::Event(this, TEXT("deny"));
 			return;
 		}
 		QTEPrevDir = Dir;
 	}
 	else if (!Dir) { QTEPrevDir = 0; }
-	if (QTET <= 0.f) { bQTE = false; Ult = 50.f; Banner(TEXT("Trop lent"), ColRed); }
+	if (QTET <= 0.f) { bQTE = false; Ult = 50.f; Banner(TEXT("Trop lent"), ColRed); EONSfx::Event(this, TEXT("deny")); }
 }
 
 void AEONCharacter::UltFire()

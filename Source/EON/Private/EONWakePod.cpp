@@ -227,7 +227,7 @@ void AEONWakePod::Tick(float DeltaSeconds)
 		WakeT += DeltaSeconds;
 		if (T0 < 0.6f && WakeT >= 0.6f) { EONSfx::Event(this, TEXT("hisslong")); }
 		SetDrain(Smooth((WakeT - 0.6f) / 1.0f));
-		if (T0 < 1.7f && WakeT >= 1.7f) { EONSfx::Play(this, TEXT("SFX_Proto_door"), 0.6f); }
+		if (T0 < 1.7f && WakeT >= 1.7f) { EONSfx::Event(this, TEXT("door"), 0.8f); }
 		if (WakeT > 1.7f)
 		{
 			// Ouverture en 0,45 s (proto : open += dt × 2,2), freinée en fin de course ; la vapeur s'échappe.

@@ -178,6 +178,11 @@ namespace
 		{ TEXT("whip"),    TEXT("SFX_FS_Whip"),                3, 0.60f, 0.06f, 0.08f, EGrp::Ennemis },   // tentacule du boss, élan du Kama
 		{ TEXT("glass"),   TEXT("SFX_FS_Glass"),               1, 0.90f, 0.02f, 0.50f, EGrp::Monde },     // la cuve du boss éclate
 		{ TEXT("step"),    TEXT("SFX_FS_Step"),                7, 0.25f, 0.06f, 0.12f, EGrp::Jira },      // pas de Jira (EONSfx::Steps)
+		// --- 2e série Freesound CC0 (25/11)
+		{ TEXT("door"),    TEXT("SFX_FS_Door"),                1, 0.65f, 0.05f, 0.15f, EGrp::Monde },     // porte qui s'ouvre (aérosols)
+		{ TEXT("card"),    TEXT("SFX_FS_Card"),                1, 0.70f, 0.00f, 0.20f, EGrp::Monde },     // carte de niveau (barres de carillon)
+		{ TEXT("deny"),    TEXT("SFX_FS_Deny"),                1, 0.55f, 0.00f, 0.40f, EGrp::Monde },     // refusé : infestation, porte rouge, QTE raté
+		{ TEXT("mortar"),  TEXT("SFX_FS_Mortar"),              1, 0.55f, 0.08f, 0.06f, EGrp::Ennemis },   // départ d'un obus de mortier (pop + M203)
 	};
 
 	/** Distance parcourue depuis le dernier pas, par acteur. */
