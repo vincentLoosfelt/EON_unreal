@@ -144,29 +144,30 @@ namespace
 		EGrp Grp;
 	};
 
+	// Variantes Shonen = prises séparées (26/11 : chaque WAV du pack en contenait 6 à la suite, 6 × le nombre de fichiers).
 	// Table des évènements (25/11 : premier choix, à valider à l'écoute par Vincent :
 	// Audio_Sources/OldSchoolShonen/Planche_Ecoute.html reprend cette table).
 	const FSfxEvent GEvents[] =
 	{
 		// --- Combat
-		{ TEXT("hit"),     TEXT("SFX_Shonen_Melee"),          11, 0.35f, 0.08f, 0.03f, EGrp::Impacts },   // balle ou coup qui touche un ennemi, armure qui bloque
-		{ TEXT("kill"),    TEXT("SFX_Shonen_MeleeGore"),       6, 0.60f, 0.06f, 0.04f, EGrp::Impacts },   // mort d'un ennemi
-		{ TEXT("hurt"),    TEXT("SFX_Shonen_Land"),           11, 0.80f, 0.05f, 0.10f, EGrp::Jira },      // Jira touchée
-		{ TEXT("dash"),    TEXT("SFX_Shonen_Dodge"),           9, 0.55f, 0.05f, 0.05f, EGrp::Jira },      // dash de Jira
-		{ TEXT("run"),     TEXT("SFX_Shonen_Dodge"),           9, 0.30f, 0.08f, 0.20f, EGrp::Jira },      // départ de la course (sfx('dash') du proto, plus doux)
-		{ TEXT("fall"),    TEXT("SFX_Shonen_FallWhistle"),     5, 0.70f, 0.03f, 0.30f, EGrp::Jira },      // Jira tombe dans le vide
-		{ TEXT("efall"),   TEXT("SFX_Shonen_FallWhistle"),     5, 0.40f, 0.10f, 0.10f, EGrp::Ennemis },   // un ennemi tombe dans le vide
-		{ TEXT("explode"), TEXT("SFX_Shonen_Explosion"),      11, 0.70f, 0.06f, 0.05f, EGrp::Impacts },   // explosions (Onibi, Aoe, Faille)
+		{ TEXT("hit"),     TEXT("SFX_Shonen_Melee"),          66, 0.35f, 0.08f, 0.03f, EGrp::Impacts },   // balle ou coup qui touche un ennemi, armure qui bloque
+		{ TEXT("kill"),    TEXT("SFX_Shonen_MeleeGore"),      36, 0.60f, 0.06f, 0.04f, EGrp::Impacts },   // mort d'un ennemi
+		{ TEXT("hurt"),    TEXT("SFX_Shonen_Land"),           66, 0.80f, 0.05f, 0.10f, EGrp::Jira },      // Jira touchée
+		{ TEXT("dash"),    TEXT("SFX_Shonen_Dodge"),          54, 0.55f, 0.05f, 0.05f, EGrp::Jira },      // dash de Jira
+		{ TEXT("run"),     TEXT("SFX_Shonen_Dodge"),          54, 0.30f, 0.08f, 0.20f, EGrp::Jira },      // départ de la course (sfx('dash') du proto, plus doux)
+		{ TEXT("fall"),    TEXT("SFX_Shonen_FallWhistle"),    30, 0.70f, 0.03f, 0.30f, EGrp::Jira },      // Jira tombe dans le vide
+		{ TEXT("efall"),   TEXT("SFX_Shonen_FallWhistle"),    30, 0.40f, 0.10f, 0.10f, EGrp::Ennemis },   // un ennemi tombe dans le vide
+		{ TEXT("explode"), TEXT("SFX_Shonen_Explosion"),      66, 0.70f, 0.06f, 0.05f, EGrp::Impacts },   // explosions (Onibi, Aoe, Faille)
 		// --- Pouvoirs
-		{ TEXT("slash"),   TEXT("SFX_Shonen_Swing"),           5, 0.55f, 0.06f, 0.05f, EGrp::Jira },      // coup de Lame
-		{ TEXT("charge"),  TEXT("SFX_Shonen_AbilityCharge"),  19, 0.45f, 0.04f, 0.25f, EGrp::Jira },      // début de charge (Rafale, Laser), onde maintenue, QTE de l'ultime
-		{ TEXT("ready"),   TEXT("SFX_Shonen_Spark"),           4, 0.45f, 0.05f, 0.20f, EGrp::Jira },      // charge pleine
-		{ TEXT("spell"),   TEXT("SFX_Shonen_AbilityRelease"), 15, 0.70f, 0.05f, 0.10f, EGrp::Jira },      // onde de choc
-		{ TEXT("pulse"),   TEXT("SFX_Shonen_Swing"),           5, 0.25f, 0.10f, 0.15f, EGrp::Jira },      // pulsations de l'onde maintenue (sfx('slash') du proto)
-		{ TEXT("mut"),     TEXT("SFX_Shonen_AbilityReady"),    8, 0.80f, 0.03f, 0.50f, EGrp::Jira },      // passage d'un stade de mutation
-		{ TEXT("grow"),    TEXT("SFX_Shonen_Land"),           11, 0.70f, 0.03f, 0.50f, EGrp::Jira },      // l'armure pousse
-		{ TEXT("holo"),    TEXT("SFX_Shonen_Fly"),             5, 0.55f, 0.05f, 0.30f, EGrp::Jira },      // hologramme leurre
-		{ TEXT("ult"),     TEXT("SFX_Shonen_AbilityRelease"), 15, 1.00f, 0.02f, 0.50f, EGrp::Jira },      // ultime (cut-in)
+		{ TEXT("slash"),   TEXT("SFX_Shonen_Swing"),          30, 0.55f, 0.06f, 0.05f, EGrp::Jira },      // coup de Lame
+		{ TEXT("charge"),  TEXT("SFX_Shonen_AbilityCharge"), 114, 0.45f, 0.04f, 0.25f, EGrp::Jira },      // début de charge (Rafale, Laser), onde maintenue, QTE de l'ultime
+		{ TEXT("ready"),   TEXT("SFX_Shonen_Spark"),          24, 0.45f, 0.05f, 0.20f, EGrp::Jira },      // charge pleine
+		{ TEXT("spell"),   TEXT("SFX_Shonen_AbilityRelease"), 90, 0.70f, 0.05f, 0.10f, EGrp::Jira },      // onde de choc
+		{ TEXT("pulse"),   TEXT("SFX_Shonen_Swing"),          30, 0.25f, 0.10f, 0.15f, EGrp::Jira },      // pulsations de l'onde maintenue (sfx('slash') du proto)
+		{ TEXT("mut"),     TEXT("SFX_Shonen_AbilityReady"),   48, 0.80f, 0.03f, 0.50f, EGrp::Jira },      // passage d'un stade de mutation
+		{ TEXT("grow"),    TEXT("SFX_Shonen_Land"),           66, 0.70f, 0.03f, 0.50f, EGrp::Jira },      // l'armure pousse
+		{ TEXT("holo"),    TEXT("SFX_Shonen_Fly"),            30, 0.55f, 0.05f, 0.30f, EGrp::Jira },      // hologramme leurre
+		{ TEXT("ult"),     TEXT("SFX_Shonen_AbilityRelease"), 90, 1.00f, 0.02f, 0.50f, EGrp::Jira },      // ultime (cut-in)
 		// --- Freesound CC0 retenus par Vincent (25/11), Audio_Sources/Freesound_CC0/CREDITS.txt
 		{ TEXT("alarm"),   TEXT("SFX_FS_Alarm"),               1, 0.70f, 0.02f, 0.50f, EGrp::Monde },     // klaxon de la Faille
 		{ TEXT("hiss"),    TEXT("SFX_FS_Hiss"),                2, 0.70f, 0.05f, 0.20f, EGrp::Monde },     // jet d'air
