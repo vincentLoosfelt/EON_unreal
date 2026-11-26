@@ -71,6 +71,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "EON|Rendu")
 	static void MarkCelComponent(UPrimitiveComponent* Component, bool bTrait = true);
 
+	/** Cadence des celluloïds changée (Options > Graphismes) : chaque squelette déjà marqué par MarkCelComponent
+	 *  reprend CelAnimFps du game feel en vigueur (0 = une évaluation par image). Les nouveaux la prennent à leur marquage. */
+	static void RefreshCelCadence(const UObject* WorldContext);
+
 	/** Outil éditeur : profil toon propre à une instance (ToonProfileOverride n'est pas exposé à Python). */
 	UFUNCTION(BlueprintCallable, Category = "EON|Outils")
 	static bool SetInstanceToonProfile(UMaterialInstanceConstant* Instance, UToonProfile* Profile);

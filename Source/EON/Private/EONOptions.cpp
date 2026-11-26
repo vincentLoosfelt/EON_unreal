@@ -2,6 +2,7 @@
 #include "EON.h"
 #include "EONTypes.h"
 #include "EONPlayerController.h"
+#include "EONStatics.h"
 #include "EONTuningSubsystem.h"
 #include "AudioDevice.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
@@ -45,6 +46,7 @@ namespace
 		int32 HdrNits = 1000;
 		bool bFps = false;
 		// Graphismes
+		int32 CelRate = 0;        // celluloïds : 0 = 12 i/s (CelAnimFps du banc), 1 = 24 i/s, 2 = illimitée
 		int32 Upscaler = 0;       // EUp
 		int32 UpQuality = 2;      // 0 performance max .. 3 qualité
 		int32 Sharpen = 0;        // %
@@ -72,11 +74,13 @@ namespace
 		// Accessibilité
 		int32 Cvd = 0, CvdPct = 100, TextSize = 0, TextSpeed = 1;
 		bool bContrast = false, bNoFlash = false, bHoldToggle = false, bEasy = false;
+		// Valeurs par défaut ajoutées après coup, posées une seule fois (ApplyWorld) : 1 = limite d'images à 60 i/s
+		int32 DefVer = 0;
 	};
 
-#define EON_OPT_INTS(X) X(BgFps) X(RenderPct) X(Bright) X(CamDist) X(HdrNits) X(Upscaler) X(UpQuality) X(Sharpen) X(Gi) X(Refl) \
-	X(Hwrt) X(RayLight) X(Aniso) X(VolumeGeneral) X(Effects) X(Device) X(PadStyle) X(Assist) X(DeadZone) X(Shake) X(HudOpacity) \
-	X(HudScale) X(Cvd) X(CvdPct) X(TextSize) X(TextSpeed)
+#define EON_OPT_INTS(X) X(BgFps) X(RenderPct) X(Bright) X(CamDist) X(HdrNits) X(CelRate) X(Upscaler) X(UpQuality) X(Sharpen) X(Gi) \
+	X(Refl) X(Hwrt) X(RayLight) X(Aniso) X(VolumeGeneral) X(Effects) X(Device) X(PadStyle) X(Assist) X(DeadZone) X(Shake) \
+	X(HudOpacity) X(HudScale) X(Cvd) X(CvdPct) X(TextSize) X(TextSpeed) X(DefVer)
 #define EON_OPT_BOOLS(X) X(bFps) X(bRR) X(bScala) X(bAO) X(bBloom) X(bVignette) X(bGrain) X(bChroma) X(bSpatial) X(bBgSound) \
 	X(bRunToggle) X(bStickFire) X(bHitstop) X(bDmgNums) X(bMapRotate) X(bContrast) X(bNoFlash) X(bHoldToggle) X(bEasy)
 
@@ -711,25 +715,6 @@ namespace
 			TabA.Add(D);
 		}
 		{
-			FDef D; D.Label = TEXT("LIMITE D'IMAGES");
-			D.Help = TEXT("Nombre maximal d'images par seconde. Une limite proche du rafraîchissement de l'écran rend le jeu plus régulier et la carte graphique plus silencieuse.");
-			D.Val = []() { const UGameUserSettings* Gs = Gus(); const int32 Fps = Gs ? FMath::RoundToInt(Gs->GetFrameRateLimit()) : 0;
-				return Fps <= 0 ? FString(TEXT("ILLIMITÉE")) : FString::Printf(TEXT("%d / S"), Fps); };
-			D.Chg = [ApplyGus](UWorld*, int32 Dir) { if (UGameUserSettings* Gs = Gus()) {
-				const int32 Num = UE_ARRAY_COUNT(FpsSteps);
-				const int32 Cur = IndexIn(FpsSteps, Num, FMath::RoundToInt(Gs->GetFrameRateLimit()), Num - 1);
-				Gs->SetFrameRateLimit((float)FpsSteps[Cycle(Cur, Dir, Num)]); ApplyGus(); } };
-			TabA.Add(D);
-		}
-		{
-			FDef D; D.Label = TEXT("IMAGES EN ARRIÈRE-PLAN");
-			D.Help = TEXT("Limite quand une autre fenêtre est devant le jeu : la carte graphique se repose pendant que tu fais autre chose.");
-			D.Val = []() { const int32 Bg = St().BgFps; return Bg <= 0 ? FString(TEXT("SANS LIMITE")) : FString::Printf(TEXT("%d / S"), Bg); };
-			D.Chg = [](UWorld*, int32 Dir) { const int32 Num = UE_ARRAY_COUNT(BgSteps);
-				St().BgFps = BgSteps[Cycle(IndexIn(BgSteps, Num, St().BgFps, 0), Dir, Num)]; Save(); };
-			TabA.Add(D);
-		}
-		{
 			FDef D = Slider(TEXT("RÉSOLUTION DE RENDU"), TEXT("Part de la résolution calculée avant l'agrandissement par le TSR. Plus bas : plus d'images par seconde, image plus douce."),
 				&FState::RenderPct, 50, 100, 5, [](UWorld* W) { ApplyUpscaler(W); });
 			D.Enabled = []() { return UpUsesRenderPct(CurUp()); };
@@ -768,6 +753,30 @@ namespace
 
 		// ================================================================ 1 GRAPHISMES
 		TArray<FDef>& TabG = T[1];
+		{
+			FDef D; D.Label = TEXT("LIMITE D'IMAGES");
+			D.Help = TEXT("Nombre maximal d'images par seconde, 60 au départ. Une limite proche du rafraîchissement de l'écran rend le jeu plus régulier et la carte graphique plus silencieuse.");
+			D.Val = []() { const UGameUserSettings* Gs = Gus(); const int32 Fps = Gs ? FMath::RoundToInt(Gs->GetFrameRateLimit()) : 0;
+				return Fps <= 0 ? FString(TEXT("ILLIMITÉE")) : FString::Printf(TEXT("%d IPS"), Fps); };
+			D.Chg = [ApplyGus](UWorld*, int32 Dir) { if (UGameUserSettings* Gs = Gus()) {
+				const int32 Num = UE_ARRAY_COUNT(FpsSteps);
+				const int32 Cur = IndexIn(FpsSteps, Num, FMath::RoundToInt(Gs->GetFrameRateLimit()), Num - 1);
+				Gs->SetFrameRateLimit((float)FpsSteps[Cycle(Cur, Dir, Num)]); ApplyGus(); } };
+			TabG.Add(D);
+		}
+		{
+			FDef D; D.Label = TEXT("IMAGES EN ARRIÈRE-PLAN");
+			D.Help = TEXT("Limite quand une autre fenêtre est devant le jeu : la carte graphique se repose pendant que tu fais autre chose.");
+			D.Val = []() { const int32 Bg = St().BgFps; return Bg <= 0 ? FString(TEXT("SANS LIMITE")) : FString::Printf(TEXT("%d IPS"), Bg); };
+			D.Chg = [](UWorld*, int32 Dir) { const int32 Num = UE_ARRAY_COUNT(BgSteps);
+				St().BgFps = BgSteps[Cycle(IndexIn(BgSteps, Num, St().BgFps, 0), Dir, Num)]; Save(); };
+			TabG.Add(D);
+		}
+		TabG.Add(Choice(TEXT("CADENCE DES CELLULOÏDS"),
+			TEXT("Images par seconde de l'animation de Jira, des ennemis et des personnages.\n12 : le dessin animé d'origine, chaque dessin tenu deux images d'un film à 24 images par seconde.\n")
+			TEXT("24 : un dessin par image de film.\nIllimitée : aussi fluide que le jeu. Les déplacements restent fluides dans tous les cas."),
+			&FState::CelRate, { TEXT("12 IPS"), TEXT("24 IPS"), TEXT("ILLIMITÉE") },
+			[](UWorld* W) { RefreshFeel(W); UEONStatics::RefreshCelCadence(W); }));
 		{
 			FDef D; D.Label = TEXT("PRÉRÉGLAGE");
 			D.Help = TEXT("Règle d'un coup tous les groupes de qualité. Changer un réglage plus bas le fait passer en « personnalisée ».");
@@ -1089,6 +1098,25 @@ namespace EONOptions
 		static FTSTicker::FDelegateHandle Bg;
 		if (!Bg.IsValid()) { Bg = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateStatic(&TickBackground), 0.25f); }
 		if (St().bScala) { PushGroups(); }
+		// Limite d'images à 60 i/s par défaut (Vincent, 26/11) : posée une fois si elle était illimitée, dans le jeu seulement
+		// (pas en PIE, l'éditeur garderait la limite). Le moteur la relit ensuite à chaque lancement (UGameEngine::Init).
+		if (!GIsEditor && St().DefVer < 1)
+		{
+			St().DefVer = 1;
+			UGameUserSettings* Gs = Gus();
+			if (Gs && Gs->GetFrameRateLimit() <= 0.f)
+			{
+				Gs->SetFrameRateLimit(60.f);
+				Gs->SaveSettings();
+				GEngine->SetMaxFPS(60.f);
+			}
+			Save();
+		}
+		if (const UGameUserSettings* Gs = Gus())
+		{
+			UE_LOG(LogEON, Display, TEXT("EON options : limite d'images %.0f (moteur %.0f), celluloides choix %d"),
+				Gs->GetFrameRateLimit(), GEngine->GetMaxFPS(), St().CelRate);
+		}
 		ApplyUpscaler(W);
 		ApplyLighting();
 		ApplyColor();
@@ -1111,6 +1139,9 @@ namespace EONOptions
 		F.CamViewTiles = FMath::Clamp(F.CamViewTiles * CamMul[FMath::Clamp(S.CamDist, 0, 3)], F.CamZoomMinTiles, F.CamZoomMaxTiles);
 		if (S.bNoFlash) { F.HitFlash = false; F.Flash = false; }
 		if (S.bEasy) { F.FallDmg = 0.f; }
+		// Celluloïds : 12 i/s = la cadence du banc (CelAnimFps), sinon 24 i/s ou une évaluation par image (0).
+		if (S.CelRate == 1) { F.CelAnimFps = 24.f; }
+		else if (S.CelRate == 2) { F.CelAnimFps = 0.f; }
 	}
 
 	int32 Device() { return St().Device; }

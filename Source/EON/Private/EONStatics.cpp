@@ -1,5 +1,7 @@
 #include "EONStatics.h"
+#include "EON.h"
 #include "EONTuningSubsystem.h"
+#include "UObject/UObjectIterator.h"
 #include "Engine/StaticMesh.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "Engine/ToonProfile.h"
@@ -62,6 +64,12 @@ bool UEONStatics::SetMeshSectionCollision(UStaticMesh* Mesh, int32 LodIndex, int
 #endif
 }
 
+namespace
+{
+	/** Étiquette des squelettes en paliers, pour leur rendre la cadence quand le joueur la change. */
+	FName CelTag() { static const FName N(TEXT("EON_Cel")); return N; }
+}
+
 void UEONStatics::MarkCelComponent(UPrimitiveComponent* C, bool bTrait)
 {
 	if (!C || C->IsA<UShapeComponent>()) { return; }
@@ -73,10 +81,27 @@ void UEONStatics::MarkCelComponent(UPrimitiveComponent* C, bool bTrait)
 	{
 		if (S->GetWorld() && S->GetWorld()->IsGameWorld())
 		{
+			S->ComponentTags.AddUnique(CelTag());
 			const float Fps = GetGameFeel(S).CelAnimFps;
 			S->SetComponentTickInterval(Fps > 0.f ? 1.f / Fps : 0.f);
 		}
 	}
+}
+
+void UEONStatics::RefreshCelCadence(const UObject* WorldContext)
+{
+	const UWorld* W = WorldContext ? WorldContext->GetWorld() : nullptr;
+	if (!W || !W->IsGameWorld()) { return; }
+	const float Fps = GetGameFeel(WorldContext).CelAnimFps;
+	int32 N = 0;
+	for (TObjectIterator<USkeletalMeshComponent> It; It; ++It)
+	{
+		if (It->GetWorld() != W || !It->ComponentHasTag(CelTag())) { continue; }
+		It->SetComponentTickInterval(Fps > 0.f ? 1.f / Fps : 0.f);
+		++N;
+	}
+	UE_LOG(LogEON, Display, TEXT("EON celluloides : %s sur %d squelettes"),
+		Fps > 0.f ? *FString::Printf(TEXT("%.0f i/s"), Fps) : TEXT("illimitee"), N);
 }
 
 void UEONStatics::MarkCel(AActor* Actor)
