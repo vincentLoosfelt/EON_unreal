@@ -1,4 +1,8 @@
 Binaries/
+# Plugins de mise à l'échelle (DLSS, FSR, XeSS) : leurs DLL tierces officielles sont gardées, leurs binaires compilés non.
+!Plugins/*/Binaries/
+Plugins/*/Binaries/*
+!Plugins/*/Binaries/ThirdParty/
 Intermediate/
 DerivedDataCache/
 Builds/
