@@ -317,9 +317,10 @@ void UEONUISubsystem::OpenTitle(TFunction<void()> OnNew)
 
 namespace
 {
-	const FKey KeysUp[] = { EKeys::Up, EKeys::Z, EKeys::W, EKeys::Gamepad_DPad_Up, EKeys::Gamepad_LeftStick_Up };
+	// Clavier AZERTY : Z / S / Q / D (et les flèches), comme les aides affichées.
+	const FKey KeysUp[] = { EKeys::Up, EKeys::Z, EKeys::Gamepad_DPad_Up, EKeys::Gamepad_LeftStick_Up };
 	const FKey KeysDown[] = { EKeys::Down, EKeys::S, EKeys::Gamepad_DPad_Down, EKeys::Gamepad_LeftStick_Down };
-	const FKey KeysLeft[] = { EKeys::Left, EKeys::Q, EKeys::A, EKeys::Gamepad_DPad_Left, EKeys::Gamepad_LeftStick_Left };
+	const FKey KeysLeft[] = { EKeys::Left, EKeys::Q, EKeys::Gamepad_DPad_Left, EKeys::Gamepad_LeftStick_Left };
 	const FKey KeysRight[] = { EKeys::Right, EKeys::D, EKeys::Gamepad_DPad_Right, EKeys::Gamepad_LeftStick_Right };
 
 	template <int32 N> bool AnyPressed(APlayerController* PC, const FKey (&Keys)[N]) { for (const FKey& K : Keys) { if (PC->WasInputKeyJustPressed(K)) { return true; } } return false; }
@@ -674,13 +675,12 @@ void UEONUISubsystem::TickOptions(APlayerController* PC, float RealDt)
 	OptMouse(PC);
 	if (!bOptions || bWaitKey) { return; }   // un clic a pu fermer les options ou lancer une réassignation
 	if (Pressed(PC, { EKeys::Escape, EKeys::Gamepad_FaceButton_Right, EKeys::Gamepad_Special_Right })) { OptBack(); return; }
-	// Onglets : Tab (Maj+Tab), Page préc./suiv., LB / RB, 1 à 8.
+	// Onglets : Tab (Maj+Tab), Page préc./suiv., LB / RB, 1 à 8 (rangée du haut du clavier actif : & é " ' en AZERTY).
 	const bool bShift = PC->IsInputKeyDown(EKeys::LeftShift) || PC->IsInputKeyDown(EKeys::RightShift);
 	if (PC->WasInputKeyJustPressed(EKeys::Tab)) { OptSetTab(OptTab + (bShift ? -1 : 1)); }
 	if (Pressed(PC, { EKeys::PageUp, EKeys::Gamepad_LeftShoulder })) { OptSetTab(OptTab - 1); }
 	if (Pressed(PC, { EKeys::PageDown, EKeys::Gamepad_RightShoulder })) { OptSetTab(OptTab + 1); }
-	static const FKey Nums[EONOptions::NumTabs] = { EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five, EKeys::Six, EKeys::Seven, EKeys::Eight };
-	for (int32 I = 0; I < EONOptions::NumTabs; ++I) { if (PC->WasInputKeyJustPressed(Nums[I])) { OptSetTab(I); } }
+	for (int32 I = 0; I < EONOptions::NumTabs; ++I) { if (PC->WasInputKeyJustPressed(EONOptions::DigitKey(I + 1))) { OptSetTab(I); } }
 	// Flèches : un appui, puis répétition après 0,42 s (curseurs, longues listes).
 	int32 NavV = AnyPressed(PC, KeysUp) ? -1 : AnyPressed(PC, KeysDown) ? 1 : 0;
 	int32 NavH = AnyPressed(PC, KeysLeft) ? -1 : AnyPressed(PC, KeysRight) ? 1 : 0;
@@ -749,7 +749,7 @@ void UEONUISubsystem::TickUI(APlayerController* PC, float RealDt)
 	{
 		if (Auto > 0 && (TitleAutoT += RealDt) > 0.5f) { bTitle = false; SyncPause(); UE_LOG(LogEON, Display, TEXT("EON UI titre : continuer (pilote)")); return; }
 		if (!PC) { return; }
-		if (Pressed(PC, { EKeys::Left, EKeys::Right, EKeys::Up, EKeys::Down, EKeys::Q, EKeys::D, EKeys::A, EKeys::Gamepad_DPad_Left, EKeys::Gamepad_DPad_Right, EKeys::Gamepad_LeftStick_Left, EKeys::Gamepad_LeftStick_Right }))
+		if (Pressed(PC, { EKeys::Left, EKeys::Right, EKeys::Up, EKeys::Down, EKeys::Q, EKeys::D, EKeys::Gamepad_DPad_Left, EKeys::Gamepad_DPad_Right, EKeys::Gamepad_LeftStick_Left, EKeys::Gamepad_LeftStick_Right }))
 		{
 			TitleSel = 1 - TitleSel;
 		}
@@ -818,18 +818,20 @@ void UEONUISubsystem::TickUI(APlayerController* PC, float RealDt)
 			return;
 		}
 		if (!PC) { return; }
-		if (Pressed(PC, { EKeys::C, EKeys::Escape, EKeys::Gamepad_FaceButton_Right })) { CloseCom(); return; }
+		// Fermer : la touche d'interaction choisie dans Commandes (C d'origine), Échap ou B. Entrée et Espace restent au levier.
+		const FKey IKey = EPC ? EONOptions::RowKey(EPC->GetActiveContext(), TEXT("Interagir"), false) : FKey(EKeys::C);
+		const bool bIKey = IKey.IsValid() && IKey != EKeys::Enter && IKey != EKeys::SpaceBar && PC->WasInputKeyJustPressed(IKey);
+		if (bIKey || Pressed(PC, { EKeys::Escape, EKeys::Gamepad_FaceButton_Right })) { CloseCom(); return; }
 		int32 Tab = ComTab;
-		if (Pressed(PC, { EKeys::Left, EKeys::Q, EKeys::A, EKeys::Gamepad_DPad_Left, EKeys::Gamepad_LeftShoulder })) { Tab = (Tab + 4) % 5; }
+		if (Pressed(PC, { EKeys::Left, EKeys::Q, EKeys::Gamepad_DPad_Left, EKeys::Gamepad_LeftShoulder })) { Tab = (Tab + 4) % 5; }
 		if (Pressed(PC, { EKeys::Right, EKeys::D, EKeys::Gamepad_DPad_Right, EKeys::Gamepad_RightShoulder })) { Tab = (Tab + 1) % 5; }
-		static const FKey Nums[5] = { EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five };
-		for (int32 I = 0; I < 5; ++I) { if (PC->WasInputKeyJustPressed(Nums[I])) { Tab = I; } }
+		for (int32 I = 0; I < 5; ++I) { if (PC->WasInputKeyJustPressed(EONOptions::DigitKey(I + 1))) { Tab = I; } }
 		if (Tab != ComTab) { ComTab = Tab; EONSfx::Event(this, TEXT("menu_move")); UE_LOG(LogEON, Display, TEXT("EON UI terminal onglet %d"), ComTab); }
 		const int32 N = ComCount(ComTab);
 		if (N > 0)
 		{
 			const int32 Sel0 = ComSel[ComTab];
-			if (Pressed(PC, { EKeys::Up, EKeys::Z, EKeys::W, EKeys::Gamepad_DPad_Up })) { ComSel[ComTab] = (ComSel[ComTab] + N - 1) % N; }
+			if (Pressed(PC, { EKeys::Up, EKeys::Z, EKeys::Gamepad_DPad_Up })) { ComSel[ComTab] = (ComSel[ComTab] + N - 1) % N; }
 			if (Pressed(PC, { EKeys::Down, EKeys::S, EKeys::Gamepad_DPad_Down })) { ComSel[ComTab] = (ComSel[ComTab] + 1) % N; }
 			if (ComSel[ComTab] != Sel0) { EONSfx::Event(this, TEXT("menu_move")); }
 		}

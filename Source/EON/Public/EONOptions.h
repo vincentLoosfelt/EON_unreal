@@ -96,4 +96,11 @@ namespace EONOptions
 	FString KeyLabel(const FKey& K);
 	/** Touche (clavier ou manette) de la première ligne du contexte pour une action, vide si aucune. */
 	FString ActionLabel(const UInputMappingContext* Ctx, const UInputAction* Action, bool bPad);
+	/** Touche que le clavier actif donne pour le chiffre D (0..9) de la rangée du haut : One..Zero en QWERTY,
+	 *  & é " ' ( - è _ ç à en AZERTY (Unreal suit la disposition de Windows). */
+	FKey DigitKey(int32 D);
+	/** Première touche d'une ligne de Commandes (Id : « Interagir », « Haut »...) dans le contexte actif, vide si aucune. */
+	FKey RowKey(const UInputMappingContext* Ctx, const TCHAR* Id, bool bPad);
+	/** Touches de déplacement au clavier, dans l'ordre haut, gauche, bas, droite : « ZQSD », sinon « Z / Q / S / D ». */
+	FString MoveKeysLabel(const UInputMappingContext* Ctx);
 }

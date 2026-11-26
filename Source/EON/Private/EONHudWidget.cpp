@@ -878,7 +878,12 @@ void UEONHudWidget::PaintCom(const EONHud::FPaint& P, const UEONUISubsystem& UI,
 	// Zone de contenu, aide en bas, filet rouge de la charte.
 	const float Cy = Ty + Th + 36.f, Cb = Y0 + Ph - 80.f;
 	const float Lx = X0 + 30.f, Lw = 560.f, Rx = Lx + Lw + 80.f, Rw = X0 + Pw - 40.f - Rx;
-	auto Help = [&](const TCHAR* S) { RichText(P, StyleHint(S), X0 + 30.f, Y0 + Ph - 52.f, 0, 16.f, A(Amber, 0.7f)); };
+	auto Help = [&](const FString& S) { RichText(P, StyleHint(S), X0 + 30.f, Y0 + Ph - 52.f, 0, 16.f, A(Amber, 0.7f)); };
+	// Fermer : la touche d'interaction choisie dans Commandes (C d'origine), comme EONUI ; Entrée et Espace restent au levier.
+	const AEONPlayerController* CPC = Cast<AEONPlayerController>(GetOwningPlayer());
+	const FKey CloseK = CPC ? EONOptions::RowKey(CPC->GetActiveContext(), TEXT("Interagir"), false) : FKey(EKeys::C);
+	const FString Close = (CloseK.IsValid() && CloseK != EKeys::Enter && CloseK != EKeys::SpaceBar ? EONOptions::KeyLabel(CloseK) + TEXT(" OU ") : FString())
+		+ TEXT("ÉCHAP / (B) : FERMER");
 	P.Rect(X0 + 30.f, Y0 + Ph - 20.f, 320.f, 4.f, RedC);
 	P.Rect(X0 + 360.f, Y0 + Ph - 20.f, 6.f, 4.f, RedC);
 	const int32 Sel0 = UI.GetComSel(Tab);
@@ -943,7 +948,7 @@ void UEONHudWidget::PaintCom(const EONHud::FPaint& P, const UEONUISubsystem& UI,
 					Mxc, By + Bh + 26.f, 1, 22.f, Body, 1);
 			}
 		}
-		Help(TEXT("ENTRÉE / (A) : TIRER LE LEVIER     Q/D : ONGLET     C OU ÉCHAP / (B) : FERMER"));
+		Help(TEXT("ENTRÉE / (A) : TIRER LE LEVIER     Q/D : ONGLET     ") + Close);
 		return;
 	}
 
@@ -987,7 +992,7 @@ void UEONHudWidget::PaintCom(const EONHud::FPaint& P, const UEONUISubsystem& UI,
 		const bool bCan = St == 1 && UI.IsDocked();
 		const FString Bt = St == 0 ? FString(TEXT("INSTALLÉ")) : (!UI.IsDocked() && St == 1) ? FString(TEXT("AU KIBO (À QUAI)")) : St == 1 ? TEXT("INSTALLER  ") + T : Upper(T);
 		Button(Bt, Rx + Rw - 360.f, Cb - 56.f, 360.f, 52.f, bCan);
-		Help(TEXT("Z/S : CHOISIR     ENTRÉE / (A) : INSTALLER     Q/D : ONGLET     C OU ÉCHAP / (B) : FERMER"));
+		Help(TEXT("Z/S : CHOISIR     ENTRÉE / (A) : INSTALLER     Q/D : ONGLET     ") + Close);
 		return;
 	}
 
@@ -1066,7 +1071,7 @@ void UEONHudWidget::PaintCom(const EONHud::FPaint& P, const UEONUISubsystem& UI,
 		const float Y = Head(Upper(Q.T), Amber, Q.bOk ? TEXT("TERMINÉE") : TEXT("EN COURS"), Q.bOk ? Green : Orange);
 		Para(Q.L, Rx, Y, Rw, 2, 22.f, 34.f, Body);
 	}
-	Help(TEXT("Q/D : ONGLET     Z/S : CHOISIR     C OU ÉCHAP / (B) : FERMER"));
+	Help(TEXT("Q/D : ONGLET     Z/S : CHOISIR     ") + Close);
 }
 
 // ---------------------------------------------------------------- bannières et invites (charte, pages 05 et 07)
@@ -1673,7 +1678,10 @@ void UEONHudWidget::PaintScene(const EONHud::FPaint& P, const AEONCharacter& J, 
 		const int32 Ns = 30, On = FMath::CeilToInt(K * Ns);
 		const float Sg = 4.f, Sw = (Tot - (Ns - 1) * Sg) / Ns, Ty = Y0 + Bw + 34.f;
 		for (int32 I = 0; I < Ns; ++I) { P.Slant(X0 + I * (Sw + Sg), Ty, Sw + 6.f, 12.f, I < On ? (K < 0.3f ? RedC : CyanC) : A(Grey, 0.8f)); }
-		P.Text(bPad ? TEXT("Croix directionnelle") : TEXT("ZQSD ou flèches"), Cx, Ty + 34.f, 1, 22.f, A(White, 0.6f), 1);
+		// Clavier : les touches de déplacement choisies dans Commandes (ZQSD d'origine).
+		const AEONPlayerController* QPC = Cast<AEONPlayerController>(GetOwningPlayer());
+		const FString MoveK = QPC ? EONOptions::MoveKeysLabel(QPC->GetActiveContext()) : FString(TEXT("ZQSD"));
+		P.Text(bPad ? FString(TEXT("Croix directionnelle")) : MoveK + TEXT(" ou flèches"), Cx, Ty + 34.f, 1, 22.f, A(White, 0.6f), 1);
 	}
 
 	// --- Cut-in « Protocole thoracique » (1,1 s) : bande, Jira qui glisse depuis la gauche, texte.

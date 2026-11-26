@@ -146,9 +146,9 @@ int32 AEONPlayerController::RepairMoveMappings(UInputMappingContext* IMC, UInput
 {
 	if (!IMC || !MoveAction) { return 0; }
 	// Le déplacement est un axe 2D : X = droite, Y = haut de l'écran.
-	auto Up = [](const FKey& K) { return K == EKeys::W || K == EKeys::Z || K == EKeys::Up; };
+	auto Up = [](const FKey& K) { return K == EKeys::Z || K == EKeys::Up; };
 	auto Down = [](const FKey& K) { return K == EKeys::S || K == EKeys::Down; };
-	auto Left = [](const FKey& K) { return K == EKeys::A || K == EKeys::Q || K == EKeys::Left; };
+	auto Left = [](const FKey& K) { return K == EKeys::Q || K == EKeys::Left; };
 	int32 Fixed = 0;
 	for (int32 I = 0; I < IMC->GetMappings().Num(); ++I)
 	{
@@ -425,9 +425,9 @@ void AEONPlayerController::PlayerTick(float DeltaTime)
 	if (const AEONFloorManager* FM = AEONFloorManager::Get(this); FM && FM->IsCinematic()) { Jira->SetFireHeld(false); Jira->SetMoveInput(FVector2D::ZeroVector); return; }
 	if (DevMenu.IsOpen())
 	{
-		// Menu ouvert : Jira se déplace en ZQSD / WASD seulement.
-		const float X = (IsInputKeyDown(EKeys::D) ? 1.f : 0.f) - ((IsInputKeyDown(EKeys::Q) || IsInputKeyDown(EKeys::A)) ? 1.f : 0.f);
-		const float Y = ((IsInputKeyDown(EKeys::Z) || IsInputKeyDown(EKeys::W)) ? 1.f : 0.f) - (IsInputKeyDown(EKeys::S) ? 1.f : 0.f);
+		// Menu ouvert : Jira se déplace en ZQSD seulement (les flèches servent au menu).
+		const float X = (IsInputKeyDown(EKeys::D) ? 1.f : 0.f) - (IsInputKeyDown(EKeys::Q) ? 1.f : 0.f);
+		const float Y = (IsInputKeyDown(EKeys::Z) ? 1.f : 0.f) - (IsInputKeyDown(EKeys::S) ? 1.f : 0.f);
 		Jira->SetMoveInput(FVector2D(X, Y).GetSafeNormal());
 	}
 	Jira->TickLevelUp(DeltaTime);

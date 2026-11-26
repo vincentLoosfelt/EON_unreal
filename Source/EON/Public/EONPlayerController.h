@@ -35,7 +35,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "EON|Entrées")
 	FEONOnInputDeviceChanged OnInputDeviceChanged;
 
-	/** Pose sur IA_Move les modificateurs des touches (ZQSD, WASD, flèches) : haut = +Y, gauche = -X. Renvoie le nombre corrigé. */
+	/** Pose sur IA_Move les modificateurs des touches (ZQSD, flèches) : haut = +Y, gauche = -X. Renvoie le nombre corrigé. */
 	UFUNCTION(BlueprintCallable, Category = "EON|Entrées")
 	static int32 RepairMoveMappings(UInputMappingContext* IMC, UInputAction* MoveAction);
 

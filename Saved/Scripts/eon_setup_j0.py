@@ -295,16 +295,17 @@ def inputs():
     acts = {
         "IA_Move": (A2, []), "IA_Aim": (A2, []),
         "IA_Fire": (B, ["LeftMouseButton", "Gamepad_RightTriggerAxis"]),
-        "IA_Dash": (B, ["SpaceBar", "LeftShift", "Gamepad_FaceButton_Bottom", "Gamepad_LeftTriggerAxis"]),
+        "IA_Dash": (B, ["SpaceBar", "Gamepad_FaceButton_Bottom", "Gamepad_LeftTriggerAxis"]),  # Maj = course (lue en C++)
         "IA_Spell": (B, ["E", "RightMouseButton", "Gamepad_RightShoulder", "Gamepad_LeftShoulder"]),
         "IA_Holo": (B, ["F", "Gamepad_FaceButton_Left"]),
         "IA_Ultimate": (B, ["R", "Gamepad_FaceButton_Top"]),
         "IA_Interact": (B, ["C", "Enter", "Gamepad_FaceButton_Right"]),
         "IA_Map": (B, ["Tab", "M", "Gamepad_Special_Left"]),
         "IA_Pause": (B, ["P", "Escape", "Gamepad_Special_Right"]),
-        "IA_GreffeNext": (B, ["Gamepad_DPad_Right"]),
-        "IA_GreffePrev": (B, ["Gamepad_DPad_Left"]),
+        "IA_GreffeNext": (B, ["V", "Gamepad_DPad_Right"]),
+        "IA_GreffePrev": (B, ["X", "Gamepad_DPad_Left"]),
     }
+    # Chiffres : One..Five dans l'asset ; EONOptions::BuildMappingContext prend la touche du clavier actif (& é " ' ( en AZERTY).
     for i, k in enumerate(["One", "Two", "Three", "Four", "Five"]):
         acts["IA_Greffe%d" % (i + 1)] = (B, [k])
     objs = {n: ia(n, vt) for n, (vt, _) in acts.items()}
@@ -324,16 +325,16 @@ def inputs():
         return s
 
     neg = unreal.InputModifierNegate
-    # Déplacement : X = droite, Y = haut de l'écran. ZQSD / WASD / flèches / stick gauche.
+    # Déplacement : X = droite, Y = haut de l'écran. ZQSD (clavier AZERTY) / flèches / stick gauche.
     move = objs["IA_Move"]
     plan = []
-    for k in ("W", "Z", "Up"):
+    for k in ("Z", "Up"):
         plan.append((move, k, [swz()]))
     for k in ("S", "Down"):
         plan.append((move, k, [swz(), neg()]))
     for k in ("D", "Right"):
         plan.append((move, k, []))
-    for k in ("A", "Q", "Left"):
+    for k in ("Q", "Left"):
         plan.append((move, k, [neg()]))
     dz = unreal.InputModifierDeadZone()
     dz.set_editor_property("lower_threshold", 0.18)

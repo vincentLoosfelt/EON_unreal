@@ -25,6 +25,9 @@
 #include "UObject/Package.h"
 #include "RHIGlobals.h"
 #include "UObject/UnrealType.h"
+#if PLATFORM_WINDOWS
+#include "Windows/WindowsHWrapper.h"
+#endif
 
 namespace
 {
@@ -526,7 +529,7 @@ namespace
 		{
 			const FEnhancedActionKeyMapping& M = Ms[I];
 			if (!IsAction(M, D.Action) || M.Key.IsGamepadKey() != bPad) { continue; }
-			if (D.Dir >= 0) { if (!bPad && !IsArrow(M.Key) && MoveDir(M) == D.Dir) { R.Add(I); } }   // Z et W ensemble (AZERTY, QWERTY)
+			if (D.Dir >= 0) { if (!bPad && !IsArrow(M.Key) && MoveDir(M) == D.Dir) { R.Add(I); } }   // lettres du sens (les flèches restent à part)
 			else { R.Add(I); break; }
 		}
 		return R;
@@ -557,7 +560,7 @@ namespace
 		return K ? FKey(FName(**K)) : FKey();
 	}
 
-	/** Touches d'une ligne dans le contexte actif (la touche choisie par le joueur, sinon celles d'origine, Z / Q d'abord). */
+	/** Touches d'une ligne dans le contexte actif (la touche choisie par le joueur, sinon celles d'origine). */
 	TArray<FKey> BindKeys(const UInputMappingContext* Ctx, int32 B, bool bPad)
 	{
 		TArray<FKey> R;
@@ -566,8 +569,14 @@ namespace
 		if (!BindDefs[B].Action) { if (!bPad) { R.Add(EKeys::LeftShift); } return R; }
 		if (!Ctx) { return R; }
 		for (const int32 I : Primary(Ctx->GetMappings(), B, bPad)) { R.AddUnique(Ctx->GetMappings()[I].Key); }
-		R.StableSort([](const FKey& X, const FKey& Y) { auto Rk = [](const FKey& K) { return K == EKeys::Z || K == EKeys::Q ? 0 : 1; }; return Rk(X) < Rk(Y); });
 		return R;
+	}
+
+	/** Chiffres de la rangée du haut tels qu'IMC_EON les nomme (One..Zero, les noms QWERTY d'Unreal). */
+	const FKey& QwertyDigit(int32 D)
+	{
+		static const FKey Keys[10] = { EKeys::Zero, EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five, EKeys::Six, EKeys::Seven, EKeys::Eight, EKeys::Nine };
+		return Keys[FMath::Clamp(D, 0, 9)];
 	}
 
 	// ---------------------------------------------------------------- lignes des onglets
@@ -1142,6 +1151,14 @@ namespace EONOptions
 		if (!Source) { return nullptr; }
 		UInputMappingContext* C = DuplicateObject<UInputMappingContext>(Source, Outer ? Outer : GetTransientPackage());
 		TArray<FEnhancedActionKeyMapping> Ms = C->GetMappings();
+		// Rangée des chiffres : IMC_EON dit One..Five (« le chiffre 1 »), remplacés par la touche que le clavier actif
+		// donne vraiment. En AZERTY, Unreal lit & é " ' ( sur cette rangée et jamais One..Five.
+		for (FEnhancedActionKeyMapping& M : Ms)
+		{
+			for (int32 D = 0; D < 10; ++D) { if (M.Key == QwertyDigit(D)) { M.Key = DigitKey(D); break; } }
+		}
+		UE_LOG(LogEON, Display, TEXT("EON entrees : chiffres 1 a 5 du clavier = %s %s %s %s %s"),
+			*DigitKey(1).ToString(), *DigitKey(2).ToString(), *DigitKey(3).ToString(), *DigitKey(4).ToString(), *DigitKey(5).ToString());
 		TArray<int32> Drop;
 		for (int32 B = 0; B < NumBinds; ++B)
 		{
@@ -1159,7 +1176,7 @@ namespace EONOptions
 					if (Any && D.Dir < 0) { Ms.Add(FEnhancedActionKeyMapping(Any->Action, NewKey)); }
 					continue;
 				}
-				// On garde une ligne (ses modificateurs portent le sens du déplacement) ; les autres lettres (QWERTY) partent.
+				// On garde une ligne (ses modificateurs portent le sens du déplacement) ; les autres lettres du même sens partent.
 				int32 Keep = Idx[0];
 				for (const int32 I : Idx) { if (Ms[I].Key == NewKey) { Keep = I; break; } }
 				Ms[Keep].Key = NewKey;
@@ -1230,7 +1247,56 @@ namespace EONOptions
 			{ EKeys::Nine.GetFName(), TEXT("9") }, { EKeys::Zero.GetFName(), TEXT("0") },
 		};
 		if (const TCHAR* const* N = Kb.Find(K.GetFName())) { return *N; }
+		// Rangée des chiffres en AZERTY (& é " ' ( ...) : le chiffre gravé sur la touche.
+		for (int32 D = 0; D < 10; ++D) { if (K == DigitKey(D)) { return FString::FromInt(D); } }
 		return K.GetDisplayName(false).ToString().ToUpper();
+	}
+
+	FKey DigitKey(int32 D)
+	{
+		if (D < 0 || D > 9) { return FKey(); }
+	#if PLATFORM_WINDOWS
+		// Même calcul que FWindowsApplication à l'appui : code virtuel '0'..'9' et caractère sans Maj de la disposition active.
+		static HKL Layout = nullptr;
+		static FKey Keys[10];
+		if (const HKL Now = ::GetKeyboardLayout(0); Now != Layout || !Keys[0].IsValid())
+		{
+			Layout = Now;
+			for (int32 I = 0; I < 10; ++I)
+			{
+				const uint32 Vk = '0' + I;
+				const FKey K = FInputKeyManager::Get().GetKeyFromCodes(Vk, ::MapVirtualKeyW(Vk, MAPVK_VK_TO_CHAR));
+				Keys[I] = K.IsValid() ? K : QwertyDigit(I);
+			}
+		}
+		return Keys[D];
+	#else
+		return QwertyDigit(D);
+	#endif
+	}
+
+	FKey RowKey(const UInputMappingContext* Ctx, const TCHAR* Id, bool bPad)
+	{
+		for (int32 B = 0; B < NumBinds; ++B)
+		{
+			if (FCString::Strcmp(BindDefs[B].Id, Id) != 0) { continue; }
+			const TArray<FKey> K = BindKeys(Ctx, B, bPad);
+			return K.Num() ? K[0] : FKey();
+		}
+		return FKey();
+	}
+
+	FString MoveKeysLabel(const UInputMappingContext* Ctx)
+	{
+		TArray<FString> L;
+		bool bOneChar = true;
+		for (const TCHAR* Id : { TEXT("Haut"), TEXT("Gauche"), TEXT("Bas"), TEXT("Droite") })   // l'ordre de ZQSD
+		{
+			const FKey K = RowKey(Ctx, Id, false);
+			L.Add(K.IsValid() ? KeyLabel(K) : FString(TEXT("—")));
+			bOneChar = bOneChar && L.Last().Len() == 1;
+		}
+		return FString::Join(L, bOneChar ? TEXT("") : TEXT(" / "));
 	}
 
 	FString ActionLabel(const UInputMappingContext* Ctx, const UInputAction* Action, bool bPad)
