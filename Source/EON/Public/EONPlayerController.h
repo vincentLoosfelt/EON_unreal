@@ -23,9 +23,14 @@ class EON_API AEONPlayerController : public APlayerController
 public:
 	AEONPlayerController();
 
-	/** true = invites en icônes Xbox, false = clavier. */
+	/** true = invites et visée manette, false = clavier-souris : dernier appareil touché, ou celui choisi dans Options > Commandes. */
 	UFUNCTION(BlueprintPure, Category = "EON|Entrées")
-	bool IsUsingGamepad() const { return bUsingGamepad; }
+	bool IsUsingGamepad() const;
+
+	/** Contexte d'entrées en service : copie d'IMC_EON avec les touches réassignées par le joueur (sinon IMC_EON). */
+	const UInputMappingContext* GetActiveContext() const;
+	/** Reconstruit le contexte d'entrées depuis IMC_EON et les options (touches réassignées, zone morte des sticks). */
+	void RebuildInputContext();
 
 	UPROPERTY(BlueprintAssignable, Category = "EON|Entrées")
 	FEONOnInputDeviceChanged OnInputDeviceChanged;
@@ -95,6 +100,13 @@ private:
 
 
 	TSharedPtr<FEONDeviceInputProcessor> DeviceProcessor;
+	/** Copie d'IMC_EON construite par EONOptions::BuildMappingContext. */
+	UPROPERTY(Transient) TObjectPtr<UInputMappingContext> ActiveContext;
+	/** Course basculée (option) et « appuyer au lieu de maintenir » (tir, Onde). */
+	bool bRunLatched = false;
+	bool bRunKeyWas = false;
+	bool bFireLatched = false;
+	bool bSpellLatched = false;
 	bool bUsingGamepad = false;
 	FVector2D StickAim = FVector2D::ZeroVector;
 	bool bFireInput = false;

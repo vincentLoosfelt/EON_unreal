@@ -6,6 +6,7 @@
 #include "EONFloorManager.h"
 #include "EONItems.h"
 #include "EONMeta.h"
+#include "EONOptions.h"
 #include "EONPedestal.h"
 #include "EONPlayerController.h"
 #include "EONTileRoom.h"
@@ -14,6 +15,7 @@
 #include "EONTypes.h"
 #include "EONUI.h"
 #include "Engine/DataTable.h"
+#include "Engine/Texture2D.h"
 #include "EngineUtils.h"
 #include "Fonts/CompositeFont.h"
 #include "Fonts/FontMeasure.h"
@@ -36,33 +38,6 @@ static FAutoConsoleCommandWithWorldAndArgs GEONCmdUiManette(TEXT("eon.ui.manette
 			PC->NotifyDeviceUsed(Args.Num() == 0 || Args[0] != TEXT("0"));
 		}
 	}));
-
-// Bouton manette d'une action, lu dans le contexte d'entrées du contrôleur (IMC_EON) ; vide si aucun.
-static FString EONPadLabel(const AEONPlayerController* PC, const TSoftObjectPtr<UInputAction>& Act)
-{
-	const UInputMappingContext* IMC = PC ? PC->MappingContext.Get() : nullptr;
-	const UInputAction* IA = Act.Get();
-	if (!IMC || !IA) { return FString(); }
-	for (const FEnhancedActionKeyMapping& M : IMC->GetMappings())
-	{
-		if (M.Action != IA || !M.Key.IsGamepadKey()) { continue; }
-		const FName K = M.Key.GetFName();
-		static const TMap<FName, const TCHAR*> Short = {
-			{ EKeys::Gamepad_FaceButton_Bottom.GetFName(), TEXT("A") }, { EKeys::Gamepad_FaceButton_Right.GetFName(), TEXT("B") },
-			{ EKeys::Gamepad_FaceButton_Left.GetFName(), TEXT("X") }, { EKeys::Gamepad_FaceButton_Top.GetFName(), TEXT("Y") },
-			{ EKeys::Gamepad_LeftShoulder.GetFName(), TEXT("LB") }, { EKeys::Gamepad_RightShoulder.GetFName(), TEXT("RB") },
-			{ EKeys::Gamepad_LeftTrigger.GetFName(), TEXT("LT") }, { EKeys::Gamepad_RightTrigger.GetFName(), TEXT("RT") },
-			{ EKeys::Gamepad_LeftTriggerAxis.GetFName(), TEXT("LT") }, { EKeys::Gamepad_RightTriggerAxis.GetFName(), TEXT("RT") },
-			{ EKeys::Gamepad_LeftThumbstick.GetFName(), TEXT("L3") }, { EKeys::Gamepad_RightThumbstick.GetFName(), TEXT("R3") },
-			{ EKeys::Gamepad_DPad_Up.GetFName(), TEXT("↑") }, { EKeys::Gamepad_DPad_Down.GetFName(), TEXT("↓") },
-			{ EKeys::Gamepad_DPad_Left.GetFName(), TEXT("←") }, { EKeys::Gamepad_DPad_Right.GetFName(), TEXT("→") },
-			{ EKeys::Gamepad_Special_Left.GetFName(), TEXT("VUE") }, { EKeys::Gamepad_Special_Right.GetFName(), TEXT("MENU") },
-		};
-		if (const TCHAR* const* T = Short.Find(K)) { return *T; }
-		return M.Key.GetDisplayName(false).ToString();
-	}
-	return FString();
-}
 
 namespace EONHud
 {
@@ -113,7 +88,10 @@ namespace EONHud
 		return S ? *S : Role.ToString();
 	}
 
-	/** Peintre : coordonnées dans un écran de référence 1920 × 1080 (K = hauteur réelle / 1080). */
+	/** Peintre : coordonnées dans un écran de référence 1920 × 1080 (K = hauteur réelle / 1080).
+	 *  HUD : InScale grossit autour du coin haut gauche (W() et H() rétrécissent d'autant : les éléments restent
+	 *  calés sur leurs bords), InAlpha règle l'opacité. Contraste élevé (option) : fonds sombres opaques,
+	 *  textes et traits plus couvrants. */
 	struct FPaint
 	{
 		const FGeometry& G;
@@ -122,19 +100,39 @@ namespace EONHud
 		float K;
 		FVector2f Size;
 		FSlateResourceHandle White;
+		float Alpha = 1.f;
+		bool bContrast = false;
 
-		FPaint(const FGeometry& InG, FSlateWindowElementList& InL, int32 InLayer)
-			: G(InG), L(InL), Layer(InLayer)
+		FPaint(const FGeometry& InG, FSlateWindowElementList& InL, int32 InLayer, float InScale = 1.f, float InAlpha = 1.f)
+			: G(InG), L(InL), Layer(InLayer), Alpha(InAlpha)
 		{
 			Size = FVector2f(G.GetLocalSize());
-			K = Size.Y / 1080.f;
+			K = FMath::Max(Size.Y, 1.f) / 1080.f * InScale;
 			White = FSlateApplication::Get().GetRenderer()->GetResourceHandle(*FCoreStyle::Get().GetBrush(TEXT("GenericWhiteBox")));
+			bContrast = EONOptions::HighContrast();
 		}
 		float W() const { return Size.X / K; }   // largeur de l'écran de référence (1920 en 16/9)
+		float H() const { return Size.Y / K; }   // hauteur de l'écran de référence (1080, moins avec un HUD grossi)
+
+		/** Aplats : en contraste élevé, les fonds sombres deviennent (presque) opaques. */
+		FLinearColor FillC(FLinearColor C) const
+		{
+			if (bContrast && C.GetLuminance() < 0.02f) { C.A = FMath::Min(1.f, C.A * 1.5f); }
+			C.A *= Alpha;
+			return C;
+		}
+		/** Textes et traits : en contraste élevé, les teintes estompées couvrent davantage. */
+		FLinearColor InkC(FLinearColor C) const
+		{
+			if (bContrast) { C.A = FMath::Min(1.f, C.A * 1.5f); }
+			C.A *= Alpha;
+			return C;
+		}
 
 		/** Polygone convexe plein (éventail de triangles). */
-		void Poly(std::initializer_list<FVector2f> P, const FLinearColor& C, int32 Dl = 0) const
+		void Poly(std::initializer_list<FVector2f> P, const FLinearColor& C0, int32 Dl = 0) const
 		{
+			const FLinearColor C = FillC(C0);
 			if (C.A <= 0.f || P.size() < 3) { return; }
 			TArray<FSlateVertex> V; TArray<SlateIndex> I;
 			const FSlateRenderTransform& T = G.GetAccumulatedRenderTransform();
@@ -154,8 +152,14 @@ namespace EONHud
 		}
 		void Line(std::initializer_list<FVector2f> P, const FLinearColor& C, float Th = 2.f, int32 Dl = 1) const
 		{
-			if (C.A <= 0.f) { return; }
+			Lines(TArray<FVector2f>(P), C, Th, Dl);
+		}
+		void Lines(const TArray<FVector2f>& P, const FLinearColor& C0, float Th = 2.f, int32 Dl = 1) const
+		{
+			const FLinearColor C = InkC(C0);
+			if (C.A <= 0.f || P.Num() < 2) { return; }
 			TArray<FVector2f> Pts;
+			Pts.Reserve(P.Num());
 			for (const FVector2f& Pt : P) { Pts.Add(Pt * K); }
 			FSlateDrawElement::MakeLines(L, Layer + Dl, G.ToPaintGeometry(), Pts, ESlateDrawEffect::None, C, true, Th * K);
 		}
@@ -165,8 +169,9 @@ namespace EONHud
 			return FVector2f(FSlateApplication::Get().GetRenderer()->GetFontMeasureService()->Measure(S, Font(F, Px))) / K;
 		}
 		/** Texte ; Align 0 gauche, 1 centre, 2 droite. Y = haut de la ligne. */
-		void Text(const FString& S, float X, float Y, int32 F, float Px, const FLinearColor& C, int32 Align = 0, int32 Dl = 2) const
+		void Text(const FString& S, float X, float Y, int32 F, float Px, const FLinearColor& C0, int32 Align = 0, int32 Dl = 2) const
 		{
+			const FLinearColor C = InkC(C0);
 			if (S.IsEmpty() || C.A <= 0.f) { return; }
 			const FVector2f Sz = Measure(S, F, Px);
 			const float X0 = Align == 1 ? X - Sz.X * 0.5f : Align == 2 ? X - Sz.X : X;
@@ -185,7 +190,93 @@ namespace EONHud
 	};
 
 	const AEONCharacter* Jira(const UObject* Ctx) { return Cast<AEONCharacter>(UGameplayStatics::GetPlayerPawn(Ctx, 0)); }
-	bool Blink(float Period, float On) { return FMath::Fmod(FPlatformTime::Seconds(), Period) < On; }
+	/** Clignotement de l'interface. « Réduire les flashs » : le signal reste, sans clignoter (allumé si l'état allumé domine). */
+	bool Blink(float Period, float On)
+	{
+		if (EONOptions::ReduceFlashes()) { return On >= Period * 0.5f; }
+		return FMath::Fmod(FPlatformTime::Seconds(), Period) < On;
+	}
+
+	/** Symbole PlayStation au trait (jetons PS_* d'EONOptions::KeyLabel), centré en (Cx, Cy), S de côté. */
+	void PsGlyph(const FPaint& P, const FString& Tok, float Cx, float Cy, float S, const FLinearColor& C, int32 Dl)
+	{
+		const float R = S * 0.5f, Th = FMath::Max(1.5f, S * 0.14f);
+		if (Tok == TEXT("PS_CROIX"))
+		{
+			P.Line({ { Cx - R, Cy - R }, { Cx + R, Cy + R } }, C, Th, Dl);
+			P.Line({ { Cx - R, Cy + R }, { Cx + R, Cy - R } }, C, Th, Dl);
+		}
+		else if (Tok == TEXT("PS_CARRE"))
+		{
+			const float Q = R * 0.86f;
+			P.Line({ { Cx - Q, Cy - Q }, { Cx + Q, Cy - Q }, { Cx + Q, Cy + Q }, { Cx - Q, Cy + Q }, { Cx - Q, Cy - Q } }, C, Th, Dl);
+		}
+		else if (Tok == TEXT("PS_TRIANGLE"))
+		{
+			P.Line({ { Cx, Cy - R }, { Cx + R * 1.1f, Cy + R * 0.86f }, { Cx - R * 1.1f, Cy + R * 0.86f }, { Cx, Cy - R } }, C, Th, Dl);
+		}
+		else
+		{
+			TArray<FVector2f> Pts;
+			for (int32 I = 0; I <= 24; ++I)
+			{
+				const float Ang = I * UE_TWO_PI / 24.f;
+				Pts.Add(FVector2f(Cx + R * FMath::Cos(Ang), Cy + R * FMath::Sin(Ang)));
+			}
+			P.Lines(Pts, C, Th, Dl);
+		}
+	}
+
+	/** Morceaux d'un texte : texte simple ou symbole PlayStation (PS_CROIX, PS_ROND, PS_CARRE, PS_TRIANGLE). */
+	struct FRichPart { FString S; bool bGlyph = false; };
+	TArray<FRichPart> RichParts(const FString& S)
+	{
+		static const TCHAR* Tok[4] = { TEXT("PS_CROIX"), TEXT("PS_ROND"), TEXT("PS_CARRE"), TEXT("PS_TRIANGLE") };
+		TArray<FRichPart> Out;
+		int32 From = 0;
+		while (From < S.Len())
+		{
+			int32 Best = INDEX_NONE, BestT = 0;
+			for (int32 T = 0; T < 4; ++T)
+			{
+				const int32 Fd = S.Find(Tok[T], ESearchCase::CaseSensitive, ESearchDir::FromStart, From);
+				if (Fd != INDEX_NONE && (Best == INDEX_NONE || Fd < Best)) { Best = Fd; BestT = T; }
+			}
+			if (Best == INDEX_NONE) { Out.Add({ S.Mid(From), false }); break; }
+			if (Best > From) { Out.Add({ S.Mid(From, Best - From), false }); }
+			Out.Add({ FString(Tok[BestT]), true });
+			From = Best + FCString::Strlen(Tok[BestT]);
+		}
+		return Out;
+	}
+	/** Largeur d'un texte à symboles (un symbole = 0,95 corps). */
+	float RichW(const FPaint& P, const FString& S, int32 F, float Px)
+	{
+		float Wd = 0.f;
+		for (const FRichPart& R : RichParts(S)) { Wd += R.bGlyph ? Px * 0.95f : P.Measure(R.S, F, Px).X; }
+		return Wd;
+	}
+	/** Texte à symboles PlayStation (touches, invites) ; Align 0 gauche, 1 centre, 2 droite. */
+	void RichText(const FPaint& P, const FString& S, float X, float Y, int32 F, float Px, const FLinearColor& C, int32 Align = 0, int32 Dl = 2)
+	{
+		const float Wd = RichW(P, S, F, Px);
+		float Cx = Align == 1 ? X - Wd * 0.5f : Align == 2 ? X - Wd : X;
+		const float Mid = Y + P.Measure(TEXT("A"), F, Px).Y * 0.5f;
+		for (const FRichPart& R : RichParts(S))
+		{
+			if (R.bGlyph) { PsGlyph(P, R.S, Cx + Px * 0.475f, Mid, Px * 0.56f, C, Dl); Cx += Px * 0.95f; }
+			else { P.Text(R.S, Cx, Y, F, Px, C, 0, Dl); Cx += P.Measure(R.S, F, Px).X; }
+		}
+	}
+	/** Invites écrites pour Xbox : « (A) » bouton du bas, « (B) » bouton de droite, traduits selon le style choisi
+	 *  (PlayStation : croix et rond dessinés ; Nintendo : B et A). */
+	FString StyleHint(const FString& S)
+	{
+		auto Btn = [](const FKey& Key) { const FString Lb = EONOptions::KeyLabel(Key); return Lb.StartsWith(TEXT("PS_")) ? Lb : TEXT("(") + Lb + TEXT(")"); };
+		// Jetons provisoires : le remplacement de « (A) » ne doit pas être repris par celui de « (B) » (Nintendo).
+		return S.Replace(TEXT("(A)"), TEXT("\x01")).Replace(TEXT("(B)"), TEXT("\x02"))
+			.Replace(TEXT("\x01"), *Btn(EKeys::Gamepad_FaceButton_Bottom)).Replace(TEXT("\x02"), *Btn(EKeys::Gamepad_FaceButton_Right));
+	}
 }
 
 using namespace EONHud;
@@ -194,8 +285,25 @@ void UEONHudWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
 	Clock += InDeltaTime;
+	// Compteur d'images : moyenne sur une demi-seconde (temps réel de Slate, même en pause).
+	FpsAcc += InDeltaTime;
+	++FpsFrames;
+	if (FpsAcc >= 0.5f) { Fps = FpsFrames / FpsAcc; FpsAcc = 0.f; FpsFrames = 0; }
 	const AEONCharacter* J = Jira(this);
 	if (!J) { return; }
+
+	// Visée de Jira à l'écran, lissée : flèche de la mini-carte et rotation de la carte tournante.
+	if (APlayerController* PC = GetOwningPlayer())
+	{
+		FVector2D S0, S1;
+		const FVector Lc = J->GetActorLocation();
+		if (PC->ProjectWorldLocationToScreen(Lc, S0) && PC->ProjectWorldLocationToScreen(Lc + J->GetActorForwardVector() * 100.f, S1) && !(S1 - S0).IsNearlyZero())
+		{
+			const float Target = FMath::Atan2(float(S1.Y - S0.Y), float(S1.X - S0.X));
+			if (!bMapAng) { MapAng = Target; bMapAng = true; }
+			else { MapAng = FMath::UnwindRadians(MapAng + FMath::FindDeltaAngleRadians(MapAng, Target) * FMath::Min(1.f, InDeltaTime * 14.f)); }
+		}
+	}
 
 	// Annonces : un objet de plus dans l'inventaire de la run -> « +1 NOUVELLE <catégorie> », 3 s.
 	const TArray<FName>& It = J->GetItems();
@@ -243,17 +351,26 @@ int32 UEONHudWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Allott
 	const bool bHud = J && !(Hud && !Hud->bShowHUD) && !bTitle && !(UI && UI->IsComOpen()) && !(F && F->IsCinematic());   // terminal du C.O.M ouvert : pas de HUD (Vincent, 25/11)
 	const bool bCom = J && UI && UI->IsComOpen() && !bTitle;
 	const bool bNotice = J && !bTitle && !bCom && !(Hud && !Hud->bShowHUD) && !J->IsLevelUpOpen() && !J->IsDead();   // bannières et invites, même en cinématique
+	// Compteur d'images (option) : par-dessus tout, à la taille du HUD, sous la mini-carte.
+	const bool bFps = EONOptions::ShowFps() && !(Hud && !Hud->bShowHUD);
+	auto Done = [&](int32 Ret)
+	{
+		if (!bFps) { return Ret; }
+		PaintFps(FPaint(AllottedGeometry, OutDrawElements, LayerId + 30, EONOptions::HudScale()));
+		return FMath::Max(Ret, LayerId + 34);
+	};
 	if (bTitle && UI)
 	{
 		const FPaint Pt(AllottedGeometry, OutDrawElements, LayerId + 1);
 		PaintTitle(Pt, *UI);
-		return LayerId + 12;
+		return Done(LayerId + 12);
 	}
 	const AEONPlayerController* DevPC = Cast<AEONPlayerController>(OPC);
 	const bool bDev = J && DevPC && DevPC->GetDevMenu().IsOpen() && !(Hud && !Hud->bShowHUD);   // menu de réglages F6
-	if (!bHud && !Dl && !bCom && !bNotice && !bDev) { return LayerId; }
+	if (!bHud && !Dl && !bCom && !bNotice && !bDev && !(UI && UI->IsPauseOpen())) { return Done(LayerId); }
 	const FPaint P(AllottedGeometry, OutDrawElements, LayerId + 1);
-	if (bHud) { PaintHud(P, J, F, Dl != nullptr); }
+	// HUD des coins : taille et opacité choisies par le joueur (Jouabilité).
+	if (bHud) { PaintHud(FPaint(AllottedGeometry, OutDrawElements, LayerId + 1, EONOptions::HudScale(), EONOptions::HudOpacity()), J, F, Dl != nullptr); }
 	if (bCom) { PaintCom(P, *UI, *J, F); }
 	if (bNotice)
 	{
@@ -280,16 +397,27 @@ int32 UEONHudWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Allott
 	{
 		const FPaint Pd(AllottedGeometry, OutDrawElements, LayerId + 22);
 		PaintDevMenu(Pd, *DevPC);
-		return LayerId + 28;
+		return Done(LayerId + 28);
 	}
-	return LayerId + 20;
+	return Done(LayerId + 20);
+}
+
+void UEONHudWidget::PaintFps(const EONHud::FPaint& P) const
+{
+	const int32 N = FMath::RoundToInt(Fps);
+	const FString S = FString::Printf(TEXT("%d IPS"), N);
+	const FLinearColor C = N >= 55 ? Green : N >= 30 ? Amber : RedC;
+	const float Xr = P.W() - 60.f, Y = 222.f, Tw = P.Measure(S, 0, 16.f).X;
+	P.Rect(Xr - Tw - 14.f, Y - 2.f, Tw + 14.f, 24.f, A(Bg, 0.8f));
+	P.Rect(Xr - 3.f, Y - 2.f, 3.f, 24.f, C, 1);
+	P.Text(S, Xr - 8.f, Y + 1.f, 0, 16.f, C, 2);
 }
 
 void UEONHudWidget::PaintHud(const EONHud::FPaint& P, const AEONCharacter* J, const AEONFloorManager* F, bool bDialog) const
 {
 	const FGeometry& AllottedGeometry = P.G;
 	FSlateWindowElementList& OutDrawElements = P.L;
-	const float SW = P.W(), SH = 1080.f, M = 60.f;   // marges de la maquette
+	const float SW = P.W(), SH = P.H(), M = 60.f;   // marges de la maquette ; SH < 1080 quand le HUD est grossi
 
 	// ---------------------------------------------------------------- haut gauche : annonces « +1 »
 	for (int32 I = 0; I < Toasts.Num(); ++I)
@@ -386,6 +514,14 @@ void UEONHudWidget::PaintHud(const EONHud::FPaint& P, const AEONCharacter* J, co
 			const FIntPoint Cur = F->GetCurrentCell();
 			const FVector2f Ctr(X0 + Mw * 0.5f, Y0 + Mh * 0.5f - 8.f);
 			auto CellPos = [&](const FIntPoint& Pp) { return Ctr + FVector2f((Pp.X - Cur.X) * (CW + Gp) - CW * 0.5f, (Pp.Y - Cur.Y) * (CH + Gp) - CH * 0.5f); };
+			// Carte tournante (option) : tout tourne autour de Jira pour que sa visée pointe vers le haut ; fixe : rotation nulle.
+			const bool bTurn = EONOptions::MapRotates();
+			const float Phi = bTurn ? -UE_HALF_PI - MapAng : 0.f, Cs = FMath::Cos(Phi), Sn = FMath::Sin(Phi);
+			auto Rot = [&](float X, float Y) { const FVector2f D(X - Ctr.X, Y - Ctr.Y); return FVector2f(Ctr.X + D.X * Cs - D.Y * Sn, Ctr.Y + D.X * Sn + D.Y * Cs); };
+			auto RRect = [&](float X, float Y, float Wd, float H, const FLinearColor& C, int32 Dl)
+			{
+				P.Poly({ Rot(X, Y), Rot(X + Wd, Y), Rot(X + Wd, Y + H), Rot(X, Y + H) }, C, Dl);
+			};
 			FGeometry Clip = AllottedGeometry.MakeChild(FVector2f(Mw - 4.f, Mh - 4.f) * P.K, FSlateLayoutTransform(FVector2f(X0 + 2.f, Y0 + 2.f) * P.K));
 			OutDrawElements.PushClip(FSlateClippingZone(Clip));
 			if (!F->IsDockedMode())
@@ -397,11 +533,11 @@ void UEONHudWidget::PaintHud(const EONHud::FPaint& P, const AEONCharacter* J, co
 					const FVector2f Pp = CellPos(C.Pos);
 					const bool bCur = C.Pos == Cur;
 					// Couloirs vers l'est et le sud (traits étroits).
-					if (C.Doors & EONDoor::E) { P.Rect(Pp.X + CW, Pp.Y + CH * 0.5f - 4.f, Gp, 8.f, A(Amber, 0.55f)); }
-					if (C.Doors & EONDoor::S) { P.Rect(Pp.X + CW * 0.5f - 4.f, Pp.Y + CH, 8.f, Gp, A(Amber, 0.55f)); }
+					if (C.Doors & EONDoor::E) { RRect(Pp.X + CW, Pp.Y + CH * 0.5f - 4.f, Gp, 8.f, A(Amber, 0.55f), 0); }
+					if (C.Doors & EONDoor::S) { RRect(Pp.X + CW * 0.5f - 4.f, Pp.Y + CH, 8.f, Gp, A(Amber, 0.55f), 0); }
 					const float Fill = bCur ? 0.45f : C.bVisited ? 0.25f : 0.08f;
-					P.Rect(Pp.X, Pp.Y, CW, CH, A(Amber, Fill));
-					P.Line({ { Pp.X, Pp.Y }, { Pp.X + CW, Pp.Y }, { Pp.X + CW, Pp.Y + CH }, { Pp.X, Pp.Y + CH }, { Pp.X, Pp.Y } }, A(Amber, C.bVisited || bCur ? 1.f : 0.45f), 1.5f);
+					RRect(Pp.X, Pp.Y, CW, CH, A(Amber, Fill), 0);
+					P.Line({ Rot(Pp.X, Pp.Y), Rot(Pp.X + CW, Pp.Y), Rot(Pp.X + CW, Pp.Y + CH), Rot(Pp.X, Pp.Y + CH), Rot(Pp.X, Pp.Y) }, A(Amber, C.bVisited || bCur ? 1.f : 0.45f), 1.5f);
 					// Repères : gardien rouge (cyan avec la carte), carte rouge orange, Opportunité blanc, Événement cyan, combat entamé orange.
 					FLinearColor Dot(0, 0, 0, 0);
 					if (C.Role == TEXT("ASCENSEUR")) { Dot = F->HasRedCard() ? CyanC : RedC; }
@@ -409,21 +545,12 @@ void UEONHudWidget::PaintHud(const EONHud::FPaint& P, const AEONCharacter* J, co
 					else if (C.Role == TEXT("OPPORTUNITE")) { Dot = White; }
 					else if (C.Role == TEXT("EVENEMENT")) { Dot = CyanC; }
 					else if (C.bVisited && !C.bCleared) { Dot = Orange; }
-					if (Dot.A > 0.f && !bCur) { P.Rect(Pp.X + CW * 0.5f - 3.f, Pp.Y + CH * 0.5f - 3.f, 6.f, 6.f, Dot, 1); }
+					if (Dot.A > 0.f && !bCur) { RRect(Pp.X + CW * 0.5f - 3.f, Pp.Y + CH * 0.5f - 3.f, 6.f, 6.f, Dot, 1); }
 				}
 			}
-			// Jira : flèche blanche, orientée comme à l'écran.
+			// Jira : flèche blanche, orientée comme à l'écran (toujours vers le haut sur la carte tournante).
 			{
-				float Ang = -PI * 0.5f;
-				if (APlayerController* PC = GetOwningPlayer())
-				{
-					FVector2D S0, S1;
-					const FVector Lc = J->GetActorLocation();
-					if (PC->ProjectWorldLocationToScreen(Lc, S0) && PC->ProjectWorldLocationToScreen(Lc + J->GetActorForwardVector() * 100.f, S1) && !(S1 - S0).IsNearlyZero())
-					{
-						Ang = FMath::Atan2(S1.Y - S0.Y, S1.X - S0.X);
-					}
-				}
+				const float Ang = bTurn ? -UE_HALF_PI : MapAng;
 				const FVector2f D(FMath::Cos(Ang), FMath::Sin(Ang)), Nn(-D.Y, D.X);
 				const FVector2f Tip = Ctr + D * 10.f, Bl = Ctr - D * 7.f + Nn * 8.f, Br = Ctr - D * 7.f - Nn * 8.f, Nt = Ctr - D * 3.f;
 				P.Poly({ Tip, Bl, Nt }, White, 3);
@@ -495,7 +622,7 @@ void UEONHudWidget::PaintHud(const EONHud::FPaint& P, const AEONCharacter* J, co
 			for (float Hx = Ew * Cap; Hx < Ew; Hx += 5.f) { P.Rect(Bx + Hx, Ey, 2.f, 5.f, Orange, 1); }
 			if (Mut > 0)
 			{
-				const bool bOn = FMath::Fmod(Clock * (2.f + 2.f * Mut), 1.f) < 0.6f;
+				const bool bOn = EONOptions::ReduceFlashes() || FMath::Fmod(Clock * (2.f + 2.f * Mut), 1.f) < 0.6f;
 				P.Rect(Bx, Ey, Ew * Cap, 5.f, bOn ? RedC : A(RedC, 0.35f), 1);
 				static const TCHAR* Roman[4] = { TEXT(""), TEXT("I"), TEXT("II"), TEXT("III") };
 				P.Text(FString::Printf(TEXT("MUTATION %s"), Roman[FMath::Clamp(Mut, 0, 3)]), Bx + Ew + 8.f, Ey - 6.f, 0, 15.f, RedC);
@@ -574,20 +701,21 @@ void UEONHudWidget::PaintHud(const EONHud::FPaint& P, const AEONCharacter* J, co
 	{
 		const bool bBlk = J->AreSpellsBlocked();
 		const float Xr = SW - M;
-		// Manette : bouton lu dans IMC_EON (A, X, LB, RT…) ; clavier : F, E, R.
+		// Touche lue dans le contexte d'entrées du joueur (touches réassignées comprises) : clavier (F, E, R d'origine)
+		// ou manette, selon le style de boutons choisi (symboles PlayStation dessinés).
 		const AEONPlayerController* KPC = Cast<AEONPlayerController>(GetOwningPlayer());
 		const bool bKPad = KPC && KPC->IsUsingGamepad();
 		auto Pad = [&](const TCHAR* Kb, const TSoftObjectPtr<UInputAction>& Act) -> FString
 		{
-			const FString B = bKPad ? EONPadLabel(KPC, Act) : FString();
+			const FString B = KPC ? EONOptions::ActionLabel(KPC->GetActiveContext(), Act.Get(), bKPad) : FString();
 			return B.IsEmpty() ? FString(Kb) : B;
 		};
 		auto Key = [&](const FString& K, const FString& Lbl, float Y, float K01, bool bReady, bool bBlocked, float Px)
 		{
 			const FLinearColor C = bBlocked ? A(RedC, 0.6f) : bReady ? White : A(White, 0.45f);
-			const float Tw = P.Measure(Lbl, 0, Px).X, Kh = Px + 6.f, Kw = FMath::Max(Kh, P.Measure(K, 0, Px).X + 10.f), Kx = Xr - Tw - 10.f - Kw;
+			const float Tw = P.Measure(Lbl, 0, Px).X, Kh = Px + 6.f, Kw = FMath::Max(Kh, RichW(P, K, 0, Px) + 10.f), Kx = Xr - Tw - 10.f - Kw;
 			P.Rect(Kx, Y, Kw, Kh + 2.f, C);
-			P.Text(K, Kx + Kw * 0.5f, Y + 1.f, 0, Px, Bg, 1);
+			RichText(P, K, Kx + Kw * 0.5f, Y + 1.f, 0, Px, Bg, 1);
 			P.Text(Lbl, Xr, Y + 1.f, 0, Px, C, 2);
 			P.Rect(Kx, Y + Kh + 6.f, Xr - Kx, 3.f, A(Amber, 0.2f));
 			P.Rect(Kx, Y + Kh + 6.f, (Xr - Kx) * FMath::Clamp(K01, 0.f, 1.f), 3.f, bBlocked ? A(RedC, 0.6f) : Amber, 1);
@@ -607,7 +735,26 @@ void UEONHudWidget::PaintDialog(const EONHud::FPaint& P0, const FEONDlgLine& L, 
 	const FPaint P(P0.G, P0.L, P0.Layer + 6);
 	FString Name; FColor Col;
 	UEONUISubsystem::CharInfo(L.Who, Name, Col);
-	const float SW = P.W(), Bw = 1046.f, Bh = 300.f, Bx = SW * 0.5f - Bw * 0.5f + 18.f, By = 1080.f - 40.f - Bh, Ch = 45.f;
+	// Taille du texte (Accessibilité) : normale, grande, très grande ; la boîte grandit vers le haut si le texte déborde.
+	static const float FpS[3] = { 30.f, 36.f, 42.f }, LhS[3] = { 38.f, 46.f, 53.f };
+	const int32 Ts = EONOptions::TextSize();
+	const float SW = P.W(), Bw = 1046.f, Bx = SW * 0.5f - Bw * 0.5f + 18.f, Ch = 45.f;
+	const float Fp = FpS[Ts], Lh = LhS[Ts], MaxW = Bw - 80.f;
+	// Texte : coupé à la largeur de la boîte une fois pour toutes (les mots ne sautent pas), puis révélé lettre par lettre.
+	TArray<FString> Lines;
+	{
+		TArray<FString> Words;
+		L.T.ParseIntoArray(Words, TEXT(" "), true);
+		FString Cur;
+		for (const FString& Wo : Words)
+		{
+			const FString Try = Cur.IsEmpty() ? Wo : Cur + TEXT(" ") + Wo;
+			if (!Cur.IsEmpty() && P.Measure(Try, 2, Fp).X > MaxW) { Lines.Add(Cur); Cur = Wo; }
+			else { Cur = Try; }
+		}
+		if (!Cur.IsEmpty()) { Lines.Add(Cur); }
+	}
+	const float Bh = FMath::Max(300.f, 118.f + Lines.Num() * Lh + 52.f), By = 1080.f - 40.f - Bh;
 
 	// Voile léger sur le jeu.
 	P.Rect(0.f, 0.f, SW, 1080.f, A(Bg, 0.35f));
@@ -633,21 +780,7 @@ void UEONHudWidget::PaintDialog(const EONHud::FPaint& P0, const FEONDlgLine& L, 
 	P.Poly({ { Nx, Ny + Nh }, { Nx + 72.f, Ny + Nh }, { Nx + 64.f, Ny + Nh + 8.f }, { Nx, Ny + Nh + 8.f } }, Amber, 2);
 	P.Text(Title, Nx + 34.f, Ny + (Nh - P.Measure(Title, 0, Tp).Y) * 0.5f, 0, Tp, Amber, 0, 3);
 
-	// Texte : coupé à la largeur de la boîte une fois pour toutes (les mots ne sautent pas), puis révélé lettre par lettre.
-	const float Fp = 30.f, Lh = 38.f, Tx = Bx + 28.f, Ty = By + 118.f, MaxW = Bw - 80.f;
-	TArray<FString> Lines;
-	{
-		TArray<FString> Words;
-		L.T.ParseIntoArray(Words, TEXT(" "), true);
-		FString Cur;
-		for (const FString& W : Words)
-		{
-			const FString Try = Cur.IsEmpty() ? W : Cur + TEXT(" ") + W;
-			if (!Cur.IsEmpty() && P.Measure(Try, 2, Fp).X > MaxW) { Lines.Add(Cur); Cur = W; }
-			else { Cur = Try; }
-		}
-		if (!Cur.IsEmpty()) { Lines.Add(Cur); }
-	}
+	const float Tx = Bx + 28.f, Ty = By + 118.f;
 	int32 Left = Shown;
 	for (int32 I = 0; I < Lines.Num() && Left > 0; ++I)
 	{
@@ -658,7 +791,7 @@ void UEONHudWidget::PaintDialog(const EONHud::FPaint& P0, const FEONDlgLine& L, 
 	// Invite de suite, quand la ligne est entière.
 	if (Shown >= L.T.Len() && Blink(0.8f, 0.5f))
 	{
-		P.Text(TEXT("ESPACE / (A) : SUITE     ÉCHAP / (B) : PASSER"), Bx + Bw - Ch - 10.f, By + Bh - 34.f, 0, 15.f, A(Amber, 0.75f), 2, 3);
+		RichText(P, StyleHint(TEXT("ESPACE / (A) : SUITE     ÉCHAP / (B) : PASSER")), Bx + Bw - Ch - 10.f, By + Bh - 34.f, 0, 15.f, A(Amber, 0.75f), 2, 3);
 	}
 }
 
@@ -745,7 +878,7 @@ void UEONHudWidget::PaintCom(const EONHud::FPaint& P, const UEONUISubsystem& UI,
 	// Zone de contenu, aide en bas, filet rouge de la charte.
 	const float Cy = Ty + Th + 36.f, Cb = Y0 + Ph - 80.f;
 	const float Lx = X0 + 30.f, Lw = 560.f, Rx = Lx + Lw + 80.f, Rw = X0 + Pw - 40.f - Rx;
-	auto Help = [&](const TCHAR* S) { P.Text(S, X0 + 30.f, Y0 + Ph - 52.f, 0, 16.f, A(Amber, 0.7f)); };
+	auto Help = [&](const TCHAR* S) { RichText(P, StyleHint(S), X0 + 30.f, Y0 + Ph - 52.f, 0, 16.f, A(Amber, 0.7f)); };
 	P.Rect(X0 + 30.f, Y0 + Ph - 20.f, 320.f, 4.f, RedC);
 	P.Rect(X0 + 360.f, Y0 + Ph - 20.f, 6.f, 4.f, RedC);
 	const int32 Sel0 = UI.GetComSel(Tab);
@@ -964,15 +1097,17 @@ void UEONHudWidget::PaintNotices(const EONHud::FPaint& P, const AEONCharacter& J
 		P.Poly({ { X, Y }, { X + Wd, Y }, { X + Wd, Y + H - Ch }, { X + Wd - Ch, Y + H }, { X, Y + H } }, A(Bg, 0.92f * Al));
 		P.Line({ { X, Y }, { X + Wd, Y }, { X + Wd, Y + H - Ch }, { X + Wd - Ch, Y + H }, { X, Y + H }, { X, Y } }, A(C, Al), 2.f);
 	};
-	// Invite : touche en carré blanc (C ou B), puis l'action en Kode Mono.
+	// Invite : touche d'interaction en carré blanc (lue dans le contexte d'entrées : C ou B d'origine), puis l'action en Kode Mono.
+	const AEONPlayerController* IPC = Cast<AEONPlayerController>(GetOwningPlayer());
+	FString IKey = IPC ? EONOptions::ActionLabel(IPC->GetActiveContext(), IPC->IA_Interact.Get(), bPad) : FString();
+	if (IKey.IsEmpty()) { IKey = bPad ? EONOptions::KeyLabel(EKeys::Gamepad_FaceButton_Right) : FString(TEXT("C")); }
 	auto Prompt = [&](const FString& Act, float Y, bool bOn)
 	{
-		const FString Key = bPad ? TEXT("B") : TEXT("C");
-		const float Kw = 40.f, Tw = P.Measure(Act, 0, 24.f).X, X = Cx - (Kw + 16.f + Tw) * 0.5f;
-		P.Poly({ { X, Y }, { X + Kw - 10.f, Y }, { X + Kw, Y + 10.f }, { X + Kw, Y + Kw }, { X, Y + Kw } }, A(White, bOn ? 1.f : 0.5f));
-		P.Text(Key, X + Kw * 0.5f, Y + 6.f, 0, 24.f, Bg, 1);
+		const float Kw = FMath::Max(40.f, RichW(P, IKey, 0, 24.f) + 18.f), Tw = P.Measure(Act, 0, 24.f).X, X = Cx - (Kw + 16.f + Tw) * 0.5f;
+		P.Poly({ { X, Y }, { X + Kw - 10.f, Y }, { X + Kw, Y + 10.f }, { X + Kw, Y + 40.f }, { X, Y + 40.f } }, A(White, bOn ? 1.f : 0.5f));
+		RichText(P, IKey, X + Kw * 0.5f, Y + 6.f, 0, 24.f, Bg, 1);
 		P.Text(Act, X + Kw + 16.f, Y + 5.f, 0, 24.f, bOn ? White : A(White, 0.5f));
-		P.Line({ { X + Kw + 16.f, Y + Kw + 6.f }, { X + Kw + 16.f + Tw, Y + Kw + 6.f } }, A(bOn ? Amber : Grey, 0.9f), 2.f);
+		P.Line({ { X + Kw + 16.f, Y + 46.f }, { X + Kw + 16.f + Tw, Y + 46.f } }, A(bOn ? Amber : Grey, 0.9f), 2.f);
 	};
 
 	float TopY = 150.f;   // sous la barre du monstre
@@ -1193,7 +1328,7 @@ void UEONHudWidget::PaintTitle(const EONHud::FPaint& P, const UEONUISubsystem& U
 		Button(P, S, Cx + (I == 0 ? -240.f : 240.f), 690.f, 420.f, 66.f, I == 1 && bWarn ? 2 : bOn ? 1 : 0);
 	}
 	if (bWarn) { P.Text(TEXT("La progression sera effacée : Ulysse, Cobaye, insignes, logs, cassettes, données."), Cx, 790.f, 2, 22.f, Orange, 1); }
-	P.Text(TEXT("FLÈCHES OU Q/D : CHOISIR     ENTRÉE / (A) : VALIDER"), Cx, 980.f, 0, 16.f, A(Amber, 0.7f), 1);
+	RichText(P, StyleHint(TEXT("FLÈCHES OU Q/D : CHOISIR     ENTRÉE / (A) : VALIDER")), Cx, 980.f, 0, 16.f, A(Amber, 0.7f), 1);
 	P.Rect(60.f, 1040.f, 320.f, 4.f, RedC);
 	P.Rect(390.f, 1040.f, 6.f, 4.f, RedC);
 }
@@ -1252,12 +1387,12 @@ void UEONHudWidget::PaintDead(const EONHud::FPaint& P, const AEONCharacter& Jr, 
 		const APlayerController* OPC = GetOwningPlayer();
 		const AEONPlayerController* EPC = Cast<AEONPlayerController>(OPC);
 		const bool bPad = EPC && EPC->IsUsingGamepad();
-		const FString Key = bPad ? TEXT("A") : TEXT("R");
+		const FString Key = bPad ? EONOptions::KeyLabel(EKeys::Gamepad_FaceButton_Bottom) : FString(TEXT("R"));
 		const FString Act = TEXT("NOUVELLE RUN");
 		const float Kw = 48.f, Aw = P.Measure(Act, 0, 28.f).X, X = Cx - (Kw + 18.f + Aw) * 0.5f, Y = 690.f;
 		const bool bOn = Blink(1.2f, 0.9f);
 		P.Poly({ { X, Y }, { X + Kw - 12.f, Y }, { X + Kw, Y + 12.f }, { X + Kw, Y + Kw }, { X, Y + Kw } }, A(White, bOn ? 1.f : 0.75f));
-		P.Text(Key, X + Kw * 0.5f, Y + 7.f, 0, 28.f, Bg, 1);
+		RichText(P, Key, X + Kw * 0.5f, Y + 7.f, 0, 28.f, Bg, 1);
 		P.Text(Act, X + Kw + 18.f, Y + 7.f, 0, 28.f, White);
 		P.Line({ { X + Kw + 18.f, Y + Kw + 6.f }, { X + Kw + 18.f + Aw, Y + Kw + 6.f } }, Amber, 2.f);
 		if (!bPad) { P.Text(TEXT("ou clic"), Cx, Y + Kw + 18.f, 2, 18.f, A(White, 0.5f), 1); }
@@ -1608,68 +1743,290 @@ void UEONHudWidget::PaintDevMenu(const EONHud::FPaint& P, const AEONPlayerContro
 
 // ---------------------------------------------------------------- menu pause et options (charte)
 // Voile et grille, « PAUSE » entre crochets ambre, trois boutons empilés (le second appui de Redémarrer
-// ou Quitter passe en crochets rouges). Options : panneau à coin coupé, ligne choisie en ambre, valeur entre ‹ ›.
+// ou Quitter passe en crochets rouges). Options : PaintOptions, avec la même géométrie que la souris (EONOptLayout).
 void UEONHudWidget::PaintPause(const EONHud::FPaint& P, const UEONUISubsystem& UI, bool bPad) const
 {
+	using namespace EONOptLayout;
 	const float SW = P.W(), Cx = SW * 0.5f;
-	P.Rect(0.f, 0.f, SW, 1080.f, A(Bg, 0.82f));
-	BgGrid(P, 0.8f);
 	const bool bOpt = UI.IsOptionsOpen();
+	P.Rect(0.f, 0.f, SW, 1080.f, A(Bg, bOpt ? 0.9f : 0.82f));
+	BgGrid(P, 0.8f);
 	// Titre entre crochets.
 	{
 		const FString S = bOpt ? TEXT("OPTIONS") : TEXT("PAUSE");
-		const float Ty = bOpt ? 150.f : 260.f, Th = 96.f, Tw = P.Measure(S, 0, 72.f).X;
-		P.Text(S, Cx, Ty, 0, 72.f, Amber, 1, 2);
+		const float Px = bOpt ? 56.f : 72.f, Ty = bOpt ? 60.f : 260.f, Th = Px + 24.f, Tw = P.Measure(S, 0, Px).X;
+		P.Text(S, Cx, Ty, 0, Px, Amber, 1, 2);
 		const float Bx = Cx - Tw * 0.5f - 40.f, Bw = Tw + 80.f, Br = 20.f, By = Ty - 6.f;
 		P.Line({ { Bx + Br, By }, { Bx, By }, { Bx, By + Th }, { Bx + Br, By + Th } }, Amber, 3.f);
 		P.Line({ { Bx + Bw - Br, By }, { Bx + Bw, By }, { Bx + Bw, By + Th }, { Bx + Bw - Br, By + Th } }, Amber, 3.f);
-		P.Rect(Cx - 60.f, Ty + Th + 18.f, 120.f, 3.f, A(Amber, 0.6f));
+		if (!bOpt) { P.Rect(Cx - 60.f, Ty + Th + 18.f, 120.f, 3.f, A(Amber, 0.6f)); }
 	}
-	if (!bOpt)
+	if (bOpt) { PaintOptions(P, UI, bPad); return; }
+	static const TCHAR* Lbl[3] = { TEXT("REDÉMARRER"), TEXT("OPTIONS"), TEXT("QUITTER") };
+	static const TCHAR* Cf[3] = { TEXT("CONFIRMER : REDÉMARRER"), TEXT(""), TEXT("CONFIRMER : QUITTER") };
+	const int32 Cfm = UI.GetPauseConfirm();
+	for (int32 I = 0; I < 3; ++I)
 	{
-		static const TCHAR* Lbl[3] = { TEXT("REDÉMARRER"), TEXT("OPTIONS"), TEXT("QUITTER") };
-		static const TCHAR* Cf[3] = { TEXT("CONFIRMER : REDÉMARRER"), TEXT(""), TEXT("CONFIRMER : QUITTER") };
-		const int32 Cfm = UI.GetPauseConfirm();
-		for (int32 I = 0; I < 3; ++I)
+		const bool bWarn = Cfm == I;
+		Button(P, bWarn ? Cf[I] : Lbl[I], Cx, PauseBtnY + I * PauseBtnStep, PauseBtnW, PauseBtnH, bWarn ? 2 : UI.GetPauseSel() == I ? 1 : 0);
+	}
+	const float Ny = PauseBtnY + 3.f * PauseBtnStep + 24.f;
+	if (Cfm == 0) { P.Text(TEXT("La run en cours sera perdue : retour au Kibo."), Cx, Ny, 2, 22.f, Orange, 1); }
+	if (Cfm == 2) { P.Text(TEXT("Le jeu se ferme. La progression du Kibo est gardée, pas la run en cours."), Cx, Ny, 2, 22.f, Orange, 1); }
+	RichText(P, bPad ? StyleHint(TEXT("↑↓ : CHOISIR     (A) : VALIDER     (B) : REPRENDRE")) : FString(TEXT("↑↓ OU Z/S : CHOISIR     ENTRÉE OU CLIC : VALIDER     ÉCHAP : REPRENDRE")),
+		Cx, HintY, 0, 16.f, A(Amber, 0.7f), 1);
+}
+
+// Options (charte) : huit onglets segmentés (l'actif plein ambre), liste à coin coupé (ligne choisie en ambre,
+// curseurs, valeurs entre chevrons, touches clavier et manette dans leurs cases, conflits en rouge), aide à droite
+// (raison d'une ligne grisée, conflit, attente d'une touche, mire de luminosité), bouton RETOUR et touches du panneau.
+void UEONHudWidget::PaintOptions(const EONHud::FPaint& P, const UEONUISubsystem& UI, bool bPad) const
+{
+	using namespace EONOptLayout;
+	using EONOptions::EKind;
+	const float SW = P.W(), Cx = SW * 0.5f;
+	const int32 Tab = UI.GetOptTab();
+	const TArray<EONOptions::FRow> Rows = EONOptions::Rows(Tab);
+	const int32 Sel = UI.GetOptSel(), Scroll = UI.GetOptScroll(), N = Rows.Num();
+	const bool bWait = UI.IsWaitingKey();
+	const EONOptions::FRow* SelRow = Rows.IsValidIndex(Sel) ? &Rows[Sel] : nullptr;
+
+	// --- Onglets : huit cases égales, l'active pleine ambre, coin coupé sur la dernière.
+	{
+		const float T0 = Cx - TabSpan, Cc = 14.f, TwAll = TabW * EONOptions::NumTabs;
+		for (int32 I = 0; I < EONOptions::NumTabs; ++I)
 		{
-			const bool bWarn = Cfm == I;
-			Button(P, bWarn ? Cf[I] : Lbl[I], Cx, 460.f + I * 92.f, 480.f, 66.f, bWarn ? 2 : UI.GetPauseSel() == I ? 1 : 0);
+			const float X = T0 + I * TabW;
+			const bool bOn = I == Tab, bLast = I == EONOptions::NumTabs - 1;
+			if (bOn)
+			{
+				if (bLast) { P.Poly({ { X, TabY }, { X + TabW - Cc, TabY }, { X + TabW, TabY + Cc }, { X + TabW, TabY + TabH }, { X, TabY + TabH } }, Amber); }
+				else { P.Rect(X, TabY, TabW, TabH, Amber); }
+			}
+			else { P.Rect(X, TabY, TabW, TabH, A(Bg, 0.85f)); }
+			P.Text(FString::FromInt(I + 1), X + 8.f, TabY + 4.f, 0, 12.f, bOn ? A(Bg, 0.7f) : A(Amber, 0.45f));
+			P.Text(EONOptions::TabName(I), X + TabW * 0.5f, TabY + 13.f, 0, 17.f, bOn ? Bg : Amber, 1);
+			if (I > 0) { P.Line({ { X, TabY }, { X, TabY + TabH } }, Amber, 2.f); }
 		}
-		if (Cfm == 0) { P.Text(TEXT("La run en cours sera perdue : retour au Kibo."), Cx, 760.f, 2, 22.f, Orange, 1); }
-		if (Cfm == 2) { P.Text(TEXT("Le jeu se ferme. La progression du Kibo est gardée, pas la run en cours."), Cx, 760.f, 2, 22.f, Orange, 1); }
-		P.Text(bPad ? TEXT("CROIX : CHOISIR     (A) : VALIDER     (B) : REPRENDRE") : TEXT("FLÈCHES OU Z/S : CHOISIR     ENTRÉE : VALIDER     ÉCHAP : REPRENDRE"),
-			Cx, 980.f, 0, 16.f, A(Amber, 0.7f), 1);
-		return;
+		P.Line({ { T0, TabY }, { T0 + TwAll - Cc, TabY }, { T0 + TwAll, TabY + Cc }, { T0 + TwAll, TabY + TabH }, { T0, TabY + TabH }, { T0, TabY } }, Amber, 2.f);
+		// Touches de changement d'onglet, de part et d'autre (si la place le permet).
+		if (T0 > 110.f)
+		{
+			const FString Lk = bPad ? EONOptions::KeyLabel(EKeys::Gamepad_LeftShoulder) : FString(TEXT("MAJ+TAB"));
+			const FString Rk = bPad ? EONOptions::KeyLabel(EKeys::Gamepad_RightShoulder) : FString(TEXT("TAB"));
+			P.Text(Lk, T0 - 16.f, TabY + 13.f, 0, 17.f, A(Amber, 0.7f), 2);
+			P.Text(Rk, T0 + TwAll + 16.f, TabY + 13.f, 0, 17.f, A(Amber, 0.7f));
+		}
 	}
-	// Options.
-	const TArray<UEONUISubsystem::FOptRow> Rows = UI.OptionRows();
-	const float Wd = 900.f, X0 = Cx - Wd * 0.5f, Y0 = 330.f, Lh = 64.f, Ch = 26.f;
-	const float H = (Rows.Num() - 1) * Lh + 40.f;
-	P.Poly({ { X0, Y0 }, { X0 + Wd, Y0 }, { X0 + Wd, Y0 + H - Ch }, { X0 + Wd - Ch, Y0 + H }, { X0, Y0 + H } }, A(Bg, 0.9f));
-	P.Line({ { X0, Y0 }, { X0 + Wd, Y0 }, { X0 + Wd, Y0 + H - Ch }, { X0 + Wd - Ch, Y0 + H }, { X0, Y0 + H }, { X0, Y0 } }, A(Amber, 0.6f), 1.5f);
-	for (int32 I = 0; I < Rows.Num() - 1; ++I)
+
+	// --- Liste.
+	const float Lx = Cx + ListDx, Lb = ListY + RowsVisible * RowH, Pc = 22.f;
+	P.Poly({ { Lx, ListY - 10.f }, { Lx + ListW, ListY - 10.f }, { Lx + ListW, Lb + 10.f - Pc }, { Lx + ListW - Pc, Lb + 10.f }, { Lx, Lb + 10.f } }, A(Bg, 0.92f));
+	P.Line({ { Lx, ListY - 10.f }, { Lx + ListW, ListY - 10.f }, { Lx + ListW, Lb + 10.f - Pc }, { Lx + ListW - Pc, Lb + 10.f }, { Lx, Lb + 10.f }, { Lx, ListY - 10.f } }, A(Amber, 0.55f), 1.5f);
+	for (int32 V = 0; V < RowsVisible; ++V)
 	{
-		const bool bOn = UI.GetOptSel() == I;
-		const float Y = Y0 + 20.f + I * Lh;
+		const int32 I = Scroll + V;
+		if (!Rows.IsValidIndex(I)) { break; }
+		const EONOptions::FRow& R = Rows[I];
+		const float Y = ListY + V * RowH, Ym = Y + RowH * 0.5f;
+		if (R.Kind == EKind::Section)
+		{
+			// Intertitre : nom en ambre, titres des colonnes de touches, filet.
+			P.Text(R.Label, Lx + 26.f, Y + 16.f, 0, 17.f, Amber);
+			P.Text(R.KeyKb, Lx + (KbX0 + KbX1) * 0.5f, Y + 18.f, 0, 14.f, A(Amber, 0.75f), 1);
+			P.Text(R.KeyPad, Lx + (PadX0 + PadX1) * 0.5f, Y + 18.f, 0, 14.f, A(Amber, 0.75f), 1);
+			P.Line({ { Lx + 26.f, Y + RowH - 4.f }, { Lx + ValX1, Y + RowH - 4.f } }, A(Amber, 0.4f), 1.f);
+			continue;
+		}
+		const bool bOn = I == Sel;
+		const float Al = R.bEnabled ? 1.f : 0.32f;
 		if (bOn)
 		{
-			P.Rect(X0 + 8.f, Y, Wd - 16.f, Lh - 8.f, A(Amber, 0.14f));
-			P.Rect(X0 + 8.f, Y, 5.f, Lh - 8.f, Amber);
+			P.Rect(Lx + 6.f, Y + 3.f, ListW - 26.f, RowH - 6.f, A(Amber, 0.14f));
+			P.Rect(Lx + 6.f, Y + 3.f, 4.f, RowH - 6.f, Amber);
 		}
-		P.Text(Rows[I].L, X0 + 40.f, Y + 14.f, 0, 24.f, bOn ? White : A(White, 0.7f));
-		const FLinearColor Vc = Rows[I].V == TEXT("OUI") ? Green : bOn ? Amber : A(White, 0.85f);
-		const float Vx = X0 + Wd - 90.f, Vw = P.Measure(Rows[I].V, 0, 24.f).X;
-		P.Text(Rows[I].V, Vx, Y + 14.f, 0, 24.f, Vc, 2);
-		if (bOn)
+		else if (V > 0 && Rows[I - 1].Kind != EKind::Section && I - 1 != Sel)
 		{
-			const float Ay = Y + Lh * 0.5f - 4.f;
-			P.Line({ { Vx - Vw - 24.f, Ay - 10.f }, { Vx - Vw - 34.f, Ay }, { Vx - Vw - 24.f, Ay + 10.f } }, Amber, 2.5f);
-			P.Line({ { Vx + 24.f, Ay - 10.f }, { Vx + 34.f, Ay }, { Vx + 24.f, Ay + 10.f } }, Amber, 2.5f);
+			P.Line({ { Lx + 26.f, Y }, { Lx + ValX1, Y } }, A(White, 0.06f), 1.f);
 		}
-		if (I < Rows.Num() - 2) { P.Line({ { X0 + 40.f, Y + Lh - 4.f }, { X0 + Wd - 40.f, Y + Lh - 4.f } }, A(White, 0.08f), 1.f); }
+		P.Text(R.Label, Lx + 26.f, Y + 11.f, 1, 21.f, A(bOn ? White : A(White, 0.82f), Al));
+		const FLinearColor Ink = A(bOn ? Amber : A(White, 0.88f), Al);
+		switch (R.Kind)
+		{
+		case EKind::Slider:
+		{
+			const float Bx0 = Lx + SlX0, Bx1 = Lx + SlX1, Hx = Bx0 + (Bx1 - Bx0) * R.Fill;
+			P.Rect(Bx0, Ym - 3.f, Bx1 - Bx0, 6.f, A(Amber, 0.2f * Al));
+			P.Rect(Bx0, Ym - 3.f, Hx - Bx0, 6.f, A(Amber, 0.85f * Al), 1);
+			P.Rect(Hx - 5.f, Ym - 12.f, 10.f, 24.f, A(bOn ? White : Amber, Al), 2);
+			P.Text(R.Value, Lx + ValX1, Y + 12.f, 0, 18.f, Ink, 2);
+			break;
+		}
+		case EKind::Choice:
+		case EKind::Toggle:
+		{
+			P.Rect(Lx + ValX0, Y + 7.f, ValX1 - ValX0, RowH - 14.f, A(White, 0.035f));
+			const FLinearColor Vcol = R.Kind == EKind::Toggle && R.bOn ? A(Green, Al) : Ink;
+			P.Text(R.Value, Lx + (ValX0 + ValX1) * 0.5f, Y + 12.f, 0, 18.f, Vcol, 1);
+			const FLinearColor Ac = A(bOn ? Amber : A(White, 0.3f), Al);
+			const float Ax0 = Lx + ValX0 + ArrowW * 0.5f, Ax1 = Lx + ValX1 - ArrowW * 0.5f;
+			P.Line({ { Ax0 + 4.f, Ym - 8.f }, { Ax0 - 4.f, Ym }, { Ax0 + 4.f, Ym + 8.f } }, Ac, 2.5f);
+			P.Line({ { Ax1 - 4.f, Ym - 8.f }, { Ax1 + 4.f, Ym }, { Ax1 - 4.f, Ym + 8.f } }, Ac, 2.5f);
+			break;
+		}
+		case EKind::Action:
+		{
+			const float Bx0 = Lx + ValX0 + 30.f, Bw = ValX1 - ValX0 - 60.f;
+			if (bOn) { P.Rect(Bx0, Y + 6.f, Bw, RowH - 12.f, A(Amber, Al), 1); }
+			else { P.Line({ { Bx0, Y + 6.f }, { Bx0 + Bw, Y + 6.f }, { Bx0 + Bw, Y + RowH - 6.f }, { Bx0, Y + RowH - 6.f }, { Bx0, Y + 6.f } }, A(White, 0.45f * Al), 1.5f); }
+			P.Text(R.Value, Bx0 + Bw * 0.5f, Y + 12.f, 0, 18.f, bOn ? A(Bg, Al) : A(White, 0.8f * Al), 1, 3);
+			break;
+		}
+		case EKind::Bind:
+		{
+			// Deux cases : clavier-souris et manette ; la case choisie pleine (rouge en conflit), « — » sans colonne.
+			const int32 Col = UEONUISubsystem::OptColFor(UI.GetOptCol(), R.bHasKb, R.bHasPad);
+			for (int32 Cn = 0; Cn < 2; ++Cn)
+			{
+				const float C0 = Lx + (Cn ? PadX0 : KbX0), C1 = Lx + (Cn ? PadX1 : KbX1), Cm = (C0 + C1) * 0.5f;
+				if (!(Cn ? R.bHasPad : R.bHasKb)) { P.Text(TEXT("—"), Cm, Y + 12.f, 0, 18.f, A(White, 0.18f), 1); continue; }
+				const bool bCell = bOn && Col == Cn, bConf = Cn ? R.bConflictPad : R.bConflictKb;
+				if (bCell) { P.Rect(C0, Y + 6.f, C1 - C0, RowH - 12.f, bConf ? RedC : Amber, 1); }
+				else { P.Line({ { C0, Y + 6.f }, { C1, Y + 6.f }, { C1, Y + RowH - 6.f }, { C0, Y + RowH - 6.f }, { C0, Y + 6.f } }, bConf ? RedC : A(White, 0.28f), 1.5f); }
+				if (bCell && bWait)
+				{
+					if (Blink(0.8f, 0.55f)) { P.Text(Cn ? TEXT("BOUTON ?") : TEXT("TOUCHE ?"), Cm, Y + 12.f, 0, 18.f, Bg, 1, 3); }
+					continue;
+				}
+				// Aucune touche d'origine (ex. greffe suivante au clavier) : « — » atténué, la case reste à choisir.
+				const FString& Lab = Cn ? R.KeyPad : R.KeyKb;
+				const FString KeyTxt = Lab.IsEmpty() ? FString(TEXT("—")) : Lab;
+				const float Fit = FMath::Min(18.f, 18.f * (C1 - C0 - 14.f) / FMath::Max(1.f, RichW(P, KeyTxt, 0, 18.f)));
+				const FLinearColor KeyC = bCell ? Bg : bConf ? RedC : Lab.IsEmpty() ? A(White, 0.35f) : White;
+				RichText(P, KeyTxt, Cm, Y + 12.f + (18.f - Fit) * 0.5f, 0, Fit, KeyC, 1, 3);
+			}
+			break;
+		}
+		default:
+			break;
+		}
 	}
-	const int32 Last = Rows.Num() - 1;
-	Button(P, Rows[Last].L, Cx, Y0 + H + 40.f, 360.f, 60.f, UI.GetOptSel() == Last ? 1 : 0);
-	P.Text(bPad ? TEXT("CROIX HAUT/BAS : CHOISIR     GAUCHE/DROITE : RÉGLER     (B) : RETOUR") : TEXT("Z/S : CHOISIR     Q/D OU FLÈCHES : RÉGLER     ÉCHAP : RETOUR"),
-		Cx, 980.f, 0, 16.f, A(Amber, 0.7f), 1);
+	// Défilement (Commandes) : rail et curseur, à droite de la liste.
+	if (N > RowsVisible)
+	{
+		const float Sx = Lx + ListW - 10.f, Th = (Lb - ListY) * RowsVisible / float(N);
+		const float Ty = ListY + (Lb - ListY - Th) * Scroll / float(FMath::Max(1, N - RowsVisible));
+		P.Rect(Sx, ListY, 3.f, Lb - ListY, A(White, 0.12f));
+		P.Rect(Sx - 1.f, Ty, 5.f, Th, Amber, 1);
+	}
+
+	// --- RETOUR.
+	Button(P, TEXT("RETOUR"), Cx, BackY, BackW, BackH, Sel >= N ? 1 : 0);
+
+	// --- Aide à droite : titre, texte, état (indisponible, conflit, attente d'une touche), mire de luminosité.
+	{
+		const float Hx = Cx + HelpDx, Hy = ListY - 10.f, Hh = Lb - ListY + 20.f, Tx = Hx + 28.f, Tw = HelpW - 56.f;
+		P.Poly({ { Hx, Hy }, { Hx + HelpW, Hy }, { Hx + HelpW, Hy + Hh - Pc }, { Hx + HelpW - Pc, Hy + Hh }, { Hx, Hy + Hh } }, A(Bg, 0.92f));
+		P.Line({ { Hx, Hy }, { Hx + HelpW, Hy }, { Hx + HelpW, Hy + Hh - Pc }, { Hx + HelpW - Pc, Hy + Hh }, { Hx, Hy + Hh }, { Hx, Hy } }, A(Amber, 0.35f), 1.5f);
+		P.Rect(Hx, Hy, 6.f, Hh, A(Amber, 0.8f));
+		float Y = Hy + 24.f;
+		for (const FString& S : WrapW(P, SelRow ? SelRow->Label : FString(TEXT("RETOUR")), 0, 24.f, Tw)) { P.Text(S, Tx, Y, 0, 24.f, Amber); Y += 32.f; }
+		P.Rect(Tx, Y + 6.f, 120.f, 3.f, RedC);
+		P.Rect(Tx + 126.f, Y + 6.f, 6.f, 3.f, RedC);
+		Y += 30.f;
+		auto Para = [&](const FString& Src, const FLinearColor& C)
+		{
+			TArray<FString> Pgs;
+			Src.ParseIntoArray(Pgs, TEXT("\n"), true);
+			for (const FString& Pg : Pgs)
+			{
+				for (const FString& S : WrapW(P, Pg, 2, 20.f, Tw)) { P.Text(S, Tx, Y, 2, 20.f, C); Y += 28.f; }
+				Y += 10.f;
+			}
+		};
+		if (!SelRow)
+		{
+			Para(TEXT("Revenir au menu pause.\nLes réglages sont enregistrés dès qu'ils changent."), A(White, 0.86f));
+		}
+		else
+		{
+			if (!SelRow->bEnabled)
+			{
+				// « INDISPONIBLE » entre crochets orange, puis la raison.
+				const float Iw = P.Measure(TEXT("INDISPONIBLE"), 0, 16.f).X + 28.f;
+				P.Line({ { Tx + 10.f, Y }, { Tx, Y }, { Tx, Y + 30.f }, { Tx + 10.f, Y + 30.f } }, Orange, 2.f);
+				P.Line({ { Tx + Iw - 10.f, Y }, { Tx + Iw, Y }, { Tx + Iw, Y + 30.f }, { Tx + Iw - 10.f, Y + 30.f } }, Orange, 2.f);
+				P.Text(TEXT("INDISPONIBLE"), Tx + Iw * 0.5f, Y + 6.f, 0, 16.f, Orange, 1);
+				Y += 46.f;
+			}
+			Para(SelRow->Help, A(White, SelRow->bEnabled ? 0.86f : 0.7f));
+			if (SelRow->Kind == EKind::Bind)
+			{
+				// Les touches en grand, puis le conflit éventuel.
+				Y += 6.f;
+				for (int32 Cn = 0; Cn < 2; ++Cn)
+				{
+					if (!(Cn ? SelRow->bHasPad : SelRow->bHasKb)) { continue; }
+					const bool bConf = Cn ? SelRow->bConflictPad : SelRow->bConflictKb;
+					const FString& Lab = Cn ? SelRow->KeyPad : SelRow->KeyKb;
+					P.Text(Cn ? TEXT("MANETTE") : TEXT("CLAVIER-SOURIS"), Tx, Y + 5.f, 0, 14.f, A(Amber, 0.7f));
+					RichText(P, Lab.IsEmpty() ? FString(TEXT("—")) : Lab, Tx + 170.f, Y, 0, 22.f, bConf ? RedC : White);
+					Y += 34.f;
+				}
+				// Un conflit par colonne : « même touche » au clavier-souris, « même bouton » à la manette.
+				if (SelRow->bConflictKb || SelRow->bConflictPad) { Y += 6.f; }
+				if (SelRow->bConflictKb && !SelRow->ConflictKbWith.IsEmpty())
+				{
+					Para(TEXT("Clavier-souris : même touche que ") + SelRow->ConflictKbWith + TEXT("."), RedC);
+				}
+				if (SelRow->bConflictPad && !SelRow->ConflictPadWith.IsEmpty())
+				{
+					Para(TEXT("Manette : même bouton que ") + SelRow->ConflictPadWith + TEXT("."), RedC);
+				}
+			}
+			if (SelRow->Preview == 1)
+			{
+				// Mire de luminosité sur un noir pur : carrés à 2 %, 5 % et 10 % de blanc (sRGB).
+				const float Q = 110.f, Gp = 28.f, Mw = 3.f * Q + 2.f * Gp, Mx = Hx + (HelpW - Mw) * 0.5f, My = Hy + Hh - Q - 70.f;
+				P.Rect(Mx - 24.f, My - 24.f, Mw + 48.f, Q + 48.f, FLinearColor::Black, 1);
+				static const uint8 Lv[3] = { 5, 13, 26 };
+				for (int32 K = 0; K < 3; ++K)
+				{
+					P.Rect(Mx + K * (Q + Gp), My, Q, Q, FLinearColor(FColor(Lv[K], Lv[K], Lv[K])), 2);
+					P.Text(FString::FromInt(K + 1), Mx + K * (Q + Gp) + Q * 0.5f, My + Q + 2.f, 0, 14.f, A(White, 0.4f), 1, 3);
+				}
+			}
+		}
+		if (bWait)
+		{
+			// Attente d'une touche : encart ambre en bas du panneau.
+			const bool bWp = UI.IsWaitingPad();
+			const float Bx = Hx + 24.f, Bw = HelpW - 48.f, By = Hy + Hh - 124.f, Bh = 90.f;
+			P.Rect(Bx, By, Bw, Bh, A(Amber, 0.16f), 1);
+			P.Line({ { Bx, By }, { Bx + Bw, By }, { Bx + Bw, By + Bh }, { Bx, By + Bh }, { Bx, By } }, Amber, 2.f, 2);
+			P.Text(bWp ? TEXT("APPUIE SUR UN BOUTON") : TEXT("APPUIE SUR UNE TOUCHE"), Bx + Bw * 0.5f, By + 14.f, 0, 22.f, Amber, 1, 3);
+			const FString Cancel = bWp ? TEXT("ÉCHAP OU ") + EONOptions::KeyLabel(EKeys::Gamepad_Special_Right) + TEXT(" : ANNULER") : FString(TEXT("ÉCHAP : ANNULER"));
+			RichText(P, Cancel, Bx + Bw * 0.5f, By + 54.f, 0, 16.f, A(White, 0.75f), 1, 3);
+		}
+	}
+
+	// --- Touches du panneau.
+	const bool bBind = SelRow && SelRow->Kind == EKind::Bind;
+	FString Hint;
+	if (bWait)
+	{
+		Hint = UI.IsWaitingPad() ? TEXT("APPUIE SUR LE BOUTON VOULU     ÉCHAP OU ") + EONOptions::KeyLabel(EKeys::Gamepad_Special_Right) + TEXT(" : ANNULER")
+			: FString(TEXT("APPUIE SUR LA TOUCHE VOULUE     ÉCHAP : ANNULER"));
+	}
+	else if (bPad)
+	{
+		Hint = StyleHint(EONOptions::KeyLabel(EKeys::Gamepad_LeftShoulder) + TEXT(" / ") + EONOptions::KeyLabel(EKeys::Gamepad_RightShoulder)
+			+ TEXT(" : ONGLET     ↑↓ : CHOISIR     ←→ : ") + (bBind ? TEXT("COLONNE     (A) : CHANGER") : TEXT("RÉGLER     (A) : VALIDER")) + TEXT("     (B) : RETOUR"));
+	}
+	else
+	{
+		Hint = FString(TEXT("TAB OU 1-8 : ONGLET     ↑↓ OU Z/S : CHOISIR     ←→ OU Q/D : ")) + (bBind ? TEXT("COLONNE     ENTRÉE : CHANGER") : TEXT("RÉGLER     ENTRÉE : VALIDER"))
+			+ TEXT("     ÉCHAP : RETOUR");
+	}
+	RichText(P, Hint, Cx, HintY, 0, 16.f, A(Amber, 0.7f), 1);
 }

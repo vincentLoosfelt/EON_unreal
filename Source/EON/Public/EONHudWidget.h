@@ -7,6 +7,8 @@
 //   bas gauche   : portrait, vie en segments, énergie, greffes, ADN / scrap / Données
 //   bas centre   : charges de dash
 //   bas droite   : Onde, Holo, Hypercharge (ultime)
+// Options du joueur appliquées ici : taille et opacité du HUD, contraste élevé, clignotements réduits,
+// mini-carte tournante, compteur d'images, taille du texte des dialogues, style des boutons de manette.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -49,8 +51,12 @@ private:
 	void PaintScene(const EONHud::FPaint& P, const AEONCharacter& J, const AEONFloorManager* F, bool bPad) const;
 	/** Menu de réglages F6 : panneau à droite, sous la mini-carte. */
 	void PaintDevMenu(const EONHud::FPaint& P, const class AEONPlayerController& PC) const;
-	/** Menu pause (Redémarrer, Options, Quitter) et panneau Options. */
+	/** Menu pause (Redémarrer, Options, Quitter) ; les options passent par PaintOptions. */
 	void PaintPause(const EONHud::FPaint& P, const class UEONUISubsystem& UI, bool bPad) const;
+	/** Options : huit onglets, liste (curseurs, choix, touches clavier et manette), aide à droite (EONOptLayout). */
+	void PaintOptions(const EONHud::FPaint& P, const class UEONUISubsystem& UI, bool bPad) const;
+	/** Compteur d'images (option), sous la mini-carte. */
+	void PaintFps(const EONHud::FPaint& P) const;
 
 	struct FToast { FString Txt; FLinearColor Col; float T = 0.f; };
 	TArray<FToast> Toasts;
@@ -59,6 +65,14 @@ private:
 	TWeakObjectPtr<AEONEnemy> Foe;
 	float FoeT = 0.f;
 	float Clock = 0.f;
+
+	/** Images par seconde, moyennées sur une demi-seconde. */
+	float FpsAcc = 0.f;
+	int32 FpsFrames = 0;
+	float Fps = 0.f;
+	/** Visée de Jira à l'écran (radians, lissée) : flèche de la mini-carte, rotation de la carte tournante. */
+	float MapAng = -UE_HALF_PI;
+	bool bMapAng = false;
 
 	UPROPERTY(Transient) TObjectPtr<class UTexture2D> LogoTex;
 	FSlateBrush LogoBrush;

@@ -1,10 +1,13 @@
 ﻿#include "EONPlayerController.h"
 #include "EONUI.h"
 #include "EON.h"
+#include "EONOptions.h"
 #include "EONCharacter.h"
 #include "EONFloorManager.h"
 #include "EONCombatDirector.h"
 #include "Engine/StaticMeshActor.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
@@ -181,7 +184,7 @@ void AEONPlayerController::SetupInputComponent()
 			{
 				UE_LOG(LogEON, Warning, TEXT("IMC_EON : %d touches de deplacement corrigees en memoire (asset a resauver)"), N);
 			}
-			Sub->AddMappingContext(IMC, 0);
+			RebuildInputContext();
 		}
 		else
 		{
@@ -248,6 +251,29 @@ void AEONPlayerController::SetupInputComponent()
 	}
 }
 
+bool AEONPlayerController::IsUsingGamepad() const
+{
+	const int32 Dev = EONOptions::Device();   // 0 automatique, 1 clavier-souris, 2 manette
+	return Dev == 1 ? false : Dev == 2 ? true : bUsingGamepad;
+}
+
+const UInputMappingContext* AEONPlayerController::GetActiveContext() const
+{
+	return ActiveContext ? ActiveContext.Get() : MappingContext.Get();
+}
+
+void AEONPlayerController::RebuildInputContext()
+{
+	UEnhancedInputLocalPlayerSubsystem* Sub = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
+	UInputMappingContext* IMC = MappingContext.LoadSynchronous();
+	if (!Sub || !IMC) { return; }
+	if (ActiveContext) { Sub->RemoveMappingContext(ActiveContext); }
+	// Copie d'IMC_EON : touches réassignées et zone morte choisies dans Options > Commandes (l'asset n'est jamais modifié).
+	ActiveContext = EONOptions::BuildMappingContext(this, IMC);
+	Sub->AddMappingContext(ActiveContext ? ActiveContext.Get() : IMC, 0);
+	UE_LOG(LogEON, Display, TEXT("EON entrees : contexte reconstruit (%d touches)"), GetActiveContext() ? GetActiveContext()->GetMappings().Num() : 0);
+}
+
 void AEONPlayerController::NotifyDeviceUsed(bool bGamepad)
 {
 	if (bGamepad == bUsingGamepad) { return; }
@@ -277,8 +303,27 @@ void AEONPlayerController::OnAimStop(const FInputActionValue&)
 	StickAim = FVector2D::ZeroVector;
 }
 
-void AEONPlayerController::OnFireStart(const FInputActionValue&) { bFireInput = true; }
-void AEONPlayerController::OnFireStop(const FInputActionValue&) { bFireInput = false; }
+void AEONPlayerController::OnFireStart(const FInputActionValue&)
+{
+	if (EONOptions::HoldToggle())
+	{
+		// « Appuyer au lieu de maintenir » : un appui lance le tir, le suivant l'arrête ; sauf quand le tir sert à
+		// choisir une carte (montée de niveau) ou qu'un écran fige le jeu.
+		const AEONCharacter* Jira = Cast<AEONCharacter>(GetPawn());
+		const UEONUISubsystem* UI = UEONUISubsystem::Get(this);
+		if ((Jira && Jira->IsLevelUpOpen()) || (UI && UI->IsBlocking())) { return; }
+		bFireLatched = !bFireLatched;
+		bFireInput = bFireLatched;
+		return;
+	}
+	bFireInput = true;
+}
+
+void AEONPlayerController::OnFireStop(const FInputActionValue&)
+{
+	if (EONOptions::HoldToggle()) { return; }
+	bFireInput = false;
+}
 
 void AEONPlayerController::OnDashStart(const FInputActionValue&)
 {
@@ -318,7 +363,12 @@ void AEONPlayerController::OnNamedAction(const FInputActionValue&, FString Name)
 	}
 	if (DevMenu.IsOpen() && (Name == TEXT("Interagir") || Name == TEXT("Pause"))) { return; }   // Entrée et Échap servent au menu
 	if (Name == TEXT("Interagir")) { Interact(); }
-	else if (Name == TEXT("Onde")) { Jira->SetSpellHeld(true); Jira->PressSpell(); }
+	else if (Name == TEXT("Onde"))
+	{
+		// « Appuyer au lieu de maintenir » : un appui lance l'Onde tenue, le suivant la relâche.
+		if (EONOptions::HoldToggle()) { bSpellLatched = !bSpellLatched; Jira->SetSpellHeld(bSpellLatched); if (bSpellLatched) { Jira->PressSpell(); } }
+		else { Jira->SetSpellHeld(true); Jira->PressSpell(); }
+	}
 	else if (Name == TEXT("Hologramme")) { Jira->PressHolo(); }
 	else if (Name == TEXT("Ultime")) { Jira->PressUlt(); }
 	else if (Name == TEXT("Greffe suivante")) { Jira->CycleGreffe(1); }
@@ -328,6 +378,7 @@ void AEONPlayerController::OnNamedAction(const FInputActionValue&, FString Name)
 
 void AEONPlayerController::OnSpellStop(const FInputActionValue&)
 {
+	if (EONOptions::HoldToggle()) { return; }
 	if (AEONCharacter* Jira = Cast<AEONCharacter>(GetPawn())) { Jira->SetSpellHeld(false); }
 }
 
@@ -337,16 +388,36 @@ void AEONPlayerController::PlayerTick(float DeltaTime)
 
 	AEONCharacter* Jira = Cast<AEONCharacter>(GetPawn());
 	if (!Jira) { return; }
-	// Maj = accélération (course), plus une touche de dash : lue ici, hors IMC_EON (Vincent, 16/11).
-	// Sauf quand un outil pilote Jira (vitrine) : il tient lui-même le sprint.
-	if (!Jira->bDevDrive) { Jira->SetSprintHeld(IsInputKeyDown(EKeys::LeftShift) || IsInputKeyDown(EKeys::RightShift)); }
+	// Course (accélération), plus une touche de dash : lue ici, hors IMC_EON (Vincent, 16/11). Touche des options
+	// (Maj gauche d'origine, Maj droite aussi), maintenue ou basculée. Sauf quand un outil pilote Jira (vitrine).
+	if (!Jira->bDevDrive)
+	{
+		const FKey Rk = EONOptions::RunKey();
+		const bool bRunDown = IsInputKeyDown(Rk) || (Rk == EKeys::LeftShift && IsInputKeyDown(EKeys::RightShift));
+		const UEONUISubsystem* UI0 = UEONUISubsystem::Get(this);
+		if (!EONOptions::RunToggle()) { bRunLatched = false; Jira->SetSprintHeld(bRunDown); }
+		else
+		{
+			if (bRunDown && !bRunKeyWas && !(UI0 && UI0->IsBlocking())) { bRunLatched = !bRunLatched; }
+			Jira->SetSprintHeld(bRunLatched);
+		}
+		bRunKeyWas = bRunDown;
+	}
 	DevMenu.Tick(this, FMath::Min((float)FApp::GetDeltaTime(), 0.1f));
 	ApplyPostProcess();
 	// Jalon 8 : écran titre, dialogues, terminal du C.O.M (temps réel, jeu en pause).
 	if (UEONUISubsystem* UI = UEONUISubsystem::Get(this))
 	{
 		UI->TickUI(this, FMath::Min((float)FApp::GetDeltaTime(), 0.1f));
-		if (UI->IsBlocking()) { Jira->SetFireHeld(false); Jira->SetMoveInput(FVector2D::ZeroVector); return; }
+		if (UI->IsBlocking())
+		{
+			Jira->SetFireHeld(false);
+			Jira->SetMoveInput(FVector2D::ZeroVector);
+			// Écran figé : les tirs et l'Onde « appuyés » s'arrêtent (rien ne repart tout seul à la reprise).
+			if (bFireLatched) { bFireLatched = false; bFireInput = false; }
+			if (bSpellLatched) { bSpellLatched = false; Jira->SetSpellHeld(false); }
+			return;
+		}
 	}
 	// Vitrine des effets (eon.vitrine) : c'est elle qui pilote Jira.
 	if (Jira->bDevDrive) { return; }
@@ -363,11 +434,11 @@ void AEONPlayerController::PlayerTick(float DeltaTime)
 	if (Jira->IsLevelUpOpen()) { Jira->SetFireHeld(false); return; }
 
 	bool bFire = bFireInput;
-	if (bUsingGamepad)
+	if (IsUsingGamepad())
 	{
 		UpdateStickAim(Jira);
-		// Pousser le stick droit à fond tire aussi (am > 0,75 dans le proto).
-		if (StickAim.Size() > 0.75f) { bFire = true; }
+		// Pousser le stick droit à fond tire aussi (am > 0,75 dans le proto), sauf si le joueur l'a coupé (Commandes).
+		if (EONOptions::StickFire() && StickAim.Size() > 0.75f) { bFire = true; }
 	}
 	else
 	{
@@ -400,7 +471,8 @@ void AEONPlayerController::UpdateStickAim(AEONCharacter* Jira)
 	// et on le garde 0,45 s après le relâchement. Sans ça, le retour du stick au centre
 	// ferait tirer dans le sens de la marche.
 	const float Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
-	const float Am = StickAim.Size() > AimDeadZone ? StickAim.Size() : 0.f;
+	const float Dz = FMath::Max(AimDeadZone, EONOptions::StickDeadZone());   // zone morte des options si plus grande
+	const float Am = StickAim.Size() > Dz ? StickAim.Size() : 0.f;
 	const float StickNow = FMath::Atan2(-StickAim.Y, StickAim.X);
 
 	if (Am > 0.55f)

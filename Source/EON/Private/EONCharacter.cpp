@@ -20,6 +20,8 @@
 #include "EONEnemy.h"
 #include "EONTrainingDummy.h"
 #include "EONTuningSubsystem.h"
+#include "EONOptions.h"
+#include "Engine/SkeletalMesh.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -273,8 +275,8 @@ void AEONCharacter::HurtPlayer(int32 Amount, FVector SourceWorld)
 		EONFx::Gerbe2(this, JiraFeetUp(this, 10.f), 12, 2, EONFx::Hex(TEXT("e05a8a")), FLinearColor::White, 80.f, 0.3f);
 		return;
 	}
-	// Mutation (stade 1 ou plus) : les coups reçus font double dégât.
-	HP -= Amount * (Mut >= 1 ? 2 : 1);
+	// Mutation (stade 1 ou plus) : les coups reçus font double dégât ; mode facile (Accessibilité) : moitié, le reste gardé.
+	HP -= EONOptions::EasyDamage(Amount * (Mut >= 1 ? 2 : 1));
 	ShieldT = 0.f;
 	InvTimer = 1.f;
 	HurtFlash = 0.25f;
@@ -1543,8 +1545,8 @@ void AEONCharacter::StartQTE()
 
 void AEONCharacter::UpdateQTE(float RealDt)
 {
-	// Jeu figé pendant le QTE (state = 'qte' du proto).
-	if (UEONTuningSubsystem* Tun = UEONTuningSubsystem::Get(this)) { Tun->RequestHitstop(120.f); }
+	// Jeu figé pendant le QTE (state = 'qte' du proto) : gel de mise en scène, même sans arrêt sur image.
+	if (UEONTuningSubsystem* Tun = UEONTuningSubsystem::Get(this)) { Tun->RequestFreeze(120.f); }
 	QTET -= RealDt;
 	uint8 Dir = 0;
 	if (RawMove.Size() > 0.6f)
@@ -1583,7 +1585,7 @@ void AEONCharacter::UltFire()
 	CutinT = 1.1f;
 	EONSfx::Event(this, TEXT("ult"));
 	PlayBodyAnim(TEXT("charged_attack"), 1.4f);   // pose de l'ultime (jouée après le gel de 1 s)
-	if (UEONTuningSubsystem* Tun = UEONTuningSubsystem::Get(this)) { Tun->RequestHitstop(1000.f); }
+	if (UEONTuningSubsystem* Tun = UEONTuningSubsystem::Get(this)) { Tun->RequestFreeze(1000.f); }   // gel du cut-in, même sans arrêt sur image
 	int32 K = 0;
 	for (AEONEnemy* E : LiveEnemies(GetWorld())) { FUltStrike S; S.E = E; S.T = 0.15f + K * 0.09f; UltStrikes.Add(S); ++K; }
 	Banner(TEXT("Protocole thoracique"), ColCy);

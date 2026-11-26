@@ -21,13 +21,20 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
-	/** stop(ms) du proto : fige tout le jeu pendant Ms millisecondes de temps réel (le plus long gagne). */
+	/** stop(ms) du proto : fige tout le jeu pendant Ms millisecondes de temps réel (le plus long gagne).
+	 *  Arrêt sur image des coups : rien si le joueur l'a coupé (Options > Jouabilité). */
 	UFUNCTION(BlueprintCallable, Category = "EON|Réglages")
 	void RequestHitstop(float Ms);
 
-	/** Réglages courants. */
+	/** Gel de mise en scène (QTE, ultime) : toujours appliqué, même sans arrêt sur image. */
+	void RequestFreeze(float Ms);
+
+	/** Réglages en vigueur : le banc (préréglage + menu F6) corrigé par les options du joueur (EONOptions::ApplyFeel). */
 	UFUNCTION(BlueprintPure, Category = "EON|Réglages")
-	const FEONGameFeelRow& GetGameFeel() const { return Feel; }
+	const FEONGameFeelRow& GetGameFeel() const { return Effective; }
+
+	/** Options du joueur changées : recalcule les réglages en vigueur et prévient le jeu. */
+	void RefreshPlayerOptions();
 
 	/** Applique une ligne de DT_GameFeel (studio, sec, max). */
 	UFUNCTION(BlueprintCallable, Category = "EON|Réglages")
@@ -60,11 +67,15 @@ private:
 	FProperty* FindFeelProperty(const FString& Key) const;
 	bool TickHitstop(float DeltaTime);
 	void EndHitstop();
+	/** Effective = Feel + options du joueur. */
+	void RebuildEffective();
 
 	double HitstopEnd = 0.0;
 	FTSTicker::FDelegateHandle HitstopHandle;
 
+	/** Banc du studio (DT_GameFeel, menu F6) ; le jeu lit Effective. */
 	UPROPERTY() FEONGameFeelRow Feel;
+	UPROPERTY() FEONGameFeelRow Effective;
 	UPROPERTY() TObjectPtr<UDataTable> GameFeelTable;
 	UPROPERTY() TObjectPtr<UDataTable> Greffes;
 	UPROPERTY() TObjectPtr<UDataTable> Enemies;

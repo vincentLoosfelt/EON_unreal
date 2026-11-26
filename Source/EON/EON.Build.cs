@@ -12,6 +12,8 @@ public class EON : ModuleRules
 		{
 			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "Niagara", "UMG", "Slate", "SlateCore", "AssetRegistry", "AnimGraphRuntime", "ProceduralMeshComponent"
 		});
+		// Options : carte graphique et ray tracing matériel (GRHIAdapterName, GRHISupportsRayTracing).
+		PrivateDependencyModuleNames.Add("RHI");
 		// Outils éditeur (insertion de nœuds dans un Animation Blueprint : UEONStatics::AddUpperBodyLayer)
 		if (Target.bBuildEditor)
 		{

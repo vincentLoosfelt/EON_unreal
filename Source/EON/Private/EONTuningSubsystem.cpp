@@ -1,6 +1,7 @@
 ﻿#include "EONTuningSubsystem.h"
 #include "EONFx.h"
 #include "EON.h"
+#include "EONOptions.h"
 #include "Engine/DataTable.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -79,6 +80,7 @@ void UEONTuningSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	if (!ApplyPreset(TEXT("studio")))
 	{
 		UE_LOG(LogEON, Warning, TEXT("DT_GameFeel introuvable : réglages par défaut du code"));
+		RebuildEffective();
 	}
 	UE_LOG(LogEON, Display, TEXT("EON_TUNING greffes=%d ennemis=%d"),
 		Greffes ? Greffes->GetRowMap().Num() : -1,
@@ -92,6 +94,24 @@ void UEONTuningSubsystem::Deinitialize()
 }
 
 void UEONTuningSubsystem::RequestHitstop(float Ms)
+{
+	if (!EONOptions::HitstopOn()) { return; }   // arrêt sur image coupé par le joueur (Jouabilité)
+	RequestFreeze(Ms);
+}
+
+void UEONTuningSubsystem::RebuildEffective()
+{
+	Effective = Feel;
+	EONOptions::ApplyFeel(Effective);
+}
+
+void UEONTuningSubsystem::RefreshPlayerOptions()
+{
+	RebuildEffective();
+	OnGameFeelChanged.Broadcast();
+}
+
+void UEONTuningSubsystem::RequestFreeze(float Ms)
 {
 	if (Ms <= 0.f) { return; }
 	UWorld* World = GetWorld();
@@ -144,6 +164,7 @@ bool UEONTuningSubsystem::ApplyPreset(FName Preset)
 	const FEONGameFeelRow Old = Feel;
 	Feel = *Row;
 	Feel.God = Old.God; Feel.InfEnergy = Old.InfEnergy; Feel.InfDash = Old.InfDash; Feel.OneShot = Old.OneShot;
+	RebuildEffective();
 	OnGameFeelChanged.Broadcast();
 	return true;
 }
@@ -173,6 +194,7 @@ bool UEONTuningSubsystem::SetValue(const FString& Key, const FString& Value)
 	if (!Prop) { return false; }
 	void* Ptr = Prop->ContainerPtrToValuePtr<void>(&Feel);
 	if (!Prop->ImportText_Direct(*Value, Ptr, nullptr, PPF_None)) { return false; }
+	RebuildEffective();
 	OnGameFeelChanged.Broadcast();
 	return true;
 }

@@ -16,10 +16,9 @@
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "GameFramework/GameUserSettings.h"
-#include "AudioDevice.h"
 #include "Engine/Engine.h"
 #include "EONCombatDirector.h"
+#include "EONOptions.h"
 #include "EONPlayerController.h"
 
 namespace
@@ -57,7 +56,7 @@ namespace
 	FAutoConsoleCommandWithWorldAndArgs CmdUi(TEXT("eon.ui"), TEXT("EON : eon.ui continuer | nouvelle | suite | passer (ecran titre et dialogues, tests sans clavier)"),
 		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& A, UWorld* W)
 		{
-			if (UEONUISubsystem* S = UEONUISubsystem::Get(W); S && A.Num()) { S->DevAction(A[0]); }
+			if (UEONUISubsystem* S = UEONUISubsystem::Get(W); S && A.Num()) { S->DevAction(FString::Join(A, TEXT(" "))); }
 		}));
 
 	FAutoConsoleCommandWithWorldAndArgs CmdDlg(TEXT("eon.dialogue"), TEXT("EON : joue le dialogue CLE (dialogues.json)."),
@@ -314,44 +313,44 @@ void UEONUISubsystem::OpenTitle(TFunction<void()> OnNew)
 	UE_LOG(LogEON, Display, TEXT("EON UI ecran titre"));
 }
 
-// ---------------------------------------------------------------- menu pause et options
+/// ---------------------------------------------------------------- menu pause et options (huit onglets : EONOptions)
 
 namespace
 {
-	const TCHAR* OptSection = TEXT("/Script/EON.EONOptions");
-	const int32 FpsSteps[] = { 30, 60, 120, 144, 0 };
-	constexpr int32 NumOptRows = 7;   // volume, affichage, résolution, V-sync, images, qualité, retour
+	const FKey KeysUp[] = { EKeys::Up, EKeys::Z, EKeys::W, EKeys::Gamepad_DPad_Up, EKeys::Gamepad_LeftStick_Up };
+	const FKey KeysDown[] = { EKeys::Down, EKeys::S, EKeys::Gamepad_DPad_Down, EKeys::Gamepad_LeftStick_Down };
+	const FKey KeysLeft[] = { EKeys::Left, EKeys::Q, EKeys::A, EKeys::Gamepad_DPad_Left, EKeys::Gamepad_LeftStick_Left };
+	const FKey KeysRight[] = { EKeys::Right, EKeys::D, EKeys::Gamepad_DPad_Right, EKeys::Gamepad_LeftStick_Right };
 
-	UGameUserSettings* Gus() { return GEngine ? GEngine->GetGameUserSettings() : nullptr; }
+	template <int32 N> bool AnyPressed(APlayerController* PC, const FKey (&Keys)[N]) { for (const FKey& K : Keys) { if (PC->WasInputKeyJustPressed(K)) { return true; } } return false; }
+	template <int32 N> bool AnyDown(APlayerController* PC, const FKey (&Keys)[N]) { for (const FKey& K : Keys) { if (PC->IsInputKeyDown(K)) { return true; } } return false; }
 
-	TArray<FIntPoint> Resolutions()
+	/** Touche acceptée pour une réassignation. Manette : boutons seulement (pas les directions des sticks, Menu reste la pause).
+	 *  Clavier-souris : touches et boutons de souris, sauf Échap (annuler) et la molette. */
+	bool AcceptKey(const FKey& K, bool bPad)
 	{
-		TArray<FIntPoint> R;
-		UKismetSystemLibrary::GetSupportedFullscreenResolutions(R);
-		R.RemoveAll([](const FIntPoint& P) { return P.X < 1280 || P.Y < 720; });
-		if (R.IsEmpty()) { R = { { 1280, 720 }, { 1600, 900 }, { 1920, 1080 }, { 2560, 1440 }, { 3840, 2160 } }; }
-		R.Sort([](const FIntPoint& A, const FIntPoint& B) { return A.X != B.X ? A.X < B.X : A.Y < B.Y; });
-		return R;
+		if (!K.IsValid() || K == EKeys::AnyKey) { return false; }
+		if (bPad)
+		{
+			static const FKey Pad[] = {
+				EKeys::Gamepad_FaceButton_Bottom, EKeys::Gamepad_FaceButton_Right, EKeys::Gamepad_FaceButton_Left, EKeys::Gamepad_FaceButton_Top,
+				EKeys::Gamepad_LeftShoulder, EKeys::Gamepad_RightShoulder, EKeys::Gamepad_LeftTrigger, EKeys::Gamepad_RightTrigger,
+				EKeys::Gamepad_LeftThumbstick, EKeys::Gamepad_RightThumbstick, EKeys::Gamepad_DPad_Up, EKeys::Gamepad_DPad_Down,
+				EKeys::Gamepad_DPad_Left, EKeys::Gamepad_DPad_Right, EKeys::Gamepad_Special_Left };
+			for (const FKey& P : Pad) { if (P == K) { return true; } }
+			return false;
+		}
+		if (K.IsGamepadKey() || !K.IsDigital() || K.IsTouch() || K.IsGesture()) { return false; }
+		if (K == EKeys::Escape || K == EKeys::MouseScrollUp || K == EKeys::MouseScrollDown) { return false; }
+		const FString N = K.GetFName().ToString();
+		return !N.StartsWith(TEXT("Virtual_")) && !N.StartsWith(TEXT("Global_")) && !N.StartsWith(TEXT("Android_"));
 	}
-}
-
-float UEONUISubsystem::GetSavedVolume()
-{
-	float V = 1.f;
-	if (GConfig) { GConfig->GetFloat(OptSection, TEXT("Volume"), V, GGameUserSettingsIni); }
-	return FMath::Clamp(V, 0.f, 1.f);
-}
-
-void UEONUISubsystem::ApplyVolume(UWorld* W)
-{
-	if (!W) { return; }
-	if (FAudioDeviceHandle D = W->GetAudioDevice()) { D->SetTransientPrimaryVolume(GetSavedVolume()); }
 }
 
 void UEONUISubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
 	Super::OnWorldBeginPlay(InWorld);
-	ApplyVolume(&InWorld);
+	EONOptions::ApplyWorld(&InWorld);
 }
 
 void UEONUISubsystem::OpenPause()
@@ -361,8 +360,11 @@ void UEONUISubsystem::OpenPause()
 	PauseSel = 0;
 	PauseConfirm = -1;
 	bOptions = false;
-	OptSel = 0;
+	bWaitKey = false;
+	bDragSlider = false;
+	LastMouse = FVector2D(-1.0, -1.0);
 	SyncPause();
+	ShowMenuCursor(UGameplayStatics::GetPlayerController(this, 0), true);
 	EONSfx::Event(this, TEXT("menu_open"));
 	UE_LOG(LogEON, Display, TEXT("EON UI pause ouverte"));
 }
@@ -372,99 +374,57 @@ void UEONUISubsystem::ClosePause()
 	if (!bPause) { return; }
 	bPause = false;
 	bOptions = false;
+	bWaitKey = false;
+	bDragSlider = false;
 	PauseConfirm = -1;
 	ClosedAt = FPlatformTime::Seconds();
 	SyncPause();
+	ShowMenuCursor(UGameplayStatics::GetPlayerController(this, 0), false);
 	UE_LOG(LogEON, Display, TEXT("EON UI pause fermee"));
 }
 
-TArray<UEONUISubsystem::FOptRow> UEONUISubsystem::OptionRows() const
+void UEONUISubsystem::ShowMenuCursor(APlayerController* PC, bool bMenu)
 {
-	TArray<FOptRow> R;
-	const UGameUserSettings* G = Gus();
-	R.Add({ TEXT("VOLUME"), FString::Printf(TEXT("%d %%"), FMath::RoundToInt(GetSavedVolume() * 100.f)) });
-	const EWindowMode::Type Wm = G ? G->GetFullscreenMode() : EWindowMode::Windowed;
-	R.Add({ TEXT("AFFICHAGE"), Wm == EWindowMode::Fullscreen ? TEXT("PLEIN ÉCRAN") : Wm == EWindowMode::WindowedFullscreen ? TEXT("PLEIN ÉCRAN FENÊTRÉ") : TEXT("FENÊTRÉ") });
-	const FIntPoint Rs = G ? G->GetScreenResolution() : FIntPoint(1920, 1080);
-	R.Add({ TEXT("RÉSOLUTION"), FString::Printf(TEXT("%d × %d"), Rs.X, Rs.Y) });
-	R.Add({ TEXT("V-SYNC"), G && G->IsVSyncEnabled() ? TEXT("OUI") : TEXT("NON") });
-	const int32 Fl = G ? FMath::RoundToInt(G->GetFrameRateLimit()) : 0;
-	R.Add({ TEXT("LIMITE D'IMAGES"), Fl <= 0 ? FString(TEXT("ILLIMITÉE")) : FString::Printf(TEXT("%d / S"), Fl) });
-	static const TCHAR* Q[] = { TEXT("BASSE"), TEXT("MOYENNE"), TEXT("HAUTE"), TEXT("ÉPIQUE"), TEXT("CINÉMA") };
-	const int32 Ql = G ? G->GetOverallScalabilityLevel() : -1;
-	R.Add({ TEXT("QUALITÉ"), Ql >= 0 && Ql <= 4 ? FString(Q[Ql]) : FString(TEXT("PERSONNALISÉE")) });
-	R.Add({ TEXT("RETOUR"), FString() });
-	return R;
+	if (!PC) { return; }
+	if (bMenu)
+	{
+		if (SavedCursor == 255) { SavedCursor = (uint8)PC->CurrentMouseCursor.GetValue(); }
+		PC->CurrentMouseCursor = EMouseCursor::Default;   // flèche dans le menu, viseur en jeu
+	}
+	else if (SavedCursor != 255)
+	{
+		PC->CurrentMouseCursor = (EMouseCursor::Type)SavedCursor;
+		SavedCursor = 255;
+	}
 }
 
-void UEONUISubsystem::OptChange(int32 Dir)
+bool UEONUISubsystem::MouseRef(APlayerController* PC, FVector2D& Out, float& OutW) const
 {
-	UGameUserSettings* G = Gus();
-	switch (OptSel)
-	{
-	case 0:
-	{
-		const float V = FMath::Clamp(FMath::RoundToInt(GetSavedVolume() * 10.f + Dir) / 10.f, 0.f, 1.f);
-		if (GConfig) { GConfig->SetFloat(OptSection, TEXT("Volume"), V, GGameUserSettingsIni); GConfig->Flush(false, GGameUserSettingsIni); }
-		ApplyVolume(GetWorld());
-		break;
-	}
-	case 1:
-		if (G)
-		{
-			static const EWindowMode::Type M[] = { EWindowMode::Fullscreen, EWindowMode::WindowedFullscreen, EWindowMode::Windowed };
-			const int32 I = G->GetFullscreenMode() == EWindowMode::Fullscreen ? 0 : G->GetFullscreenMode() == EWindowMode::WindowedFullscreen ? 1 : 2;
-			G->SetFullscreenMode(M[(I + Dir + 3) % 3]);
-		}
-		break;
-	case 2:
-		if (G)
-		{
-			const TArray<FIntPoint> Rs = Resolutions();
-			int32 I = Rs.IndexOfByKey(G->GetScreenResolution());
-			I = I == INDEX_NONE ? Rs.Num() - 1 : (I + Dir + Rs.Num()) % Rs.Num();
-			G->SetScreenResolution(Rs[I]);
-		}
-		break;
-	case 3:
-		if (G) { G->SetVSyncEnabled(!G->IsVSyncEnabled()); }
-		break;
-	case 4:
-		if (G)
-		{
-			const int32 Fl = FMath::RoundToInt(G->GetFrameRateLimit());
-			const int32 N = (int32)UE_ARRAY_COUNT(FpsSteps);
-			int32 I = N - 1;
-			for (int32 K = 0; K < N; ++K) { if (FpsSteps[K] == Fl) { I = K; } }
-			G->SetFrameRateLimit((float)FpsSteps[(I + Dir + N) % N]);
-		}
-		break;
-	case 5:
-		if (G) { const int32 Ql = FMath::Max(0, G->GetOverallScalabilityLevel()); G->SetOverallScalabilityLevel(FMath::Clamp(Ql + Dir, 0, 4)); }
-		break;
-	default: return;
-	}
-	if (G && OptSel > 0) { G->ApplySettings(false); }
-	EONSfx::Event(this, TEXT("menu_move"));
-	UE_LOG(LogEON, Display, TEXT("EON UI option %d : %s"), OptSel, *OptionRows()[OptSel].V);
+	int32 Vx = 0, Vy = 0;
+	PC->GetViewportSize(Vx, Vy);
+	double Mx = 0.0, My = 0.0;
+	if (Vx <= 0 || Vy <= 0 || !PC->GetMousePosition(Mx, My)) { return false; }
+	const double S = 1080.0 / Vy;
+	Out = FVector2D(Mx * S, My * S);
+	OutW = float(Vx * S);
+	return true;
 }
 
 void UEONUISubsystem::PauseNav(int32 Dir)
 {
-	if (bOptions) { OptSel = (OptSel + Dir + NumOptRows) % NumOptRows; }
-	else { PauseSel = (PauseSel + Dir + 3) % 3; PauseConfirm = -1; }
+	PauseSel = (PauseSel + Dir + 3) % 3;
+	PauseConfirm = -1;
 	EONSfx::Event(this, TEXT("menu_move"));
 }
 
 void UEONUISubsystem::PauseAct()
 {
-	if (bOptions)
+	if (PauseSel == 1)
 	{
-		if (OptSel == NumOptRows - 1) { bOptions = false; }
-		else if (OptSel == 1 || OptSel == 3) { OptChange(1); }
+		const AEONPlayerController* EPC = Cast<AEONPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
+		OpenOptions(EPC && EPC->IsUsingGamepad());
 		return;
 	}
-	if (PauseSel == 1) { bOptions = true; OptSel = 0; PauseConfirm = -1; EONSfx::Event(this, TEXT("menu_open")); return; }
 	if (PauseConfirm != PauseSel) { PauseConfirm = PauseSel; return; }   // premier appui : « CONFIRMER »
 	if (PauseSel == 0)
 	{
@@ -480,6 +440,267 @@ void UEONUISubsystem::PauseAct()
 	}
 }
 
+void UEONUISubsystem::TickPauseMouse(APlayerController* PC)
+{
+	using namespace EONOptLayout;
+	FVector2D M;
+	float W = 1920.f;
+	if (!MouseRef(PC, M, W)) { return; }
+	const bool bMoved = LastMouse.X >= 0.0 && FVector2D::Distance(M, LastMouse) > 0.5;
+	LastMouse = M;
+	const bool bClick = PC->WasInputKeyJustPressed(EKeys::LeftMouseButton);
+	if ((!bMoved && !bClick) || FMath::Abs(M.X - W * 0.5f) > PauseBtnW * 0.5f) { return; }
+	for (int32 I = 0; I < 3; ++I)
+	{
+		const float Y = PauseBtnY + I * PauseBtnStep;
+		if (M.Y < Y || M.Y > Y + PauseBtnH) { continue; }
+		if (PauseSel != I) { PauseSel = I; PauseConfirm = -1; EONSfx::Event(this, TEXT("menu_move")); }
+		if (bClick) { PauseAct(); }
+		return;
+	}
+}
+
+void UEONUISubsystem::OpenOptions(bool bPad)
+{
+	bOptions = true;
+	PauseConfirm = -1;
+	OptTab = 0;
+	OptSel = 0;
+	OptScroll = 0;
+	OptCol = bPad ? 1 : 0;
+	bWaitKey = false;
+	bDragSlider = false;
+	RepDir = 0;
+	OptNav(0);
+	EONSfx::Event(this, TEXT("menu_open"));
+	UE_LOG(LogEON, Display, TEXT("EON UI options ouvertes"));
+}
+
+void UEONUISubsystem::OptSetTab(int32 Tab)
+{
+	Tab = (Tab % EONOptions::NumTabs + EONOptions::NumTabs) % EONOptions::NumTabs;
+	if (Tab == OptTab) { return; }
+	OptTab = Tab;
+	OptSel = 0;
+	OptScroll = 0;
+	bDragSlider = false;
+	OptNav(0);
+	EONSfx::Event(this, TEXT("menu_move"));
+	UE_LOG(LogEON, Display, TEXT("EON UI options onglet %s"), *EONOptions::TabName(OptTab));
+}
+
+void UEONUISubsystem::OptNav(int32 Dir)
+{
+	const TArray<EONOptions::FRow> R = EONOptions::Rows(OptTab);
+	const int32 N = R.Num() + 1;   // + RETOUR
+	int32 S = FMath::Clamp(OptSel, 0, N - 1);
+	if (Dir == 0)
+	{
+		while (S < R.Num() && R[S].Kind == EONOptions::EKind::Section) { ++S; }   // jamais sur un intertitre
+	}
+	else
+	{
+		for (int32 K = 0; K < N; ++K)
+		{
+			S = (S + Dir + N) % N;
+			if (S == R.Num() || R[S].Kind != EONOptions::EKind::Section) { break; }
+		}
+		EONSfx::Event(this, TEXT("menu_move"));
+	}
+	OptSel = S;
+	OptKeepVisible();
+}
+
+void UEONUISubsystem::OptKeepVisible()
+{
+	using namespace EONOptLayout;
+	const TArray<EONOptions::FRow> R = EONOptions::Rows(OptTab);
+	if (OptSel < R.Num())
+	{
+		// L'intertitre juste au-dessus reste visible avec sa première ligne.
+		const int32 Top = OptSel > 0 && R[OptSel - 1].Kind == EONOptions::EKind::Section ? OptSel - 1 : OptSel;
+		if (Top < OptScroll) { OptScroll = Top; }
+		if (OptSel >= OptScroll + RowsVisible) { OptScroll = OptSel - RowsVisible + 1; }
+	}
+	OptScroll = FMath::Clamp(OptScroll, 0, FMath::Max(0, R.Num() - RowsVisible));
+}
+
+void UEONUISubsystem::OptSide(int32 Dir)
+{
+	const TArray<EONOptions::FRow> R = EONOptions::Rows(OptTab);
+	if (!R.IsValidIndex(OptSel)) { return; }
+	const EONOptions::FRow& Row = R[OptSel];
+	if (Row.Kind == EONOptions::EKind::Bind)
+	{
+		// Gauche / droite : colonne clavier-souris ou manette.
+		const int32 Col = Dir > 0 ? 1 : 0;
+		if (OptColFor(OptCol, Row.bHasKb, Row.bHasPad) != Col && (Col == 1 ? Row.bHasPad : Row.bHasKb)) { OptCol = Col; EONSfx::Event(this, TEXT("menu_move")); }
+		return;
+	}
+	if (Row.Kind == EONOptions::EKind::Action || Row.Kind == EONOptions::EKind::Section || !Row.bEnabled) { return; }
+	EONOptions::Change(GetWorld(), OptTab, OptSel, Dir);
+	EONSfx::Event(this, TEXT("menu_move"));
+	OptKeepVisible();
+}
+
+void UEONUISubsystem::OptActivate()
+{
+	const TArray<EONOptions::FRow> R = EONOptions::Rows(OptTab);
+	if (OptSel >= R.Num()) { OptBack(); return; }
+	const EONOptions::FRow& Row = R[OptSel];
+	if (Row.Kind == EONOptions::EKind::Section || !Row.bEnabled) { return; }
+	const bool bPad = Row.Kind == EONOptions::EKind::Bind && OptColFor(OptCol, Row.bHasKb, Row.bHasPad) == 1;
+	if (EONOptions::Activate(GetWorld(), OptTab, OptSel, bPad))
+	{
+		bWaitKey = true;
+		bWaitPad = bPad;
+		WaitT = 0.f;
+		EONSfx::Event(this, TEXT("menu_open"));
+		UE_LOG(LogEON, Display, TEXT("EON UI options : en attente d'une touche %s pour %s"), bPad ? TEXT("manette") : TEXT("clavier"), *Row.Label);
+		return;
+	}
+	EONSfx::Event(this, TEXT("menu_move"));
+	OptKeepVisible();
+}
+
+void UEONUISubsystem::OptBack()
+{
+	bOptions = false;
+	bWaitKey = false;
+	bDragSlider = false;
+	PauseSel = 1;
+	PauseConfirm = -1;
+	EONSfx::Event(this, TEXT("menu_move"));
+}
+
+void UEONUISubsystem::OptMouse(APlayerController* PC)
+{
+	using namespace EONOptLayout;
+	FVector2D M;
+	float W = 1920.f;
+	if (!MouseRef(PC, M, W)) { return; }
+	const float Cx = W * 0.5f, Lx = Cx + ListDx;
+	const bool bMoved = LastMouse.X >= 0.0 && FVector2D::Distance(M, LastMouse) > 0.5;
+	LastMouse = M;
+	const bool bClick = PC->WasInputKeyJustPressed(EKeys::LeftMouseButton);
+	const TArray<EONOptions::FRow> R = EONOptions::Rows(OptTab);
+	const float SlT = (M.X - (Lx + SlX0)) / (SlX1 - SlX0);
+	// Curseur tenu : la valeur suit la souris jusqu'au relâchement.
+	if (bDragSlider)
+	{
+		if (!PC->IsInputKeyDown(EKeys::LeftMouseButton) || !R.IsValidIndex(OptSel)) { bDragSlider = false; }
+		else if (bMoved) { EONOptions::SetFraction(GetWorld(), OptTab, OptSel, SlT); }
+		return;
+	}
+	// Molette : la liste défile (Commandes).
+	if (PC->WasInputKeyJustPressed(EKeys::MouseScrollUp)) { OptScroll = FMath::Max(0, OptScroll - 3); }
+	if (PC->WasInputKeyJustPressed(EKeys::MouseScrollDown)) { OptScroll = FMath::Clamp(OptScroll + 3, 0, FMath::Max(0, R.Num() - RowsVisible)); }
+	if (!bMoved && !bClick) { return; }
+	// Onglets.
+	if (M.Y >= TabY && M.Y <= TabY + TabH && M.X >= Cx - TabSpan && M.X < Cx + TabSpan)
+	{
+		if (bClick) { OptSetTab(FMath::Clamp(FMath::FloorToInt((M.X - (Cx - TabSpan)) / TabW), 0, EONOptions::NumTabs - 1)); }
+		return;
+	}
+	// Bouton RETOUR.
+	if (FMath::Abs(M.X - Cx) <= BackW * 0.5f && M.Y >= BackY && M.Y <= BackY + BackH)
+	{
+		if (OptSel != R.Num()) { OptSel = R.Num(); EONSfx::Event(this, TEXT("menu_move")); }
+		if (bClick) { OptBack(); }
+		return;
+	}
+	// Lignes.
+	if (M.X < Lx || M.X > Lx + ListW || M.Y < ListY || M.Y >= ListY + RowsVisible * RowH) { return; }
+	const int32 Row = OptScroll + FMath::FloorToInt((M.Y - ListY) / RowH);
+	if (!R.IsValidIndex(Row) || R[Row].Kind == EONOptions::EKind::Section) { return; }
+	const EONOptions::FRow& Rw = R[Row];
+	const float X = M.X - Lx;
+	const bool bInKb = X >= KbX0 && X <= KbX1 && Rw.bHasKb, bInPad = X >= PadX0 && X <= PadX1 && Rw.bHasPad;
+	if (Rw.Kind == EONOptions::EKind::Bind && (bInKb || bInPad)) { OptCol = bInPad ? 1 : 0; }
+	if (Row != OptSel) { OptSel = Row; EONSfx::Event(this, TEXT("menu_move")); }
+	if (!bClick || !Rw.bEnabled) { return; }
+	const bool bInVal = X >= ValX0 && X <= ValX1;
+	switch (Rw.Kind)
+	{
+	case EONOptions::EKind::Slider:
+		if (bInVal) { bDragSlider = true; EONOptions::SetFraction(GetWorld(), OptTab, Row, SlT); }
+		break;
+	case EONOptions::EKind::Choice:
+	case EONOptions::EKind::Toggle:
+		if (bInVal && X < ValX0 + ArrowW) { OptSide(-1); }
+		else if (bInVal && X > ValX1 - ArrowW) { OptSide(1); }
+		else if (bInVal) { OptActivate(); }
+		break;
+	case EONOptions::EKind::Action:
+		if (bInVal) { OptActivate(); }
+		break;
+	case EONOptions::EKind::Bind:
+		if (bInKb || bInPad) { OptActivate(); }
+		break;
+	default:
+		break;
+	}
+}
+
+void UEONUISubsystem::TickOptions(APlayerController* PC, float RealDt)
+{
+	// --- Réassignation : la prochaine touche (ou le prochain bouton) devient celle de la ligne.
+	if (bWaitKey)
+	{
+		WaitT += RealDt;
+		if (WaitT < 0.15f) { return; }   // la touche qui a lancé l'attente ne compte pas
+		if (PC->WasInputKeyJustPressed(EKeys::Escape) || (bWaitPad && PC->WasInputKeyJustPressed(EKeys::Gamepad_Special_Right)))
+		{
+			bWaitKey = false;
+			OptIgnoreT = 0.2f;
+			EONSfx::Event(this, TEXT("menu_move"));
+			UE_LOG(LogEON, Display, TEXT("EON UI options : reassignation annulee"));
+			return;
+		}
+		static TArray<FKey> All;
+		if (All.IsEmpty()) { EKeys::GetAllKeys(All); }
+		for (const FKey& K : All)
+		{
+			if (!PC->WasInputKeyJustPressed(K) || !AcceptKey(K, bWaitPad)) { continue; }
+			EONOptions::Rebind(GetWorld(), OptTab, OptSel, bWaitPad, K);
+			bWaitKey = false;
+			OptIgnoreT = 0.25f;
+			EONSfx::Event(this, TEXT("menu_move"));
+			return;
+		}
+		return;
+	}
+	if (OptIgnoreT > 0.f) { OptIgnoreT -= RealDt; return; }
+	OptMouse(PC);
+	if (!bOptions || bWaitKey) { return; }   // un clic a pu fermer les options ou lancer une réassignation
+	if (Pressed(PC, { EKeys::Escape, EKeys::Gamepad_FaceButton_Right, EKeys::Gamepad_Special_Right })) { OptBack(); return; }
+	// Onglets : Tab (Maj+Tab), Page préc./suiv., LB / RB, 1 à 8.
+	const bool bShift = PC->IsInputKeyDown(EKeys::LeftShift) || PC->IsInputKeyDown(EKeys::RightShift);
+	if (PC->WasInputKeyJustPressed(EKeys::Tab)) { OptSetTab(OptTab + (bShift ? -1 : 1)); }
+	if (Pressed(PC, { EKeys::PageUp, EKeys::Gamepad_LeftShoulder })) { OptSetTab(OptTab - 1); }
+	if (Pressed(PC, { EKeys::PageDown, EKeys::Gamepad_RightShoulder })) { OptSetTab(OptTab + 1); }
+	static const FKey Nums[EONOptions::NumTabs] = { EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five, EKeys::Six, EKeys::Seven, EKeys::Eight };
+	for (int32 I = 0; I < EONOptions::NumTabs; ++I) { if (PC->WasInputKeyJustPressed(Nums[I])) { OptSetTab(I); } }
+	// Flèches : un appui, puis répétition après 0,42 s (curseurs, longues listes).
+	int32 NavV = AnyPressed(PC, KeysUp) ? -1 : AnyPressed(PC, KeysDown) ? 1 : 0;
+	int32 NavH = AnyPressed(PC, KeysLeft) ? -1 : AnyPressed(PC, KeysRight) ? 1 : 0;
+	const int32 HeldDir = AnyDown(PC, KeysUp) ? -10 : AnyDown(PC, KeysDown) ? 10 : AnyDown(PC, KeysLeft) ? -1 : AnyDown(PC, KeysRight) ? 1 : 0;
+	if (NavV || NavH) { RepDir = NavV ? NavV * 10 : NavH; RepT = 0.f; }
+	else if (HeldDir != 0 && HeldDir == RepDir)
+	{
+		RepT += RealDt;
+		if (RepT > 0.42f)
+		{
+			RepT -= 0.07f;
+			if (FMath::Abs(RepDir) >= 10) { NavV = RepDir / 10; } else { NavH = RepDir; }
+		}
+	}
+	else { RepDir = 0; RepT = 0.f; }
+	if (NavV) { OptNav(NavV); }
+	if (NavH) { OptSide(NavH); }
+	if (Pressed(PC, { EKeys::Enter, EKeys::SpaceBar, EKeys::E, EKeys::Gamepad_FaceButton_Bottom })) { OptActivate(); }
+}
+
 // ---------------------------------------------------------------- commun
 
 void UEONUISubsystem::DevAction(const FString& A)
@@ -489,12 +710,21 @@ void UEONUISubsystem::DevAction(const FString& A)
 	else if (IsDialogOpen() && A == TEXT("suite")) { DlgAdvance(); }
 	else if (IsDialogOpen() && A == TEXT("passer")) { DlgClose(); }
 	else if (A == TEXT("pause")) { if (bPause) { ClosePause(); } else if (!IsBlocking()) { OpenPause(); } }
-	else if (bPause && A == TEXT("haut")) { PauseNav(-1); }
-	else if (bPause && A == TEXT("bas")) { PauseNav(1); }
-	else if (bPause && bOptions && A == TEXT("gauche")) { OptChange(-1); }
-	else if (bPause && bOptions && A == TEXT("droite")) { OptChange(1); }
-	else if (bPause && A == TEXT("valider")) { PauseAct(); }
-	else if (bPause && A == TEXT("retour")) { if (bOptions) { bOptions = false; } else { ClosePause(); } }
+	else if (bPause && A == TEXT("options")) { if (!bOptions) { PauseSel = 1; OpenOptions(false); } }
+	else if (bPause && bOptions && A.StartsWith(TEXT("onglet "))) { OptSetTab(FCString::Atoi(*A.RightChop(7)) - 1); }
+	else if (bPause && bOptions && A.StartsWith(TEXT("colonne "))) { OptCol = FCString::Atoi(*A.RightChop(8)) != 0 ? 1 : 0; }
+	else if (bPause && bOptions && A.StartsWith(TEXT("ligne "))) { OptSel = FMath::Max(0, FCString::Atoi(*A.RightChop(6))); OptNav(0); }
+	else if (bPause && bOptions && bWaitKey && A.StartsWith(TEXT("touche ")))
+	{
+		const FKey K = FKey(FName(*A.RightChop(7)));
+		if (AcceptKey(K, bWaitPad)) { EONOptions::Rebind(GetWorld(), OptTab, OptSel, bWaitPad, K); bWaitKey = false; }
+	}
+	else if (bPause && A == TEXT("haut")) { if (bOptions) { OptNav(-1); } else { PauseNav(-1); } }
+	else if (bPause && A == TEXT("bas")) { if (bOptions) { OptNav(1); } else { PauseNav(1); } }
+	else if (bPause && bOptions && A == TEXT("gauche")) { OptSide(-1); }
+	else if (bPause && bOptions && A == TEXT("droite")) { OptSide(1); }
+	else if (bPause && A == TEXT("valider")) { if (bOptions) { OptActivate(); } else { PauseAct(); } }
+	else if (bPause && A == TEXT("retour")) { if (bWaitKey) { bWaitKey = false; } else if (bOptions) { OptBack(); } else { ClosePause(); } }
 	UE_LOG(LogEON, Display, TEXT("EON UI eon.ui %s"), *A);
 }
 
@@ -549,19 +779,12 @@ void UEONUISubsystem::TickUI(APlayerController* PC, float RealDt)
 	if (bPause)
 	{
 		if (!PC) { return; }
-		if (Pressed(PC, { EKeys::Escape, EKeys::Gamepad_FaceButton_Right, EKeys::Gamepad_Special_Right }))
-		{
-			if (bOptions) { bOptions = false; EONSfx::Event(this, TEXT("menu_move")); } else { ClosePause(); }
-			return;
-		}
-		if (Pressed(PC, { EKeys::Up, EKeys::Z, EKeys::W, EKeys::Gamepad_DPad_Up, EKeys::Gamepad_LeftStick_Up })) { PauseNav(-1); }
-		if (Pressed(PC, { EKeys::Down, EKeys::S, EKeys::Gamepad_DPad_Down, EKeys::Gamepad_LeftStick_Down })) { PauseNav(1); }
-		if (bOptions)
-		{
-			if (Pressed(PC, { EKeys::Left, EKeys::Q, EKeys::A, EKeys::Gamepad_DPad_Left, EKeys::Gamepad_LeftStick_Left })) { OptChange(-1); }
-			if (Pressed(PC, { EKeys::Right, EKeys::D, EKeys::Gamepad_DPad_Right, EKeys::Gamepad_LeftStick_Right })) { OptChange(1); }
-		}
-		if (Pressed(PC, { EKeys::Enter, EKeys::SpaceBar, EKeys::E, EKeys::Gamepad_FaceButton_Bottom })) { PauseAct(); }
+		if (bOptions) { TickOptions(PC, RealDt); return; }
+		if (Pressed(PC, { EKeys::Escape, EKeys::Gamepad_FaceButton_Right, EKeys::Gamepad_Special_Right })) { ClosePause(); return; }
+		if (AnyPressed(PC, KeysUp)) { PauseNav(-1); }
+		if (AnyPressed(PC, KeysDown)) { PauseNav(1); }
+		if (Pressed(PC, { EKeys::Enter, EKeys::SpaceBar, EKeys::E, EKeys::Gamepad_FaceButton_Bottom })) { PauseAct(); return; }
+		TickPauseMouse(PC);
 		return;
 	}
 	// --- Ouverture de la pause : Échap ou Menu (manette), jeu libre.
@@ -575,7 +798,9 @@ void UEONUISubsystem::TickUI(APlayerController* PC, float RealDt)
 	if (IsDialogOpen())
 	{
 		const FEONDlgLine* L = DlgLine();
-		if (L && DlgShownF < L->T.Len()) { DlgShownF = FMath::Min((float)L->T.Len(), DlgShownF + RealDt * 46.f); }
+		// 46 lettres par seconde, multipliées par la vitesse du texte (Accessibilité ; 0 = tout d'un coup).
+		const float Speed = EONOptions::TextSpeed();
+		if (L && DlgShownF < L->T.Len()) { DlgShownF = Speed <= 0.f ? (float)L->T.Len() : FMath::Min((float)L->T.Len(), DlgShownF + RealDt * 46.f * Speed); }
 		if (Auto > 0 && (DlgAutoT += RealDt) > 0.3f) { DlgAutoT = 0.f; DlgShownF = 1e6f; DlgAdvance(); return; }
 		if (!PC) { return; }
 		if (Pressed(PC, { EKeys::Escape, EKeys::Gamepad_FaceButton_Right })) { DlgClose(); return; }
