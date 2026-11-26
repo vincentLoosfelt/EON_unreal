@@ -25,11 +25,7 @@
     {"asset": "moniteur/Computer_hitech_V4", "x": 28, "y": 1, "rot": 0},
     {"asset": "Dynamiques/Lumieres/Point_lumineux", "x": 28, "y": 1, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ffc23d", "rayon_px": 26, "intensite": 0.45}},
     {"asset": "moniteur/Computer_hitech_V5", "x": 29, "y": 1, "rot": 0},
-    {"asset": "Dynamiques/Lumieres/Point_lumineux", "x": 29, "y": 1, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ff6a3d", "rayon_px": 26, "intensite": 0.45}},
-    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 26, "y": 7, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ff3d8b", "rayon_px": 24, "intensite": 0.5}},
-    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 23, "y": 9, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ff3d8b", "rayon_px": 24, "intensite": 0.5}},
-    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 6, "y": 12, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ff3d8b", "rayon_px": 24, "intensite": 0.5}},
-    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 5, "y": 18, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ff3d8b", "rayon_px": 24, "intensite": 0.5}}
+    {"asset": "Dynamiques/Lumieres/Point_lumineux", "x": 29, "y": 1, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ff6a3d", "rayon_px": 26, "intensite": 0.45}}
   ],
   "plan": [
     "################################",

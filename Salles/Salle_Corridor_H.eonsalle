@@ -47,13 +47,7 @@
     {"asset": "moniteur/Computer_hitech_V7", "x": 45, "y": 1, "rot": 0},
     {"asset": "Dynamiques/Lumieres/Point_lumineux", "x": 45, "y": 1, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 26, "intensite": 0.45}},
     {"asset": "highttech/Assets_Hitech_small/Hitech_small_V11", "x": 46, "y": 1, "rot": 0},
-    {"asset": "highttech/Assets_Hitech_medium/Hitech_medium_V5", "x": 47, "y": 1, "rot": 0},
-    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 2, "y": 4, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 24, "intensite": 0.5}},
-    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 26, "y": 4, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 24, "intensite": 0.5}},
-    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 27, "y": 5, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 24, "intensite": 0.5}},
-    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 48, "y": 5, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 24, "intensite": 0.5}},
-    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 8, "y": 6, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 24, "intensite": 0.5}},
-    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 9, "y": 6, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#3ef2e0", "rayon_px": 24, "intensite": 0.5}}
+    {"asset": "highttech/Assets_Hitech_medium/Hitech_medium_V5", "x": 47, "y": 1, "rot": 0}
   ],
   "plan": [
     "##################################################",

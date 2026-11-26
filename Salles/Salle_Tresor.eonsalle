@@ -16,7 +16,6 @@
     {"asset": "Dynamiques/Lumieres/Point_lumineux", "x": 21, "y": 6, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ffc23d", "rayon_px": 26, "intensite": 0.45}},
     {"asset": "Dynamiques/Lumieres/Point_lumineux", "x": 10, "y": 13, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ffc23d", "rayon_px": 26, "intensite": 0.45}},
     {"asset": "Dynamiques/Lumieres/Point_lumineux", "x": 21, "y": 13, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ffc23d", "rayon_px": 26, "intensite": 0.45}},
-    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 16, "y": 7, "rot": 0, "lumiere": {"mode": "vacille", "couleur": "#ffc23d", "rayon_px": 30, "intensite": 0.6}},
     {"asset": "Dynamiques/Lumieres/Neon_mural", "x": 6, "y": 0, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ff3d8b", "rayon_px": 52, "intensite": 0.8}},
     {"asset": "Dynamiques/Lumieres/Neon_mural", "x": 7, "y": 0, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ff3d8b", "rayon_px": 52, "intensite": 0.8}},
     {"asset": "Dynamiques/Lumieres/Neon_mural", "x": 8, "y": 0, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ff3d8b", "rayon_px": 52, "intensite": 0.8}},
@@ -43,11 +42,7 @@
     {"asset": "Dynamiques/Lumieres/Neon_mural", "x": 1, "y": 2, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ff3d8b", "rayon_px": 52, "intensite": 0.8}},
     {"asset": "highttech/Assets_Hitech_small/Hitech_small_V11", "x": 2, "y": 2, "rot": 0},
     {"asset": "moniteur/Computer_hitech_V6", "x": 30, "y": 3, "rot": 0},
-    {"asset": "Dynamiques/Lumieres/Point_lumineux", "x": 30, "y": 3, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ff6a3d", "rayon_px": 26, "intensite": 0.45}},
-    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 23, "y": 8, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ff3d8b", "rayon_px": 24, "intensite": 0.5}},
-    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 19, "y": 9, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ff3d8b", "rayon_px": 24, "intensite": 0.5}},
-    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 25, "y": 9, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ff3d8b", "rayon_px": 24, "intensite": 0.5}},
-    {"asset": "Dynamiques/Lumieres/Lampe_sol", "x": 17, "y": 13, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ff3d8b", "rayon_px": 24, "intensite": 0.5}}
+    {"asset": "Dynamiques/Lumieres/Point_lumineux", "x": 30, "y": 3, "rot": 0, "lumiere": {"mode": "fixe", "couleur": "#ff6a3d", "rayon_px": 26, "intensite": 0.45}}
   ],
   "plan": [
     "################################",
