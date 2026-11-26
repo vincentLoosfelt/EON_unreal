@@ -858,7 +858,7 @@ void AEONEnemy::UpdateEnemy(float Dt, const FVector2D& Tg)
 				{
 					const FVector Mz = Rk->RoomPxToWorld(Pos + L * 12.f, EON::PxToCm(13.f));
 					const FVector Dk = Rk->RoomPxToWorld(Pos + L) - Rk->RoomPxToWorld(Pos);
-					EONFx::FlashTir(this, Mz, Dk, EONFx::Hex(TEXT("e8923a")), 20.f, 22.f);
+					EONFx::FlashTir(this, Mz, Dk, EONFx::Hex(TEXT("e8923a")), 10.f, 22.f);
 				}
 				St = EEONEnemySt::Rec; StT = 0.5f; Cd = 2.6f + FRand01() * 0.9f;
 			}

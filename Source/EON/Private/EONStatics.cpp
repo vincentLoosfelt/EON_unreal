@@ -19,6 +19,7 @@
 #include "AnimGraphNode_Root.h"
 #include "AnimGraphNode_LayeredBoneBlend.h"
 #include "AnimGraphNode_SequencePlayer.h"
+#include "AnimGraphNode_ModifyBone.h"
 #include "K2Node_VariableGet.h"
 #include "K2Node_CallFunction.h"
 #include "K2Node_FunctionEntry.h"
@@ -263,6 +264,102 @@ FString UEONStatics::AddUpperBodyLayer(UAnimBlueprint* AnimBlueprint, UAnimSeque
 	FString Pins;
 	for (UEdGraphPin* P : Lay->Pins) Pins += P->PinName.ToString() + TEXT(",");
 	R += TEXT("| pins couche : ") + Pins;
+
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(AnimBlueprint);
+	FKismetEditorUtilities::CompileBlueprint(AnimBlueprint);
+	R += FString::Printf(TEXT(" | statut compilation %d"), (int32)AnimBlueprint->Status);
+	return R;
+#else
+	return TEXT("éditeur seulement");
+#endif
+}
+
+FString UEONStatics::AddArmAim(UAnimBlueprint* AnimBlueprint, FName AlphaVar, FName UpperBone, FName UpperVar, FName LowerBone, FName LowerVar)
+{
+#if WITH_EDITOR
+	if (!AnimBlueprint) return TEXT("arguments manquants");
+	UEdGraph* G = nullptr;
+	for (UEdGraph* X : AnimBlueprint->FunctionGraphs)
+		if (X && X->GetFName() == UEdGraphSchema_K2::GN_AnimGraph) G = X;
+	if (!G) return TEXT("AnimGraph introuvable");
+	UAnimGraphNode_Root* Root = nullptr;
+	for (UEdGraphNode* N : G->Nodes)
+	{
+		if (N && N->NodeComment == TEXT("EON_BRAS_TIR")) return TEXT("déjà en place");
+		if (UAnimGraphNode_Root* R = Cast<UAnimGraphNode_Root>(N)) Root = R;
+	}
+	if (!Root) return TEXT("nœud de sortie introuvable");
+	UEdGraphPin* RootIn = nullptr;
+	for (UEdGraphPin* P : Root->Pins) if (P->Direction == EGPD_Input) RootIn = P;
+	if (!RootIn || RootIn->LinkedTo.Num() != 1) return TEXT("entrée de la sortie non reliée");
+	UEdGraphPin* Prev = RootIn->LinkedTo[0];
+
+	for (const FName Var : { UpperVar, LowerVar })
+	{
+		if (FBlueprintEditorUtils::FindNewVariableIndex(AnimBlueprint, Var) == INDEX_NONE)
+		{
+			FEdGraphPinType T; T.PinCategory = UEdGraphSchema_K2::PC_Struct; T.PinSubCategoryObject = TBaseStructure<FRotator>::Get();
+			FBlueprintEditorUtils::AddMemberVariable(AnimBlueprint, Var, T);
+		}
+	}
+	const int32 X0 = Root->NodePosX, Y0 = Root->NodePosY;
+	Root->NodePosX += 1200;
+
+	auto Get = [&](FName Var, int32 X, int32 Y) -> UK2Node_VariableGet*
+	{
+		FGraphNodeCreator<UK2Node_VariableGet> VC(*G);
+		UK2Node_VariableGet* V = VC.CreateNode();
+		V->VariableReference.SetSelfMember(Var);
+		V->NodePosX = X; V->NodePosY = Y;
+		VC.Finalize();
+		return V;
+	};
+	auto Modif = [&](FName Bone, int32 X) -> UAnimGraphNode_ModifyBone*
+	{
+		FGraphNodeCreator<UAnimGraphNode_ModifyBone> MC(*G);
+		UAnimGraphNode_ModifyBone* M = MC.CreateNode();
+		M->Node.BoneToModify.BoneName = Bone;
+		M->Node.RotationMode = BMM_Replace;
+		M->Node.RotationSpace = BCS_WorldSpace;
+		M->Node.TranslationMode = BMM_Ignore;
+		M->Node.ScaleMode = BMM_Ignore;
+		M->NodePosX = X; M->NodePosY = Y0;
+		M->NodeComment = TEXT("EON_BRAS_TIR");
+		M->bCommentBubbleVisible = true;
+		MC.Finalize();
+		return M;
+	};
+	UAnimGraphNode_ModifyBone* Up = Modif(UpperBone, X0 + 350);
+	UAnimGraphNode_ModifyBone* Lo = Modif(LowerBone, X0 + 750);
+
+	const UEdGraphSchema* S = G->GetSchema();
+	auto Pin = [](UEdGraphNode* N, const TCHAR* Name, EEdGraphPinDirection D) -> UEdGraphPin*
+	{
+		for (UEdGraphPin* P : N->Pins) if (P->Direction == D && P->PinName == FName(Name)) return P;
+		return nullptr;
+	};
+	auto FirstOut = [](UEdGraphNode* N) -> UEdGraphPin*
+	{
+		for (UEdGraphPin* P : N->Pins) if (P->Direction == EGPD_Output) return P;
+		return nullptr;
+	};
+	FString R;
+	Prev->BreakLinkTo(RootIn);
+	// Pose locale -> pose composant (et retour) : le schéma d'animation insère lui-même les nœuds de conversion.
+	R += FString::Printf(TEXT("pose:%d "), S->TryCreateConnection(Prev, Pin(Up, TEXT("ComponentPose"), EGPD_Input)));
+	R += FString::Printf(TEXT("chaine:%d "), S->TryCreateConnection(FirstOut(Up), Pin(Lo, TEXT("ComponentPose"), EGPD_Input)));
+	R += FString::Printf(TEXT("sortie:%d "), S->TryCreateConnection(FirstOut(Lo), RootIn));
+	int32 K = 0;
+	for (UAnimGraphNode_ModifyBone* M : { Up, Lo })
+	{
+		const FName Var = M == Up ? UpperVar : LowerVar;
+		R += FString::Printf(TEXT("poids%d:%d "), K, S->TryCreateConnection(Get(AlphaVar, M->NodePosX - 250, Y0 + 250)->GetValuePin(), Pin(M, TEXT("Alpha"), EGPD_Input)));
+		R += FString::Printf(TEXT("rot%d:%d "), K, S->TryCreateConnection(Get(Var, M->NodePosX - 250, Y0 + 350)->GetValuePin(), Pin(M, TEXT("Rotation"), EGPD_Input)));
+		++K;
+	}
+	FString Pins;
+	for (UEdGraphPin* P : Up->Pins) Pins += P->PinName.ToString() + TEXT(",");
+	R += TEXT("| pins : ") + Pins;
 
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(AnimBlueprint);
 	FKismetEditorUtilities::CompileBlueprint(AnimBlueprint);

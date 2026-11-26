@@ -671,6 +671,26 @@ void AEONCharacter::Tick(float DeltaSeconds)
 			if (FDoubleProperty* D = CastField<FDoubleProperty>(P)) { D->SetPropertyValue(TirAddr, TirAlpha); }
 			else if (FFloatProperty* F = CastField<FFloatProperty>(P)) { F->SetPropertyValue(TirAddr, TirAlpha); }
 		}
+		// Bras armé tendu dans l'axe du tir (Vincent, 25/11 : « entièrement droit ») : deux Transform (Modify) Bone
+		// EON_BRAS_TIR (UEONStatics::AddArmAim), poids EONTirAlpha. Le canon dessiné n'est pas dans l'axe de son os
+		// (34°, mesuré sur le maillage : eon_jira_bras_tir.py), ni le haut du bras (7°) : on tourne chaque os pour que la
+		// pièce dessinée, elle, pointe vers le tir, à l'horizontale. Rotation du moment (pose de l'image d'avant) corrigée
+		// au plus court : le roulis de l'os ne bouge pas.
+		{
+			static const FVector HautBrasLocal = FVector(-0.9925f, -0.1014f, -0.0677f).GetSafeNormal();
+			static const FVector CanonLocal = FVector(-0.8287f, 0.5273f, -0.1875f).GetSafeNormal();
+			const FVector Vise(FMath::Cos(AimAngle), FMath::Sin(AimAngle), 0.f);
+			auto Viser = [&](const TCHAR* Os, const FVector& PieceLocal, const TCHAR* Var)
+			{
+				FStructProperty* P = CastField<FStructProperty>(AI->GetClass()->FindPropertyByName(Var));
+				if (!P || P->Struct != TBaseStructure<FRotator>::Get()) { return; }
+				const FQuat Q = GetMesh()->GetBoneQuaternion(Os);
+				const FQuat Voulu = FQuat::FindBetweenNormals(Q.RotateVector(PieceLocal), Vise) * Q;
+				*P->ContainerPtrToValuePtr<FRotator>(AI) = Voulu.Rotator();
+			};
+			Viser(TEXT("upperarm_r"), HautBrasLocal, TEXT("EONTirEpaule"));
+			Viser(TEXT("lowerarm_r"), CanonLocal, TEXT("EONTirCanon"));
+		}
 	}
 
 	// --- Vide (jalon 2)
@@ -849,8 +869,12 @@ void AEONCharacter::OnShot(const FEONGreffeRow& G, const FEONGameFeelRow& Feel, 
 		MuzzleLight->SetLightColor(G.Col);
 		MuzzleLight->SetVisibility(true);
 		MuzzleTimer = 0.06f;
-		// JIR-V2 : flash du tir, étoile dessinée (planche P4) couleur de la greffe, une image à 12 i/s.
-		EONFx::FlashTir(this, GetMuzzleLocation(AimAngle), Dir, G.Col);
+		// JIR-V2 : flash du tir, étoile dessinée (planche P4) couleur de l'arme, très émissive, une image à 12 i/s.
+		// L'étoile un peu devant le canon dessiné (le bras est tendu dans l'axe du tir, EON_BRAS_TIR) : coude + 1,161 ×
+		// l'os coude-main (longueur du canon mesurée sur Jira_UEFN.blend, eon_jira_bras_tir.py) + 3 px, dans l'axe de la visée.
+		const FVector Coude = GetMesh()->GetBoneLocation(TEXT("lowerarm_r"));
+		const float Canon = 1.161f * FVector::Dist(Coude, GetMesh()->GetBoneLocation(TEXT("hand_r")));
+		EONFx::FlashTir(this, Coude + FVector(FMath::Cos(AimAngle), FMath::Sin(AimAngle), 0.f) * (Canon + EON::PxToCm(3.f)), Dir, G.Col);
 	}
 	// JIR-U2 : le réticule s'écarte (crossT += 0,35, plafonné à 1).
 	CrossT = FMath::Min(1.f, CrossT + 0.35f);

@@ -476,25 +476,33 @@ namespace
 
 void EONFx::FlashTir(const UObject* Ctx, const FVector& At, const FVector& Dir, const FLinearColor& Col, float SizePx, float LightRadiusPx)
 {
-	// Une image à 12 i/s : le flash est un seul dessin, tenu 1/12 s.
-	AEONFxPiece* F = SpawnPiece(Ctx, At, 1.f / 12.f);
-	if (!F) { return; }
-	UMaterialInstanceDynamic* M = PlancheMid(F, TEXT("/Game/EON/VFX/Planches/T_EON_VFX_P4_Flash.T_EON_VFX_P4_Flash"), 2.f, 2.f, FMath::Lerp(FLinearColor::White, Col, 0.55f));
-	if (!M) { F->Destroy(); return; }
+	// Vincent, 25/11 : « émission blanche à halo » de la couleur de l'arme. Deux couches de la même étoile, tenues une
+	// image à 12 i/s : derrière, le halo (étoile ×1,7, couleur de l'arme) ; devant, le cœur blanc, un peu vers la caméra.
 	static int32 Dernier = -1;
 	int32 Img = FMath::RandRange(0, 2);
 	if (Img >= Dernier) { ++Img; }
 	Dernier = Img;
-	M->SetScalarParameterValue(TEXT("Image"), (float)Img);
 	const float S = EON::PxToCm(SizePx);
-	F->bNoFade = true;
-	F->FaceDir = Dir.GetSafeNormal();
-	F->FaceSize = S;
-	F->FaceAnchor = 0.2f;   // centre de l'étoile un peu devant le canon
-	F->FaceLift = 0.f;
-	F->FacePlane = F->AddPlane(M, FVector::ZeroVector, 0.f, S, S);
-	F->UpdateFace();
-	if (LightRadiusPx > 0.f) { F->AddLight(Col, 6000.f, EON::PxToCm(LightRadiusPx)); }
+	auto Couche = [&](const FLinearColor& Teinte, float Taille, float VersCamera) -> AEONFxPiece*
+	{
+		AEONFxPiece* F = SpawnPiece(Ctx, At, 1.f / 12.f);
+		if (!F) { return nullptr; }
+		UMaterialInstanceDynamic* M = PlancheMid(F, TEXT("/Game/EON/VFX/Planches/T_EON_VFX_P4_Flash.T_EON_VFX_P4_Flash"), 2.f, 2.f, Teinte);
+		if (!M) { F->Destroy(); return nullptr; }
+		M->SetScalarParameterValue(TEXT("Intensite"), FlashTirEmission);
+		M->SetScalarParameterValue(TEXT("Image"), (float)Img);
+		F->bNoFade = true;
+		F->FaceDir = Dir.GetSafeNormal();
+		F->FaceSize = Taille;
+		F->FaceAnchor = 0.f;   // centre de l'étoile sur le point donné (bout du canon)
+		F->FaceLift = VersCamera;
+		F->FacePlane = F->AddPlane(M, FVector::ZeroVector, 0.f, Taille, Taille);
+		F->UpdateFace();
+		return F;
+	};
+	AEONFxPiece* Halo = Couche(Col, S * 1.7f, 0.f);
+	Couche(FLinearColor::White, S, 1.f);
+	if (Halo && LightRadiusPx > 0.f) { Halo->AddLight(Col, 6000.f, EON::PxToCm(LightRadiusPx)); }
 }
 
 void EONFx::Giclee(const UObject* Ctx, const FVector& At, const FVector& Dir, float SizeCm, const FLinearColor& Col, float Life, float LiftCm)

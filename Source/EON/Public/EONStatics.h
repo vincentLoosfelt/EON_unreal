@@ -84,6 +84,11 @@ public:
 	 *  variable float AlphaVar (créée si absente). Idempotent (nœud marqué « EON_TIR »). Renvoie un compte rendu. */
 	UFUNCTION(BlueprintCallable, Category = "EON|Outils")
 	static FString AddUpperBodyLayer(UAnimBlueprint* AnimBlueprint, UAnimSequence* Pose, FName SpineBone, FName AlphaVar);
+	/** Éditeur : ajoute à la sortie de l'AnimGraph deux Transform (Modify) Bone (rotation remplacée, repère monde) :
+	 *  UpperBone tourné de la variable UpperVar puis LowerBone de LowerVar (rotators), poids AlphaVar. Bras armé de Jira
+	 *  tendu dans l'axe du tir (AEONCharacter::Tick calcule les rotations). */
+	UFUNCTION(BlueprintCallable, Category = "EON|Editeur")
+	static FString AddArmAim(UAnimBlueprint* AnimBlueprint, FName AlphaVar, FName UpperBone, FName UpperVar, FName LowerBone, FName LowerVar);
 	/** Remplit une structure de propriétés d'animation (S_CharacterPropertiesForAnimation du Game Animation Sample)
 	 *  depuis un AEONCharacter, champ par champ selon leur nom. Appelée par BP_Jira (interface BPI_SandboxCharacter_Pawn). */
 	UFUNCTION(BlueprintCallable, CustomThunk, Category = "EON|Anim", meta = (CustomStructureParam = "Props", DefaultToSelf = "Character"))
