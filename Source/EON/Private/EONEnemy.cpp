@@ -15,6 +15,7 @@
 #include "EONFx.h"
 #include "EONMembre.h"
 #include "Kismet/GameplayStatics.h"
+#include "Misc/PackageName.h"
 #include "Components/CapsuleComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/DataTable.h"
@@ -160,6 +161,8 @@ bool AEONEnemy::Init(AEONCombatDirector* InDirector, AEONTileRoom* InRoom, FName
 	return true;
 }
 
+static TAutoConsoleVariable<int32> CVarEnnemiQuant(TEXT("eon.ennemi.quant"), 0, TEXT("1 = base color des ennemis en aplats (doublons MI_<X>_Quant, Vincent 26/11). Pris à l'apparition."));
+
 void AEONEnemy::MakeElite()
 {
 	bElite = true;
@@ -213,6 +216,19 @@ void AEONEnemy::BuildModel()
 		Meshes.Add(C);
 		for (int32 I = 0; I < C->GetNumMaterials(); ++I)
 		{
+			// Vincent, 26/11 : base color en aplats. eon.ennemi.quant 1 = doublon MI_<X>_Quant (eon_quantif_import.py).
+			if (CVarEnnemiQuant.GetValueOnGameThread() != 0)
+			{
+				if (UMaterialInterface* Mo = C->GetMaterial(I))
+				{
+					const FString Q = Mo->GetName() + TEXT("_Quant");
+					const FString Qp = FPackageName::ObjectPathToPackageName(Mo->GetPathName()) + TEXT("_Quant.") + Q;
+					if (UMaterialInterface* Mq = LoadObject<UMaterialInterface>(nullptr, *Qp, nullptr, LOAD_NoWarn | LOAD_Quiet))
+					{
+						C->SetMaterial(I, Mq);
+					}
+				}
+			}
 			// COM-V9 : chaque matériau devient une instance dynamique (trous) ; c'est elle que le flash remet ensuite.
 			UMaterialInstanceDynamic* Hm = C->CreateDynamicMaterialInstance(I);
 			if (Hm) { HoleMids.Add(Hm); }

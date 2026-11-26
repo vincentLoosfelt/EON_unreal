@@ -430,6 +430,43 @@ namespace EONVitrine
 		  S.WidthPx = 160.f;
 		  S.After = []() { if (AEONCharacter* J = Jira()) { J->SetFireHeld(false); } KillTout(); };
 		  GSteps.Add(S); }
+		// QNT-V (Vincent, 26/11) : les 5 ennemis côte à côte, de près, immobiles, pour comparer la base color d'origine et
+		// les doublons en aplats (lancer avec eon.ennemi.quant 0 puis 1). Grande salle, Jira à gauche, pas de tir.
+		{ FStep S; S.Name = TEXT("QNT-V_Video"); S.VideoFrames = 150;
+		  S.Start = []()
+		  {
+			  if (GEngine) { GEngine->Exec(GVWorld.Get(), TEXT("eon.forme large")); }
+			  const FVector2D C = CentreDegage();
+			  GAt = C; GJiraAt = C - FVector2D(34.f, 0.f);
+			  if (AEONCharacter* J = Jira()) { J->SetActorLocation(RoomW(GJiraAt, 0.f) + FVector(0.f, 0.f, J->GetSimpleCollisionHalfHeight()), false, nullptr, ETeleportType::TeleportPhysics); }
+			  static const TCHAR* Types[] = { TEXT("slasher"), TEXT("goule"), TEXT("kamikaze"), TEXT("sniper"), TEXT("invocateur") };
+			  for (int32 I = 0; I < 5; ++I)
+			  {
+				  if (AEONEnemy* E = Dir() ? Dir()->SpawnEnemyAt(FName(Types[I]), C + FVector2D(-18.f + I * 13.f, (I % 2) ? 6.f : -6.f), false) : nullptr) { E->Hp = 1.0e6f; }
+			  }
+			  GFrame = 0;
+		  };
+		  S.Ready = [](double)
+		  {
+			  Passer();
+			  if (AEONCombatDirector* D = Dir())
+			  {
+				  int32 I = 0;
+				  for (AEONEnemy* E : D->GetEnemies())
+				  {
+					  if (!E || I >= 5) { continue; }
+					  E->Pos = GAt + FVector2D(-18.f + I * 13.f, (I % 2) ? 6.f : -6.f); E->Vel = FVector2D::ZeroVector; E->Knock = FVector2D::ZeroVector;
+					  if (E->Hp < 1.0e5f) { E->Hp = 1.0e6f; }
+					  ++I;
+				  }
+			  }
+			  if (AEONCharacter* J = Jira()) { J->SetActorLocation(RoomW(GJiraAt, 0.f) + FVector(0.f, 0.f, J->GetSimpleCollisionHalfHeight()), false, nullptr, ETeleportType::TeleportPhysics); }
+			  return false;
+		  };
+		  S.Target = []() { return RoomW(GAt + FVector2D(-6.f, 0.f), 8.f); };
+		  S.WidthPx = 84.f;
+		  S.After = []() { KillTout(); };
+		  GSteps.Add(S); }
 		for (int32 I = 0; I < GSteps.Num(); ++I) { GSteps[I].Num = I + 1; }
 	}
 
