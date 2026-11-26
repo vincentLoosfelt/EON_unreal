@@ -4,7 +4,10 @@
 #include "NiagaraTypes.h"
 #include "NiagaraParameterStore.h"
 #include "UObject/UnrealType.h"
+#if WITH_EDITOR
+// En-tête « Internal » de Niagara, ajouté au chemin d'inclusion seulement en éditeur (EON.Build.cs) ; tout son usage est sous WITH_EDITOR.
 #include "Stateless/NiagaraStatelessEmitter.h"
+#endif
 #include "NiagaraMeshRendererProperties.h"
 #include "Engine/StaticMesh.h"
 
