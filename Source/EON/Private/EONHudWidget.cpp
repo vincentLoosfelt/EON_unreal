@@ -26,6 +26,16 @@
 #include "Rendering/SlateRenderer.h"
 #include "Styling/CoreStyle.h"
 
+// Test des invites manette sans manette branchée : eon.ui.manette 1 (0 = clavier-souris).
+static FAutoConsoleCommandWithWorldAndArgs GEONCmdUiManette(TEXT("eon.ui.manette"), TEXT("eon.ui.manette 1|0 : force les invites manette ou clavier (tests)"),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* W)
+	{
+		if (AEONPlayerController* PC = W ? Cast<AEONPlayerController>(W->GetFirstPlayerController()) : nullptr)
+		{
+			PC->NotifyDeviceUsed(Args.Num() == 0 || Args[0] != TEXT("0"));
+		}
+	}));
+
 namespace EONHud
 {
 	// Palette de la charte (page 03) : ambre de titrage, fond, rouge ; secondaires ≤ 15 % de la composition.
