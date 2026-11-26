@@ -25,6 +25,7 @@
 #include "Rendering/DrawElements.h"
 #include "Rendering/SlateRenderer.h"
 #include "Styling/CoreStyle.h"
+#include "InputMappingContext.h"
 
 // Test des invites manette sans manette branchée : eon.ui.manette 1 (0 = clavier-souris).
 static FAutoConsoleCommandWithWorldAndArgs GEONCmdUiManette(TEXT("eon.ui.manette"), TEXT("eon.ui.manette 1|0 : force les invites manette ou clavier (tests)"),
@@ -35,6 +36,33 @@ static FAutoConsoleCommandWithWorldAndArgs GEONCmdUiManette(TEXT("eon.ui.manette
 			PC->NotifyDeviceUsed(Args.Num() == 0 || Args[0] != TEXT("0"));
 		}
 	}));
+
+// Bouton manette d'une action, lu dans le contexte d'entrées du contrôleur (IMC_EON) ; vide si aucun.
+static FString EONPadLabel(const AEONPlayerController* PC, const TSoftObjectPtr<UInputAction>& Act)
+{
+	const UInputMappingContext* IMC = PC ? PC->MappingContext.Get() : nullptr;
+	const UInputAction* IA = Act.Get();
+	if (!IMC || !IA) { return FString(); }
+	for (const FEnhancedActionKeyMapping& M : IMC->GetMappings())
+	{
+		if (M.Action != IA || !M.Key.IsGamepadKey()) { continue; }
+		const FName K = M.Key.GetFName();
+		static const TMap<FName, const TCHAR*> Short = {
+			{ EKeys::Gamepad_FaceButton_Bottom.GetFName(), TEXT("A") }, { EKeys::Gamepad_FaceButton_Right.GetFName(), TEXT("B") },
+			{ EKeys::Gamepad_FaceButton_Left.GetFName(), TEXT("X") }, { EKeys::Gamepad_FaceButton_Top.GetFName(), TEXT("Y") },
+			{ EKeys::Gamepad_LeftShoulder.GetFName(), TEXT("LB") }, { EKeys::Gamepad_RightShoulder.GetFName(), TEXT("RB") },
+			{ EKeys::Gamepad_LeftTrigger.GetFName(), TEXT("LT") }, { EKeys::Gamepad_RightTrigger.GetFName(), TEXT("RT") },
+			{ EKeys::Gamepad_LeftTriggerAxis.GetFName(), TEXT("LT") }, { EKeys::Gamepad_RightTriggerAxis.GetFName(), TEXT("RT") },
+			{ EKeys::Gamepad_LeftThumbstick.GetFName(), TEXT("L3") }, { EKeys::Gamepad_RightThumbstick.GetFName(), TEXT("R3") },
+			{ EKeys::Gamepad_DPad_Up.GetFName(), TEXT("↑") }, { EKeys::Gamepad_DPad_Down.GetFName(), TEXT("↓") },
+			{ EKeys::Gamepad_DPad_Left.GetFName(), TEXT("←") }, { EKeys::Gamepad_DPad_Right.GetFName(), TEXT("→") },
+			{ EKeys::Gamepad_Special_Left.GetFName(), TEXT("VUE") }, { EKeys::Gamepad_Special_Right.GetFName(), TEXT("MENU") },
+		};
+		if (const TCHAR* const* T = Short.Find(K)) { return *T; }
+		return M.Key.GetDisplayName(false).ToString();
+	}
+	return FString();
+}
 
 namespace EONHud
 {
@@ -539,21 +567,29 @@ void UEONHudWidget::PaintHud(const EONHud::FPaint& P, const AEONCharacter* J, co
 	{
 		const bool bBlk = J->AreSpellsBlocked();
 		const float Xr = SW - M;
-		auto Key = [&](const TCHAR* K, const FString& Lbl, float Y, float K01, bool bReady, bool bBlocked, float Px)
+		// Manette : bouton lu dans IMC_EON (A, X, LB, RT…) ; clavier : F, E, R.
+		const AEONPlayerController* KPC = Cast<AEONPlayerController>(GetOwningPlayer());
+		const bool bKPad = KPC && KPC->IsUsingGamepad();
+		auto Pad = [&](const TCHAR* Kb, const TSoftObjectPtr<UInputAction>& Act) -> FString
+		{
+			const FString B = bKPad ? EONPadLabel(KPC, Act) : FString();
+			return B.IsEmpty() ? FString(Kb) : B;
+		};
+		auto Key = [&](const FString& K, const FString& Lbl, float Y, float K01, bool bReady, bool bBlocked, float Px)
 		{
 			const FLinearColor C = bBlocked ? A(RedC, 0.6f) : bReady ? White : A(White, 0.45f);
-			const float Tw = P.Measure(Lbl, 0, Px).X, Kw = Px + 6.f, Kx = Xr - Tw - 10.f - Kw;
-			P.Rect(Kx, Y, Kw, Kw + 2.f, C);
+			const float Tw = P.Measure(Lbl, 0, Px).X, Kh = Px + 6.f, Kw = FMath::Max(Kh, P.Measure(K, 0, Px).X + 10.f), Kx = Xr - Tw - 10.f - Kw;
+			P.Rect(Kx, Y, Kw, Kh + 2.f, C);
 			P.Text(K, Kx + Kw * 0.5f, Y + 1.f, 0, Px, Bg, 1);
 			P.Text(Lbl, Xr, Y + 1.f, 0, Px, C, 2);
-			P.Rect(Kx, Y + Kw + 6.f, Xr - Kx, 3.f, A(Amber, 0.2f));
-			P.Rect(Kx, Y + Kw + 6.f, (Xr - Kx) * FMath::Clamp(K01, 0.f, 1.f), 3.f, bBlocked ? A(RedC, 0.6f) : Amber, 1);
+			P.Rect(Kx, Y + Kh + 6.f, Xr - Kx, 3.f, A(Amber, 0.2f));
+			P.Rect(Kx, Y + Kh + 6.f, (Xr - Kx) * FMath::Clamp(K01, 0.f, 1.f), 3.f, bBlocked ? A(RedC, 0.6f) : Amber, 1);
 		};
-		Key(TEXT("F"), TEXT("HOLO"), SH - 190.f, 1.f - FMath::Max(0.f, J->GetHoloCooldown()) / 7.f, J->GetHoloCooldown() <= 0.f, bBlk, 16.f);
-		Key(TEXT("E"), TEXT("ONDE"), SH - 150.f, 1.f - FMath::Max(0.f, J->GetSpellCooldown()) / 0.9f, J->GetSpellCooldown() <= 0.f, bBlk, 16.f);
+		Key(Pad(TEXT("F"), KPC ? KPC->IA_Holo : nullptr), TEXT("HOLO"), SH - 190.f, 1.f - FMath::Max(0.f, J->GetHoloCooldown()) / 7.f, J->GetHoloCooldown() <= 0.f, bBlk, 16.f);
+		Key(Pad(TEXT("E"), KPC ? KPC->IA_Spell : nullptr), TEXT("ONDE"), SH - 150.f, 1.f - FMath::Max(0.f, J->GetSpellCooldown()) / 0.9f, J->GetSpellCooldown() <= 0.f, bBlk, 16.f);
 		const float Ult = J->GetUlt();
 		const bool bReady = Ult >= 100.f;
-		Key(TEXT("R"), bReady && Blink(0.5f, 0.3f) ? TEXT("HYPERCHARGE PRÊTE") : TEXT("HYPERCHARGE"), SH - 106.f, Ult / 100.f, true, false, 24.f);
+		Key(Pad(TEXT("R"), KPC ? KPC->IA_Ultimate : nullptr), bReady && Blink(0.5f, 0.3f) ? TEXT("HYPERCHARGE PRÊTE") : TEXT("HYPERCHARGE"), SH - 106.f, Ult / 100.f, true, false, 24.f);
 	}
 }
 
