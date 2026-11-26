@@ -15,6 +15,12 @@
 #include "HAL/IConsoleManager.h"
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "GameFramework/GameUserSettings.h"
+#include "AudioDevice.h"
+#include "Engine/Engine.h"
+#include "EONCombatDirector.h"
+#include "EONPlayerController.h"
 
 namespace
 {
@@ -308,6 +314,172 @@ void UEONUISubsystem::OpenTitle(TFunction<void()> OnNew)
 	UE_LOG(LogEON, Display, TEXT("EON UI ecran titre"));
 }
 
+// ---------------------------------------------------------------- menu pause et options
+
+namespace
+{
+	const TCHAR* OptSection = TEXT("/Script/EON.EONOptions");
+	const int32 FpsSteps[] = { 30, 60, 120, 144, 0 };
+	constexpr int32 NumOptRows = 7;   // volume, affichage, résolution, V-sync, images, qualité, retour
+
+	UGameUserSettings* Gus() { return GEngine ? GEngine->GetGameUserSettings() : nullptr; }
+
+	TArray<FIntPoint> Resolutions()
+	{
+		TArray<FIntPoint> R;
+		UKismetSystemLibrary::GetSupportedFullscreenResolutions(R);
+		R.RemoveAll([](const FIntPoint& P) { return P.X < 1280 || P.Y < 720; });
+		if (R.IsEmpty()) { R = { { 1280, 720 }, { 1600, 900 }, { 1920, 1080 }, { 2560, 1440 }, { 3840, 2160 } }; }
+		R.Sort([](const FIntPoint& A, const FIntPoint& B) { return A.X != B.X ? A.X < B.X : A.Y < B.Y; });
+		return R;
+	}
+}
+
+float UEONUISubsystem::GetSavedVolume()
+{
+	float V = 1.f;
+	if (GConfig) { GConfig->GetFloat(OptSection, TEXT("Volume"), V, GGameUserSettingsIni); }
+	return FMath::Clamp(V, 0.f, 1.f);
+}
+
+void UEONUISubsystem::ApplyVolume(UWorld* W)
+{
+	if (!W) { return; }
+	if (FAudioDeviceHandle D = W->GetAudioDevice()) { D->SetTransientPrimaryVolume(GetSavedVolume()); }
+}
+
+void UEONUISubsystem::OnWorldBeginPlay(UWorld& InWorld)
+{
+	Super::OnWorldBeginPlay(InWorld);
+	ApplyVolume(&InWorld);
+}
+
+void UEONUISubsystem::OpenPause()
+{
+	if (bPause) { return; }
+	bPause = true;
+	PauseSel = 0;
+	PauseConfirm = -1;
+	bOptions = false;
+	OptSel = 0;
+	SyncPause();
+	EONSfx::Event(this, TEXT("menu_open"));
+	UE_LOG(LogEON, Display, TEXT("EON UI pause ouverte"));
+}
+
+void UEONUISubsystem::ClosePause()
+{
+	if (!bPause) { return; }
+	bPause = false;
+	bOptions = false;
+	PauseConfirm = -1;
+	ClosedAt = FPlatformTime::Seconds();
+	SyncPause();
+	UE_LOG(LogEON, Display, TEXT("EON UI pause fermee"));
+}
+
+TArray<UEONUISubsystem::FOptRow> UEONUISubsystem::OptionRows() const
+{
+	TArray<FOptRow> R;
+	const UGameUserSettings* G = Gus();
+	R.Add({ TEXT("VOLUME"), FString::Printf(TEXT("%d %%"), FMath::RoundToInt(GetSavedVolume() * 100.f)) });
+	const EWindowMode::Type Wm = G ? G->GetFullscreenMode() : EWindowMode::Windowed;
+	R.Add({ TEXT("AFFICHAGE"), Wm == EWindowMode::Fullscreen ? TEXT("PLEIN ÉCRAN") : Wm == EWindowMode::WindowedFullscreen ? TEXT("PLEIN ÉCRAN FENÊTRÉ") : TEXT("FENÊTRÉ") });
+	const FIntPoint Rs = G ? G->GetScreenResolution() : FIntPoint(1920, 1080);
+	R.Add({ TEXT("RÉSOLUTION"), FString::Printf(TEXT("%d × %d"), Rs.X, Rs.Y) });
+	R.Add({ TEXT("V-SYNC"), G && G->IsVSyncEnabled() ? TEXT("OUI") : TEXT("NON") });
+	const int32 Fl = G ? FMath::RoundToInt(G->GetFrameRateLimit()) : 0;
+	R.Add({ TEXT("LIMITE D'IMAGES"), Fl <= 0 ? FString(TEXT("ILLIMITÉE")) : FString::Printf(TEXT("%d / S"), Fl) });
+	static const TCHAR* Q[] = { TEXT("BASSE"), TEXT("MOYENNE"), TEXT("HAUTE"), TEXT("ÉPIQUE"), TEXT("CINÉMA") };
+	const int32 Ql = G ? G->GetOverallScalabilityLevel() : -1;
+	R.Add({ TEXT("QUALITÉ"), Ql >= 0 && Ql <= 4 ? FString(Q[Ql]) : FString(TEXT("PERSONNALISÉE")) });
+	R.Add({ TEXT("RETOUR"), FString() });
+	return R;
+}
+
+void UEONUISubsystem::OptChange(int32 Dir)
+{
+	UGameUserSettings* G = Gus();
+	switch (OptSel)
+	{
+	case 0:
+	{
+		const float V = FMath::Clamp(FMath::RoundToInt(GetSavedVolume() * 10.f + Dir) / 10.f, 0.f, 1.f);
+		if (GConfig) { GConfig->SetFloat(OptSection, TEXT("Volume"), V, GGameUserSettingsIni); GConfig->Flush(false, GGameUserSettingsIni); }
+		ApplyVolume(GetWorld());
+		break;
+	}
+	case 1:
+		if (G)
+		{
+			static const EWindowMode::Type M[] = { EWindowMode::Fullscreen, EWindowMode::WindowedFullscreen, EWindowMode::Windowed };
+			const int32 I = G->GetFullscreenMode() == EWindowMode::Fullscreen ? 0 : G->GetFullscreenMode() == EWindowMode::WindowedFullscreen ? 1 : 2;
+			G->SetFullscreenMode(M[(I + Dir + 3) % 3]);
+		}
+		break;
+	case 2:
+		if (G)
+		{
+			const TArray<FIntPoint> Rs = Resolutions();
+			int32 I = Rs.IndexOfByKey(G->GetScreenResolution());
+			I = I == INDEX_NONE ? Rs.Num() - 1 : (I + Dir + Rs.Num()) % Rs.Num();
+			G->SetScreenResolution(Rs[I]);
+		}
+		break;
+	case 3:
+		if (G) { G->SetVSyncEnabled(!G->IsVSyncEnabled()); }
+		break;
+	case 4:
+		if (G)
+		{
+			const int32 Fl = FMath::RoundToInt(G->GetFrameRateLimit());
+			const int32 N = (int32)UE_ARRAY_COUNT(FpsSteps);
+			int32 I = N - 1;
+			for (int32 K = 0; K < N; ++K) { if (FpsSteps[K] == Fl) { I = K; } }
+			G->SetFrameRateLimit((float)FpsSteps[(I + Dir + N) % N]);
+		}
+		break;
+	case 5:
+		if (G) { const int32 Ql = FMath::Max(0, G->GetOverallScalabilityLevel()); G->SetOverallScalabilityLevel(FMath::Clamp(Ql + Dir, 0, 4)); }
+		break;
+	default: return;
+	}
+	if (G && OptSel > 0) { G->ApplySettings(false); }
+	EONSfx::Event(this, TEXT("menu_move"));
+	UE_LOG(LogEON, Display, TEXT("EON UI option %d : %s"), OptSel, *OptionRows()[OptSel].V);
+}
+
+void UEONUISubsystem::PauseNav(int32 Dir)
+{
+	if (bOptions) { OptSel = (OptSel + Dir + NumOptRows) % NumOptRows; }
+	else { PauseSel = (PauseSel + Dir + 3) % 3; PauseConfirm = -1; }
+	EONSfx::Event(this, TEXT("menu_move"));
+}
+
+void UEONUISubsystem::PauseAct()
+{
+	if (bOptions)
+	{
+		if (OptSel == NumOptRows - 1) { bOptions = false; }
+		else if (OptSel == 1 || OptSel == 3) { OptChange(1); }
+		return;
+	}
+	if (PauseSel == 1) { bOptions = true; OptSel = 0; PauseConfirm = -1; EONSfx::Event(this, TEXT("menu_open")); return; }
+	if (PauseConfirm != PauseSel) { PauseConfirm = PauseSel; return; }   // premier appui : « CONFIRMER »
+	if (PauseSel == 0)
+	{
+		ClosePause();
+		UE_LOG(LogEON, Display, TEXT("EON UI pause : redemarrer"));
+		if (AEONCombatDirector* D = AEONCombatDirector::Get(GetWorld())) { D->RestartRun(); }
+		else { UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this, true))); }
+	}
+	else
+	{
+		UE_LOG(LogEON, Display, TEXT("EON UI pause : quitter"));
+		UKismetSystemLibrary::QuitGame(this, UGameplayStatics::GetPlayerController(this, 0), EQuitPreference::Quit, false);
+	}
+}
+
 // ---------------------------------------------------------------- commun
 
 void UEONUISubsystem::DevAction(const FString& A)
@@ -316,6 +488,13 @@ void UEONUISubsystem::DevAction(const FString& A)
 	else if (bTitle && A == TEXT("nouvelle")) { TitleSel = 1; if (!bTitleConfirm) { bTitleConfirm = true; } else { bTitle = false; if (UEONMetaSubsystem* MS = UEONMetaSubsystem::Get(this)) { MS->Wipe(); } SyncPause(); if (TitleNew) { TitleNew(); } } }
 	else if (IsDialogOpen() && A == TEXT("suite")) { DlgAdvance(); }
 	else if (IsDialogOpen() && A == TEXT("passer")) { DlgClose(); }
+	else if (A == TEXT("pause")) { if (bPause) { ClosePause(); } else if (!IsBlocking()) { OpenPause(); } }
+	else if (bPause && A == TEXT("haut")) { PauseNav(-1); }
+	else if (bPause && A == TEXT("bas")) { PauseNav(1); }
+	else if (bPause && bOptions && A == TEXT("gauche")) { OptChange(-1); }
+	else if (bPause && bOptions && A == TEXT("droite")) { OptChange(1); }
+	else if (bPause && A == TEXT("valider")) { PauseAct(); }
+	else if (bPause && A == TEXT("retour")) { if (bOptions) { bOptions = false; } else { ClosePause(); } }
 	UE_LOG(LogEON, Display, TEXT("EON UI eon.ui %s"), *A);
 }
 
@@ -331,6 +510,10 @@ void UEONUISubsystem::SyncPause()
 void UEONUISubsystem::TickUI(APlayerController* PC, float RealDt)
 {
 	const int32 Auto = AutoMode();
+	// Le menu F6 se ferme aussi par Échap : à l'image où il se ferme, Échap n'ouvre pas la pause.
+	const AEONPlayerController* EPC = Cast<AEONPlayerController>(PC);
+	const bool bDevNow = EPC && EPC->GetDevMenu().IsOpen(), bDevWas = bDevWasOpen;
+	bDevWasOpen = bDevNow;
 	// --- Écran titre
 	if (bTitle)
 	{
@@ -361,6 +544,32 @@ void UEONUISubsystem::TickUI(APlayerController* PC, float RealDt)
 			}
 		}
 		return;
+	}
+	// --- Menu pause et Options
+	if (bPause)
+	{
+		if (!PC) { return; }
+		if (Pressed(PC, { EKeys::Escape, EKeys::Gamepad_FaceButton_Right, EKeys::Gamepad_Special_Right }))
+		{
+			if (bOptions) { bOptions = false; EONSfx::Event(this, TEXT("menu_move")); } else { ClosePause(); }
+			return;
+		}
+		if (Pressed(PC, { EKeys::Up, EKeys::Z, EKeys::W, EKeys::Gamepad_DPad_Up, EKeys::Gamepad_LeftStick_Up })) { PauseNav(-1); }
+		if (Pressed(PC, { EKeys::Down, EKeys::S, EKeys::Gamepad_DPad_Down, EKeys::Gamepad_LeftStick_Down })) { PauseNav(1); }
+		if (bOptions)
+		{
+			if (Pressed(PC, { EKeys::Left, EKeys::Q, EKeys::A, EKeys::Gamepad_DPad_Left, EKeys::Gamepad_LeftStick_Left })) { OptChange(-1); }
+			if (Pressed(PC, { EKeys::Right, EKeys::D, EKeys::Gamepad_DPad_Right, EKeys::Gamepad_LeftStick_Right })) { OptChange(1); }
+		}
+		if (Pressed(PC, { EKeys::Enter, EKeys::SpaceBar, EKeys::E, EKeys::Gamepad_FaceButton_Bottom })) { PauseAct(); }
+		return;
+	}
+	// --- Ouverture de la pause : Échap ou Menu (manette), jeu libre.
+	if (PC && !IsBlocking() && !bDevNow && !bDevWas && !JustClosed() && Pressed(PC, { EKeys::Escape, EKeys::Gamepad_Special_Right }))
+	{
+		const AEONCharacter* J = Cast<AEONCharacter>(PC->GetPawn());
+		const AEONFloorManager* F = AEONFloorManager::Get(this);
+		if (J && !J->IsDead() && !J->IsLevelUpOpen() && !J->IsInQTE() && !(F && F->IsCinematic())) { OpenPause(); return; }
 	}
 	// --- Dialogue en cours
 	if (IsDialogOpen())

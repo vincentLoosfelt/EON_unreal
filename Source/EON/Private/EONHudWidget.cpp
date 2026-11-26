@@ -269,6 +269,13 @@ int32 UEONHudWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Allott
 		const FPaint Po(AllottedGeometry, OutDrawElements, LayerId + 14);
 		if (J->IsDead()) { PaintDead(Po, *J, F); } else { PaintLevelUp(Po, *J); }
 	}
+	// Menu pause et Options, par-dessus tout le jeu.
+	if (UI && UI->IsPauseOpen())
+	{
+		const AEONPlayerController* EPC = Cast<AEONPlayerController>(OPC);
+		const FPaint Pp(AllottedGeometry, OutDrawElements, LayerId + 16);
+		PaintPause(Pp, *UI, EPC && EPC->IsUsingGamepad());
+	}
 	if (bDev)
 	{
 		const FPaint Pd(AllottedGeometry, OutDrawElements, LayerId + 22);
@@ -1597,4 +1604,72 @@ void UEONHudWidget::PaintDevMenu(const EONHud::FPaint& P, const AEONPlayerContro
 		Y += Lh;
 	}
 	P.Text(Footer, X0 + 16.f, Y + 10.f, 2, 15.f, Footer.StartsWith(TEXT("Fl")) ? A(White, 0.55f) : Amber);
+}
+
+// ---------------------------------------------------------------- menu pause et options (charte)
+// Voile et grille, « PAUSE » entre crochets ambre, trois boutons empilés (le second appui de Redémarrer
+// ou Quitter passe en crochets rouges). Options : panneau à coin coupé, ligne choisie en ambre, valeur entre ‹ ›.
+void UEONHudWidget::PaintPause(const EONHud::FPaint& P, const UEONUISubsystem& UI, bool bPad) const
+{
+	const float SW = P.W(), Cx = SW * 0.5f;
+	P.Rect(0.f, 0.f, SW, 1080.f, A(Bg, 0.82f));
+	BgGrid(P, 0.8f);
+	const bool bOpt = UI.IsOptionsOpen();
+	// Titre entre crochets.
+	{
+		const FString S = bOpt ? TEXT("OPTIONS") : TEXT("PAUSE");
+		const float Ty = bOpt ? 150.f : 260.f, Th = 96.f, Tw = P.Measure(S, 0, 72.f).X;
+		P.Text(S, Cx, Ty, 0, 72.f, Amber, 1, 2);
+		const float Bx = Cx - Tw * 0.5f - 40.f, Bw = Tw + 80.f, Br = 20.f, By = Ty - 6.f;
+		P.Line({ { Bx + Br, By }, { Bx, By }, { Bx, By + Th }, { Bx + Br, By + Th } }, Amber, 3.f);
+		P.Line({ { Bx + Bw - Br, By }, { Bx + Bw, By }, { Bx + Bw, By + Th }, { Bx + Bw - Br, By + Th } }, Amber, 3.f);
+		P.Rect(Cx - 60.f, Ty + Th + 18.f, 120.f, 3.f, A(Amber, 0.6f));
+	}
+	if (!bOpt)
+	{
+		static const TCHAR* Lbl[3] = { TEXT("REDÉMARRER"), TEXT("OPTIONS"), TEXT("QUITTER") };
+		static const TCHAR* Cf[3] = { TEXT("CONFIRMER : REDÉMARRER"), TEXT(""), TEXT("CONFIRMER : QUITTER") };
+		const int32 Cfm = UI.GetPauseConfirm();
+		for (int32 I = 0; I < 3; ++I)
+		{
+			const bool bWarn = Cfm == I;
+			Button(P, bWarn ? Cf[I] : Lbl[I], Cx, 460.f + I * 92.f, 480.f, 66.f, bWarn ? 2 : UI.GetPauseSel() == I ? 1 : 0);
+		}
+		if (Cfm == 0) { P.Text(TEXT("La run en cours sera perdue : retour au Kibo."), Cx, 760.f, 2, 22.f, Orange, 1); }
+		if (Cfm == 2) { P.Text(TEXT("Le jeu se ferme. La progression du Kibo est gardée, pas la run en cours."), Cx, 760.f, 2, 22.f, Orange, 1); }
+		P.Text(bPad ? TEXT("CROIX : CHOISIR     (A) : VALIDER     (B) : REPRENDRE") : TEXT("FLÈCHES OU Z/S : CHOISIR     ENTRÉE : VALIDER     ÉCHAP : REPRENDRE"),
+			Cx, 980.f, 0, 16.f, A(Amber, 0.7f), 1);
+		return;
+	}
+	// Options.
+	const TArray<UEONUISubsystem::FOptRow> Rows = UI.OptionRows();
+	const float Wd = 900.f, X0 = Cx - Wd * 0.5f, Y0 = 330.f, Lh = 64.f, Ch = 26.f;
+	const float H = (Rows.Num() - 1) * Lh + 40.f;
+	P.Poly({ { X0, Y0 }, { X0 + Wd, Y0 }, { X0 + Wd, Y0 + H - Ch }, { X0 + Wd - Ch, Y0 + H }, { X0, Y0 + H } }, A(Bg, 0.9f));
+	P.Line({ { X0, Y0 }, { X0 + Wd, Y0 }, { X0 + Wd, Y0 + H - Ch }, { X0 + Wd - Ch, Y0 + H }, { X0, Y0 + H }, { X0, Y0 } }, A(Amber, 0.6f), 1.5f);
+	for (int32 I = 0; I < Rows.Num() - 1; ++I)
+	{
+		const bool bOn = UI.GetOptSel() == I;
+		const float Y = Y0 + 20.f + I * Lh;
+		if (bOn)
+		{
+			P.Rect(X0 + 8.f, Y, Wd - 16.f, Lh - 8.f, A(Amber, 0.14f));
+			P.Rect(X0 + 8.f, Y, 5.f, Lh - 8.f, Amber);
+		}
+		P.Text(Rows[I].L, X0 + 40.f, Y + 14.f, 0, 24.f, bOn ? White : A(White, 0.7f));
+		const FLinearColor Vc = Rows[I].V == TEXT("OUI") ? Green : bOn ? Amber : A(White, 0.85f);
+		const float Vx = X0 + Wd - 90.f, Vw = P.Measure(Rows[I].V, 0, 24.f).X;
+		P.Text(Rows[I].V, Vx, Y + 14.f, 0, 24.f, Vc, 2);
+		if (bOn)
+		{
+			const float Ay = Y + Lh * 0.5f - 4.f;
+			P.Line({ { Vx - Vw - 24.f, Ay - 10.f }, { Vx - Vw - 34.f, Ay }, { Vx - Vw - 24.f, Ay + 10.f } }, Amber, 2.5f);
+			P.Line({ { Vx + 24.f, Ay - 10.f }, { Vx + 34.f, Ay }, { Vx + 24.f, Ay + 10.f } }, Amber, 2.5f);
+		}
+		if (I < Rows.Num() - 2) { P.Line({ { X0 + 40.f, Y + Lh - 4.f }, { X0 + Wd - 40.f, Y + Lh - 4.f } }, A(White, 0.08f), 1.f); }
+	}
+	const int32 Last = Rows.Num() - 1;
+	Button(P, Rows[Last].L, Cx, Y0 + H + 40.f, 360.f, 60.f, UI.GetOptSel() == Last ? 1 : 0);
+	P.Text(bPad ? TEXT("CROIX HAUT/BAS : CHOISIR     GAUCHE/DROITE : RÉGLER     (B) : RETOUR") : TEXT("Z/S : CHOISIR     Q/D OU FLÈCHES : RÉGLER     ÉCHAP : RETOUR"),
+		Cx, 980.f, 0, 16.f, A(Amber, 0.7f), 1);
 }

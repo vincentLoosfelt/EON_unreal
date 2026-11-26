@@ -2,6 +2,8 @@
 // - Dialogues : boîte en bas, portrait provisoire, texte lettre par lettre (46 car/s), file d'attente (pendingDialog).
 // - Terminal du C.O.M : 5 onglets (Améliorations, Logs, Quêtes, Descente, Cassettes).
 // - Écran titre : Continuer / Nouvelle partie (deux appuis pour effacer).
+// - Menu pause (Échap / Menu) : Redémarrer, Options, Quitter (deux appuis pour confirmer) ; Échap reprend.
+// - Options : volume, affichage, résolution, V-sync, limite d'images, qualité (GameUserSettings.ini).
 // L'état vit ici, l'entrée est lue par AEONPlayerController (TickUI, même en pause), le dessin par AEONHUD.
 #pragma once
 
@@ -69,11 +71,28 @@ public:
 	bool IsTitleConfirm() const { return bTitleConfirm; }
 	void OpenTitle(TFunction<void()> OnNew);
 
+	// --- Menu pause et Options
+	bool IsPauseOpen() const { return bPause; }
+	int32 GetPauseSel() const { return PauseSel; }
+	/** Bouton qui attend son second appui (0 Redémarrer, 2 Quitter), sinon -1. */
+	int32 GetPauseConfirm() const { return PauseConfirm; }
+	bool IsOptionsOpen() const { return bOptions; }
+	int32 GetOptSel() const { return OptSel; }
+	struct FOptRow { FString L; FString V; };
+	/** Lignes des Options (la dernière : RETOUR, sans valeur). */
+	TArray<FOptRow> OptionRows() const;
+	void OpenPause();
+	void ClosePause();
+	/** Volume général enregistré (0 à 1), appliqué au périphérique audio. */
+	static float GetSavedVolume();
+	static void ApplyVolume(UWorld* W);
+
 	/** Un de ces écrans est ouvert : le jeu est figé, Jira ne reçoit plus d'entrée. */
-	bool IsBlocking() const { return bTitle || bCom || IsDialogOpen(); }
+	bool IsBlocking() const { return bTitle || bCom || bPause || IsDialogOpen(); }
 	/** Fermé depuis moins de 0,25 s : la touche qui a fermé ne doit pas rouvrir autre chose. */
 	bool JustClosed() const;
-	/** Commande eon.ui (tests) : continuer, nouvelle, suite, passer. */
+	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
+	/** Commande eon.ui (tests) : continuer, nouvelle, suite, passer ; pause, haut, bas, gauche, droite, valider, retour. */
 	void DevAction(const FString& A);
 		/** Appelé par le contrôleur à chaque image, en temps réel, même en pause. */
 	void TickUI(APlayerController* PC, float RealDt);
@@ -83,6 +102,9 @@ private:
 	void DlgClose();
 	void SyncPause();
 	int32 ComCount(int32 Tab) const;
+	void PauseAct();
+	void OptChange(int32 Dir);
+	void PauseNav(int32 Dir);
 
 	TArray<FEONDlgLine> Dlg;
 	int32 DlgI = 0;
@@ -102,6 +124,13 @@ private:
 	bool bTitleConfirm = false;
 	float TitleAutoT = 0.f;
 	TFunction<void()> TitleNew;
+
+	bool bPause = false;
+	int32 PauseSel = 0;
+	int32 PauseConfirm = -1;
+	bool bOptions = false;
+	int32 OptSel = 0;
+	bool bDevWasOpen = false;
 
 	bool bWePaused = false;
 	double ClosedAt = -10.0;
