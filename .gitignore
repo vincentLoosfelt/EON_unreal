@@ -16,3 +16,8 @@ __pycache__/
 
 # Sources du pack Old-School Shonen (1 Go) : gardées en local, les .uasset suffisent
 Audio_Sources/OldSchoolShonen/*.wav
+# Prises découpées et tirs dérivés du pack Shonen : régénérables, les .uasset suffisent
+Audio_Sources/OldSchoolShonen/Prises/
+Audio_Sources/OldSchoolShonen/Tirs/
+# Journaux d'ordre d'ouverture écrits par la cuisson
+Build/Windows/FileOpenOrder/
