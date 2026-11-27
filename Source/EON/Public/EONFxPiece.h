@@ -31,6 +31,8 @@ public:
 	UStaticMeshComponent* AddMesh(class UStaticMesh* Mesh, UMaterialInstanceDynamic* Mid, const FVector& Scale);
 
 	float Life = 0.2f;
+	/** Non nul : l'effet ne vit qu'une image rendue (celle de son numéro GFrameCounter), puis disparaît (flash d'impact). */
+	uint64 UneImage = 0;
 	float Age = 0.f;
 	/** Opacité de départ ; l'opacité décroît linéairement jusqu'à 0 sur Life (sauf bNoFade). */
 	float Opacity0 = 1.f;
@@ -38,7 +40,7 @@ public:
 	/** Annonces : Remplissage de 0 à 1 sur Life (cercle, cône, ligne qui se remplissent). */
 	bool bFill = false;
 	/** Animé à 12 i/s (Vincent, 24/11 : effets « en 2 » comme les persos) : l'âge visible avance par bonds de 1/12 s. */
-	bool bPas12 = false;
+	bool bPas12 = true;   // Vincent, 26/11 : tout ce qui est animé est à 12 i/s
 	UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> Grow;
 	FVector Grow0 = FVector::OneVector, Grow1 = FVector::OneVector;
 	float GrowT = 0.15f;

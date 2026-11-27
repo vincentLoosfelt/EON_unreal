@@ -57,6 +57,7 @@ namespace EONVitrine
 	static int32 GBullets0 = 0;
 	static FVector2D GAt = FVector2D::ZeroVector;
 	static FVector2D GJiraAt = FVector2D::ZeroVector;   // place de Jira dans la vitrine COM-V9_Video
+	static FVector GMur = FVector::ZeroVector;           // point du mur visé (vitrine IMP-V_Video)
 	static bool GFlag = false;
 	static int32 GFrame = 0;
 
@@ -385,6 +386,75 @@ namespace EONVitrine
 		  };
 		  S.Target = []() { return Feet() + FVector(0.f, 0.f, EON::PxToCm(10.f)); }; S.WidthPx = 200.f;
 		  S.After = []() { KillTout(); }; GSteps.Add(S); }
+		// Impacts au mur (Vincent, 26/11) : Jira à 70 px d'un mur, face à lui, tire 5 s ; plan entre elle et le mur.
+		// Mur cherché par un rayon depuis le centre dégagé.
+		{ FStep S; S.Name = TEXT("IMP-V_Video"); S.VideoFrames = 150;
+		  S.Start = []()
+		  {
+			  if (GEngine) { GEngine->Exec(GVWorld.Get(), TEXT("eon.forme large")); }
+			  KillTout();
+			  AEONCharacter* J = Jira();
+			  if (!J) { return; }
+			  const FVector2D C = CentreDegage(nullptr);
+			  const FVector From = RoomW(C, 14.f);
+			  FCollisionQueryParams Q; Q.AddIgnoredActor(J);
+			  float Best = 1e9f; FVector Mur = From + FVector(EON::PxToCm(140.f), 0.f, 0.f); FVector Dir1(1.f, 0.f, 0.f);
+			  // Mur du fond seulement (caméra tournée vers -Y) : sa face est vue de face et éclairée (traces noires visibles).
+			  for (const FVector& D : { FVector(0.f, -1.f, 0.f) })
+			  {
+				  FHitResult H;
+				  if (GVWorld->LineTraceSingleByChannel(H, From, From + D * 20000.f, ECC_Visibility, Q) && H.Distance < Best) { Best = H.Distance; Mur = H.ImpactPoint; Dir1 = D; }
+			  }
+			  const FVector Pos = Mur - Dir1 * EON::PxToCm(70.f);
+			  J->SetActorLocation(FVector(Pos.X, Pos.Y, J->GetActorLocation().Z), false, nullptr, ETeleportType::TeleportPhysics);
+			  GJiraAt = FVector2D(Pos.X, Pos.Y);   // ici en monde : Jira tenue à 70 px du mur
+			  GMur = Mur;
+			  GAt = FVector2D(Dir1.X, Dir1.Y); GFrame = 0;   // GAt : direction du mur (monde)
+			  UE_LOG(LogTemp, Display, TEXT("EON vitrine : mur à %.0f cm, direction %s"), Best, *Dir1.ToCompactString());
+		  };
+		  S.Ready = [](double)
+		  {
+			  Passer();
+			  KillTout();
+			  if (AEONCharacter* J = Jira())
+			  {
+				  J->SetActorLocation(FVector(GJiraAt.X, GJiraAt.Y, J->GetActorLocation().Z), false, nullptr, ETeleportType::TeleportPhysics);
+				  J->SetAimAngle(FMath::Atan2(GAt.Y, GAt.X)); J->SetFireHeld(GFrame >= 10 && GFrame < 130);
+			  }
+			  return false;
+		  };
+		  // Plan entre Jira et le point d'impact (les deux dans le cadre).
+		  S.Target = []() { const FVector F = Feet(); return FVector((F.X + GMur.X) * 0.5f, (F.Y + GMur.Y) * 0.5f, F.Z + EON::PxToCm(10.f)); }; S.WidthPx = 200.f;
+		  S.After = []() { if (AEONCharacter* J = Jira()) { J->SetFireHeld(false); } };
+		  GSteps.Add(S); }
+		// Dégât de Jira (Vincent, 26/11) : coup léger de droite, coup léger de gauche, coup fort (2 PV) de droite, dans
+		// une grande salle dégagée. Invincibilité coupée le temps de la prise, PV remis au plein avant chaque coup ; le
+		// bouclier (cassette Shield) est consommé avant la prise et les ennemis de la salle tués à chaque image.
+		{ FStep S; S.Name = TEXT("DEG-V_Video"); S.VideoFrames = 220;
+		  S.Start = []()
+		  {
+			  if (GEngine) { GEngine->Exec(GVWorld.Get(), TEXT("eon.forme large")); GEngine->Exec(GVWorld.Get(), TEXT("eon.feel God false")); }
+			  const FVector2D C = CentreDegage(nullptr);
+			  if (AEONCharacter* J = Jira()) { J->SetActorLocation(RoomW(C, 0.f) + FVector(0.f, 0.f, J->GetSimpleCollisionHalfHeight()), false, nullptr, ETeleportType::TeleportPhysics); }
+			  GAt = C; GFrame = 0;
+			  KillTout();
+			  if (AEONCharacter* J = Jira()) { if (J->GetShield() > 0) { J->HurtPlayer(1, J->GetActorLocation()); } J->Heal(99); }
+		  };
+		  S.Ready = [](double)
+		  {
+			  Passer();
+			  KillTout();
+			  AEONCharacter* J = Jira();
+			  if (!J) { return false; }
+			  const auto Coup = [J](int32 N, float DxPx) { J->Heal(99); J->HurtPlayer(N, RoomW(JPx() + FVector2D(DxPx, 0.f), 0.f)); };
+			  if (GFrame == 40) { Coup(1, 40.f); }
+			  if (GFrame == 100) { Coup(1, -40.f); }
+			  if (GFrame == 160) { Coup(2, 40.f); }
+			  return false;
+		  };
+		  S.Target = []() { return RoomW(JPx(), 12.f); }; S.WidthPx = 110.f;   // la caméra suit Jira (le recul la déplace)
+		  S.After = []() { if (GEngine) { GEngine->Exec(GVWorld.Get(), TEXT("eon.feel God true")); } if (AEONCharacter* J = Jira()) { J->Heal(99); } };
+		  GSteps.Add(S); }
 		{ FStep S; S.Name = TEXT("COM-V9_Video"); S.VideoFrames = 225;
 		  S.Start = []()
 		  {

@@ -30,8 +30,9 @@ namespace
 			TEXT("/Game/EON/VFX/NS_EON_Feu.NS_EON_Feu"),
 			TEXT("/Game/EON/VFX/NS_EON_FeuLobes.NS_EON_FeuLobes"),
 			TEXT("/Game/EON/VFX/NS_EON_FumeeExplo.NS_EON_FumeeExplo"),
-			TEXT("/Game/EON/VFX/NS_EON_FumeeExploLobes.NS_EON_FumeeExploLobes") };
-		static TStrongObjectPtr<UNiagaraSystem> Cache[9];
+			TEXT("/Game/EON/VFX/NS_EON_FumeeExploLobes.NS_EON_FumeeExploLobes"),
+			TEXT("/Game/EON/VFX/NS_EON_Etincelles.NS_EON_Etincelles") };
+		static TStrongObjectPtr<UNiagaraSystem> Cache[10];
 		if (!Cache[Which].IsValid()) { Cache[Which].Reset(LoadObject<UNiagaraSystem>(nullptr, Paths[Which])); }
 		return Cache[Which].Get();
 	}
@@ -54,15 +55,19 @@ namespace
 		return C;
 	}
 
+	void Pas12(UNiagaraComponent* C);
 	void Common(UNiagaraComponent* C, int32 N, const FLinearColor& Col, float Life, float SizePx, float Drag)
 	{
 		C->SetVariableInt(TEXT("User.Count"), N);
 		C->SetVariableLinearColor(TEXT("User.Color"), Col);
 		C->SetVariableFloat(TEXT("User.Life"), Life);
-		const float Sz = EON::PxToCm(SizePx);
+		// Étoile à 4 branches (M_EON_Particule, Vincent, 26/11 : plus de carré pixel) : elle ne remplit qu'une partie
+		// de son sprite, qui est donc 2,2 fois plus grand que l'ancien carré.
+		const float Sz = EON::PxToCm(SizePx) * 2.2f;
 		C->SetVariableVec2(TEXT("User.Size"), FVector2D(Sz, Sz));
 		C->SetVariableFloat(TEXT("User.Drag"), Drag);
 		C->Activate(true);
+		Pas12(C);
 	}
 }
 
@@ -104,6 +109,26 @@ void EONFx::Gerbe2(const UObject* Ctx, const FVector& At, int32 N, int32 Every, 
 	Gerbe(Ctx, At, Nb, B, SpeedPx, Life, SizePx, Drag, RadiusPx);
 }
 
+void EONFx::Etincelles(const UObject* Ctx, const FVector& At, const FVector& Dir, int32 N, const FLinearColor& Col, float SpeedPx, float Life, float WidthPx, float LenPx, float Drag)
+{
+	const FVector D = Dir.GetSafeNormal();
+	if (N <= 0 || D.IsNearlyZero()) { return; }
+	if (UNiagaraComponent* C = Start(Ctx, 9, At))
+	{
+		C->SetVariableFloat(TEXT("User.Speed"), EON::PxToCm(SpeedPx));
+		C->SetVariableFloat(TEXT("User.Radius"), 0.f);
+		C->SetVariableVec3(TEXT("User.Dir"), D);
+		C->SetVariableInt(TEXT("User.Count"), N);
+		C->SetVariableLinearColor(TEXT("User.Color"), Col);
+		C->SetVariableFloat(TEXT("User.Life"), Life);
+		// Alignées sur la vitesse : X = largeur, Y = longueur (dans le sens du mouvement).
+		C->SetVariableVec2(TEXT("User.Size"), FVector2D(EON::PxToCm(WidthPx), EON::PxToCm(LenPx)));
+		C->SetVariableFloat(TEXT("User.Drag"), Drag);
+		C->Activate(true);
+		Pas12(C);
+	}
+}
+
 void EONFx::GerbeDir2(const UObject* Ctx, const FVector& At, const FVector& Dir, int32 N, int32 Every, const FLinearColor& A, const FLinearColor& B, float SpeedPx, float Life, float SizePx, float Drag)
 {
 	const int32 Nb = Every > 0 ? (N + Every - 1) / Every : 0;
@@ -117,6 +142,14 @@ namespace
 	/** Fumées vivantes et temps accumulé depuis leur dernier bond. */
 	struct FPas { TWeakObjectPtr<UNiagaraComponent> C; float Acc = 0.f; float Reste = 10.f; };
 	TArray<FPas> GPas;
+	/** Vincent, 26/11 : tout ce qui est animé est à 12 i/s. Gerbes, étincelles et anneaux Niagara avancent par
+	 *  bonds de 1/12 s, comme la fumée (PasFumee). */
+	void Pas12(UNiagaraComponent* C)
+	{
+		if (!C) { return; }
+		FPas P; P.C = C; P.Acc = 1.f / 12.f; P.Reste = 6.f;
+		GPas.Add(P);
+	}
 	TAutoConsoleVariable<int32> CVarFumee12(TEXT("eon.fx.fumee12"), 1, TEXT("Fumée toon animée à 12 i/s (1) ou fluide (0)."));
 
 	/** Avant le tick des acteurs : une fumée ne bouge que lorsqu'elle a accumulé 1/12 s ; ce tick-là, sa dilatation
@@ -189,6 +222,7 @@ void EONFx::Anneau(const UObject* Ctx, const FVector& At, float RadiusPx, float 
 		C->SetVariableFloat(TEXT("User.Life"), Life);
 		C->SetVariableVec2(TEXT("User.Size"), FVector2D(D, D));
 		C->Activate(true);
+		Pas12(C);
 	}
 }
 
@@ -474,7 +508,7 @@ namespace
 	}
 }
 
-void EONFx::FlashTir(const UObject* Ctx, const FVector& At, const FVector& Dir, const FLinearColor& Col, float SizePx, float LightRadiusPx)
+void EONFx::FlashTir(const UObject* Ctx, const FVector& At, const FVector& Dir, const FLinearColor& Col, float SizePx, float LightRadiusPx, bool bUneImage)
 {
 	// Vincent, 25/11 : « émission blanche à halo » de la couleur de l'arme. Deux couches de la même étoile, tenues une
 	// image à 12 i/s : derrière, le halo (étoile ×1,7, couleur de l'arme) ; devant, le cœur blanc, un peu vers la caméra.
@@ -498,6 +532,8 @@ void EONFx::FlashTir(const UObject* Ctx, const FVector& At, const FVector& Dir, 
 		F->FaceLift = VersCamera;
 		F->FacePlane = F->AddPlane(M, FVector::ZeroVector, 0.f, Taille, Taille);
 		F->UpdateFace();
+		// Flash d'impact (Vincent, 26/11 : 16 ms, une image) : vu sur l'image où il naît, retiré à la suivante.
+		if (bUneImage) { F->UneImage = GFrameCounter; }
 		return F;
 	};
 	AEONFxPiece* Halo = Couche(Col, S * 1.7f, 0.f);
@@ -563,7 +599,8 @@ void EONFx::OndesChocActives(TArray<FOndeChocVue>& Out)
 	Out.Reset();
 	for (const FOnde& O : GOndes)
 	{
-		const float K = (float)((GHorlogeGC - O.T0) / O.Duree);
+		// 12 i/s (Vincent, 26/11) : l'onde grandit par bonds de 1/12 s.
+		const float K = (float)(FMath::FloorToDouble((GHorlogeGC - O.T0) * 12.0) / 12.0 / O.Duree);
 		if (K < 0.f || K >= 1.f) { continue; }
 		const float Ease = 1.f - FMath::Square(1.f - K);
 		FOndeChocVue& V = Out.AddDefaulted_GetRef();
@@ -594,8 +631,30 @@ const EONFx::FGrosCoup* EONFx::GrosCoupActif(float* OutAge)
 {
 	const float Age = (float)(GHorlogeGC - GGrosCoup.T0);
 	if (Age < 0.f || Age >= GrosCoupDuree) { return nullptr; }
-	if (OutAge) { *OutAge = Age; }
+	if (OutAge) { *OutAge = FMath::FloorToFloat(Age * 12.f) / 12.f; }   // 12 i/s (Vincent, 26/11)
 	return &GGrosCoup;
+}
+
+void EONFx::TraceMur(const UObject* Ctx, const FVector& At, const FVector& Normal, float SizePx, float Life)
+{
+	const FVector N = Normal.GetSafeNormal();
+	if (N.IsNearlyZero()) { return; }
+	AEONFxPiece* F = SpawnPiece(Ctx, At + N * 0.5f, Life);
+	if (!F) { return; }
+	UMaterialInstanceDynamic* M = PlancheMid(F, TEXT("/Game/EON/VFX/Planches/T_EON_VFX_P4_Flash.T_EON_VFX_P4_Flash"), 2.f, 2.f, FLinearColor(0.015f, 0.013f, 0.012f));
+	if (!M) { F->Destroy(); return; }
+	M->SetScalarParameterValue(TEXT("Image"), (float)FMath::RandRange(0, 3));
+	F->bNoFade = true;
+	const float S = EON::PxToCm(SizePx) * FMath::FRandRange(0.8f, 1.2f);
+	UStaticMeshComponent* P = F->AddPlane(M, FVector::ZeroVector, 0.f, S, S);
+	// Le plan (normale +Z) collé au mur, tourné au hasard autour de la normale.
+	const FVector T = FVector::CrossProduct(N, FMath::Abs(N.Z) < 0.9f ? FVector::UpVector : FVector::ForwardVector).GetSafeNormal();
+	P->SetWorldRotation(FRotationMatrix::MakeFromZX(N, T.RotateAngleAxis(FMath::FRandRange(0.f, 360.f), N)).Rotator());
+	F->bTacheSol = true;   // érosion de la dernière seconde, comme les taches au sol
+	static TArray<TWeakObjectPtr<AEONFxPiece>> Traces;
+	Traces.RemoveAll([](const TWeakObjectPtr<AEONFxPiece>& X) { return !X.IsValid(); });
+	Traces.Add(F);
+	while (Traces.Num() > 100) { if (AEONFxPiece* Old = Traces[0].Get()) { Old->Destroy(); } Traces.RemoveAt(0); }
 }
 
 void EONFx::TacheSol(const UObject* Ctx, const FVector& At, float Yaw, float SizeCm, const FLinearColor& Col, float Delay, float Life)

@@ -56,7 +56,7 @@ private:
 	FVector ShotDir = FVector::ForwardVector;
 	FLinearColor Color = FLinearColor::White;
 	/** Étincelles à l'arrêt contre un mur. */
-	void WallSparks();
+	void WallSparks(const FHitResult& Hit);
 	float LifeSeconds = 1.f;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> Mid;
 	/** JIR-V13 : traînée (dégradé vers la balle) et halo, en M_EON_Glow couleur du tir. */

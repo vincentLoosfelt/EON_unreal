@@ -27,6 +27,9 @@ namespace EONFx
 
 	/** Gerbe à deux couleurs : « i%Every ? A : B » du proto (B une fois sur Every). */
 	EON_API void Gerbe2(const UObject* Ctx, const FVector& At, int32 N, int32 Every, const FLinearColor& A, const FLinearColor& B, float SpeedPx, float Life, float SizePx = 1.f, float Drag = 4.f, float RadiusPx = 0.f);
+	/** Étincelles en traînées (Vincent, 26/11 : « des trails orange ») : aiguilles alignées sur leur vitesse
+	 *  (NS_EON_Etincelles, M_EON_Trainee), cône de 63° autour de Dir. WidthPx × LenPx : taille d'une traînée. */
+	EON_API void Etincelles(const UObject* Ctx, const FVector& At, const FVector& Dir, int32 N, const FLinearColor& Col, float SpeedPx, float Life, float WidthPx = 1.2f, float LenPx = 7.f, float Drag = 6.f);
 	EON_API void GerbeDir2(const UObject* Ctx, const FVector& At, const FVector& Dir, int32 N, int32 Every, const FLinearColor& A, const FLinearColor& B, float SpeedPx, float Life, float SizePx = 1.f, float Drag = 4.f);
 
 	/** Arrêt sur image (Vincent, 24/11 : « 15 % comme le proto ») : pendant le gel global (0,0001), les effets EONFx
@@ -72,7 +75,8 @@ namespace EONFx
 	 *  (FlashTirEmission), tenue une image à 12 i/s. SizePx : taille de l'étoile (px du proto). LightRadiusPx > 0 : lumière en plus (tirs ennemis ;
 	 *  Jira a déjà la sienne, JIR-V1). */
 	constexpr float FlashTirEmission = 6.f;
-	EON_API void FlashTir(const UObject* Ctx, const FVector& At, const FVector& Dir, const FLinearColor& Col, float SizePx = 7.f, float LightRadiusPx = 0.f);
+	/** bUneImage : flash d'une seule image rendue (impacts), au lieu d'une image à 12 i/s. */
+	EON_API void FlashTir(const UObject* Ctx, const FVector& At, const FVector& Dir, const FLinearColor& Col, float SizePx = 7.f, float LightRadiusPx = 0.f, bool bUneImage = false);
 	/** Fantôme : copie de la pose de Src, couleur Col additive à Alpha, qui s'efface sur Life. */
 	EON_API AEONFxPiece* Fantome(const UObject* Ctx, USkeletalMeshComponent* Src, const FLinearColor& Col, float Alpha, float Life);
 	/** Rayon lumineux de From à To (Vincent, 24/11 : armes de Jira hors debug) : ruban couleur Col de largeur WidthCm,
@@ -92,6 +96,9 @@ namespace EONFx
 	EON_API void Giclee(const UObject* Ctx, const FVector& At, const FVector& Dir, float SizeCm, const FLinearColor& Col, float Life = 0.3f, float LiftCm = 0.f);
 	/** Tache de sang au sol (planche P3, 6 formes) : posée à plat en At (sol), axe +X = Yaw (sens du tir), après Delay s,
 	 *  reste Life s et s'érode la dernière seconde. 100 au plus (les plus anciennes partent). */
+	/** Trace noire d'impact de balle sur un mur (Vincent, 26/11) : étoile de la planche P4 teintée de noir, collée au mur
+	 *  (Normal = normale du mur), tournée au hasard, SizePx de côté ; reste Life s puis s'érode (100 traces au plus). */
+	EON_API void TraceMur(const UObject* Ctx, const FVector& At, const FVector& Normal, float SizePx = 5.f, float Life = 10.f);
 	EON_API void TacheSol(const UObject* Ctx, const FVector& At, float Yaw, float SizeCm, const FLinearColor& Col, float Delay = 0.15f, float Life = 10.f);
 
 	/** Gros coup (Vincent, 25/11 : morts d'élite, explosions, ultime) : écran bichrome (noir + Col) 2 images à 12 i/s,

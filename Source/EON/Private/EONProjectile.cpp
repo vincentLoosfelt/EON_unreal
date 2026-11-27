@@ -146,7 +146,7 @@ void AEONProjectile::OnBounce(const FHitResult& Hit, const FVector& ImpactVeloci
 		return;
 	}
 	++StatWalls;
-	WallSparks();
+	WallSparks(Hit);
 	if (StatWalls <= 40)
 	{
 		UE_LOG(LogTemp, Display, TEXT("EON balle arretee par %s / %s en %s (z %.0f, n %s)"), A ? *A->GetName() : TEXT("-"),
@@ -155,11 +155,19 @@ void AEONProjectile::OnBounce(const FHitResult& Hit, const FVector& ImpactVeloci
 	Destroy();
 }
 
-void AEONProjectile::WallSparks()
+void AEONProjectile::WallSparks(const FHitResult& Hit)
 {
 	// Mort au mur : éclats dessinés (planche P1, Vincent 25/11 : « que sur des impacts sur le décor ») à la place des
 	// 4 carrés, couleur du tir, renvoyés vers le tireur, 8 images en 0,25 s.
-	EONFx::Eclats(this, GetActorLocation(), -ShotDir, 40.f, Color, 0.25f, 15.f);
+	// Vincent, 26/11 : l'impact est orange (éclats, flash), flash tenu une seule image (16 ms), étincelles en traînées
+	// orange qui jaillissent du mur, trace noire sur le mur.
+	const FLinearColor Orange = EONFx::Hex(TEXT("ff8a1e"));
+	EONFx::Eclats(this, GetActorLocation(), -ShotDir, 40.f, Orange, 0.25f, 15.f);
+	const FVector N = Hit.bBlockingHit && !Hit.ImpactNormal.IsNearlyZero() ? FVector(Hit.ImpactNormal) : -ShotDir;
+	const FVector P = Hit.bBlockingHit ? FVector(Hit.ImpactPoint) : GetActorLocation();
+	EONFx::FlashTir(this, P + N * EON::PxToCm(1.f), N, Orange, 6.f, 0.f, true);
+	EONFx::Etincelles(this, P + N * EON::PxToCm(1.f), N, 10, Orange, 200.f, 0.25f, 0.45f, 7.f);   // Vincent, 26/11 : plus fines
+	if (Hit.bBlockingHit) { EONFx::TraceMur(this, P, N); }
 }
 
 void AEONProjectile::OnStop(const FHitResult& Hit)
@@ -178,7 +186,7 @@ void AEONProjectile::OnStop(const FHitResult& Hit)
 	else
 	{
 		++StatWalls;
-		WallSparks();
+		WallSparks(Hit);
 		if (StatWalls <= 25)
 		{
 			UE_LOG(LogTemp, Display, TEXT("EON balle arretee par %s / %s en %s (z depart %.0f)"), Hit.GetActor() ? *Hit.GetActor()->GetName() : TEXT("-"),

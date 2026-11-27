@@ -131,6 +131,7 @@ void AEONFxPiece::Tick(float Dt)
 {
 	Super::Tick(Dt);
 	if (bShell) { TickShell(Dt); return; }
+	if (UneImage && GFrameCounter > UneImage) { Destroy(); return; }
 	if (Delay > 0.f)
 	{
 		Delay -= Dt;
@@ -150,15 +151,15 @@ void AEONFxPiece::Tick(float Dt)
 		const float A = FMath::Clamp(VAge / FMath::Max(GrowT, 0.01f), 0.f, 1.f);
 		Grow->SetRelativeScale3D(FMath::Lerp(Grow0, Grow1, A));
 	}
-	const float Img = bFlip ? FMath::Min((float)(FlipN - 1), FMath::FloorToFloat(Age / Life * FlipN)) : -1.f;
+	const float Img = bFlip ? FMath::Min((float)(FlipN - 1), FMath::FloorToFloat(VAge / Life * FlipN)) : -1.f;
 	if (FacePlane) { UpdateFace(); }
 	for (UMaterialInstanceDynamic* M : Mids)
 	{
 		if (!M) { continue; }
 		if (Img >= 0.f) { M->SetScalarParameterValue(TEXT("Image"), Img); }
-		if (bTacheSol) { M->SetScalarParameterValue(TEXT("Opacite"), FMath::Clamp(Life - Age, 0.f, 1.f)); }
+		if (bTacheSol) { M->SetScalarParameterValue(TEXT("Opacite"), FMath::Clamp(Life - VAge, 0.f, 1.f)); }
 		if (!bNoFade) { M->SetScalarParameterValue(TEXT("Opacite"), Opacity0 * K); }
-		if (bFill) { M->SetScalarParameterValue(TEXT("Remplissage"), Age / Life); }
+		if (bFill) { M->SetScalarParameterValue(TEXT("Remplissage"), VAge / Life); }
 	}
 	// Boule de charge : la lueur croît avec la boule ; sinon elle décroît (carré de la vie restante).
 	if (Light) { Light->SetIntensity(Grow ? Light0 * FMath::Square(FMath::Clamp(VAge / FMath::Max(GrowT, 0.01f), 0.f, 1.f)) : Light0 * K * K); }

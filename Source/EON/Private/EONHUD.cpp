@@ -129,13 +129,20 @@ void AEONHUD::DrawNums()
 	U = Canvas->ClipY / 270.f;
 	for (const AEONCombatDirector::FNum& N : D->GetNums())
 	{
-		const FVector P = Project(N.Loc, false);
+		// 12 i/s (Vincent, 26/11) : le chiffre monte par bonds. Le directeur le déplace en continu (z += v·dt,
+		// v -= 60·dt, en px) ; on le replace à la hauteur qu'il avait au dernier bond de 1/12 s.
+		const float TR = N.Life0 - N.Life;
+		const float TS = FMath::FloorToFloat(TR * 12.f) / 12.f;
+		const float V0 = N.VelZ + 60.f * TR;
+		auto Haut = [V0](float T) { return V0 * T - 30.f * T * T; };
+		const FVector P = Project(N.Loc + FVector(0.f, 0.f, EON::PxToCm(Haut(TS) - Haut(TR))), false);
 		if (P.Z <= 0.f) { continue; }
 		// Jaillit : 1,7 fois plus gros à l'apparition, revient à sa taille en 0,12 s ; s'efface dans le dernier tiers.
-		const float Age = N.Life0 - N.Life;
+		// 12 i/s (Vincent, 26/11) : âge et vie restante par bonds de 1/12 s.
+		const float Age = FMath::FloorToFloat((N.Life0 - N.Life) * 12.f) / 12.f;
 		const float Pop = 1.f + 0.7f * FMath::Exp(-Age * 25.f);
 		const float Sc = U / 4.f * 0.75f * N.Taille * Pop;
-		const float A = FMath::Clamp(N.Life / FMath::Max(0.01f, N.Life0 * 0.33f), 0.f, 1.f);
+		const float A = FMath::Clamp((N.Life0 - Age) / FMath::Max(0.01f, N.Life0 * 0.33f), 0.f, 1.f);
 		FLinearColor Fill = FLinearColor(N.Col); Fill.A = A;
 		const FLinearColor Noir(0.f, 0.f, 0.f, A);
 		FCanvasTextItem T(FVector2D(P.X, P.Y), FText::FromString(N.Text), F, Noir);
